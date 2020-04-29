@@ -1,6 +1,14 @@
 from Agent import *
+from DQN.DQNAgent import *
 import gym
 import matplotlib.pyplot as plt
+
+def reward_func(env, x, x_dot, theta, theta_dot):  # TODO: do something about it
+    r1 = (env.x_threshold - abs(x)) / env.x_threshold - 0.5
+    r2 = (env.theta_threshold_radians - abs(theta)) / env.theta_threshold_radians - 0.5
+    reward = r1 + r2
+    return reward
+
 
 class Session:
     def __init__(self, params={}):
@@ -32,28 +40,32 @@ class Session:
         self.initialize_agent(params["agent_info"])
 
     def initialize_agent(self, params={}):
-        self.agent = Agent(params)
+        self.agent = DQNAgent(params)
 
     def episode(self, episode_id):
         state = self.environment.reset()
-        action = self.agent.agent_start(state)
+        action = self.agent.start(state)
         episode_reward = 0
         done = False
         success = False
-
+        if (self.show is True) and (episode_id % self.show_every == 0):
+            print(f'EPISODE: {episode_id}')
         while not done:
             new_state, reward, done, _ = self.environment.step(action)
+            x, x_dot, theta, theta_dot = new_state
+            reward = reward_func(self.environment, x, x_dot, theta, theta_dot)
             episode_reward += reward
 
             if (self.show is True) and (episode_id % self.show_every == 0):
                     self.environment.render()
 
+
             if not done:
-                action = self.agent.agent_step(new_state, reward)
+                action = self.agent.step(new_state, reward)
             else:
-                self.agent.agent_end(reward)
-                if new_state[0] >= self.environment.goal_position:
-                    success = True
+                self.agent.end(new_state, reward)
+                #if new_state[0] >= self.environment.goal_position:
+                #    success = True
                 return episode_reward, success
 
 
@@ -75,22 +87,31 @@ class Session:
 
 
 if __name__ == "__main__":
-    session_parameters = {"num_episodes": 500,
+    session_parameters = {"num_episodes": 300,
                           "plot": True,
                           "show": True,
-                          "show_every": 20}
-    agent_parameters = {"num_actions": 3,
-                   "is_greedy": True,
-                   "epsilon": 0.95,
-                   "learning_rate": 0.5,
-                   "discount_factor": 1,
-                   "control_method": "q-learning",
-                    "function_approximation_method": "neural network",
-                    "function_approximator": {
-                        "num_tiles": 4,
-                        "num_tilings": 32,
-                        "type": "neural network"
-                    }}
+                          "show_every": 10,
+                          "environment_name": "CartPole-v0"}
+    agent_parameters = {"num_actions": 2,
+                        "is_greedy": False,
+                        "epsilon": 0.9,
+                        "control_method": "q-learning",
+                        "function_approximation_method": "neural network",
+                        "function_approximator": {
+                            "num_tiles": 4,
+                            "num_tilings": 32,
+                            "type": "neural network"
+                        }}
+    function_approx_parameters = {"type": "neural network",
+                                  "state_dim": 4,
+                                  "action_dim": 2,
+                                  "memory_size": 2000,
+                                  "update_target_rate": 100,
+                                  "batch_size": 128,
+                                  "learning_rate": 0.01,
+                                  "discount_factor": 0.90
+                                }
+    agent_parameters["function_approximator"] = function_approx_parameters
     session_parameters["agent_info"] = agent_parameters
 
     sess = Session(session_parameters)

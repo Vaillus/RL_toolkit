@@ -20,6 +20,8 @@ class Experiment:
         self.init_sessions(params)
 
     def init_sessions(self, params):
+        """ Initialize sessions with parameters """
+        # isolate the parameters
         session_params = params.get("session_info")
         agent_params = session_params.get("agent_info")
         # creating the sessions with their own values
@@ -33,8 +35,6 @@ class Experiment:
         for key in params["session_variants"].keys():
             self.varying_params.append(key)
 
-
-        print(self.sessions)
 
     def run(self):
         rewards_by_session = []
@@ -79,22 +79,25 @@ class Experiment:
 
 
 if __name__ == "__main__":
-    agent_parameters = {"num_actions": 3,
-                        "is_greedy": False,
-                        "epsilon": 0.999,
-                        "learning_rate": 0.4,
-                        "discount_factor": 1,
-                        "control_method": "expected sarsa",
-                        "function_approximation_method": "tile coding",
-                        "function_approximator": {
-                            "num_tiles": 4,
-                            "num_tilings": 32
-                            }
-                        }
 
-
-    session_parameters = {"num_episodes": 100,
+    session_parameters = {"num_episodes": 300,
+                          "environment_name": "CartPole-v0",
                           "return_results": True}
+
+    agent_parameters = {"num_actions": 2,
+                        "is_greedy": False,
+                        "epsilon": 0.9,
+                        }
+    function_approx_parameters = {"type": "neural network",
+                                  "state_dim": 4,
+                                  "action_dim": 2,
+                                  "memory_size": 2000,
+                                  "update_target_rate": 100,
+                                  "batch_size": 128,
+                                  "learning_rate": 0.01,
+                                  "discount_factor": 0.90
+                                  }
+
 
     experiment_parameters = {"num_sessions":  2,
                              "session_variants": {

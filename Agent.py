@@ -1,4 +1,3 @@
-from TileCoderSutton import *
 from FunctionApproximator import *
 
 
@@ -18,8 +17,7 @@ class Agent:
         # parameters not set at initilization
         self.previous_action = None
         self.previous_state = None
-        self.previous_action_values = None
-
+        self.previous_action_values = None # TODO : useless for now
         self.set_params_from_dict(params)
 
     # ====== Initialization functions =======================================================
@@ -69,11 +67,16 @@ class Agent:
             delta = reward
         else:
             if self.function_approximation_method == "neural network":
-                max_action_value, _ = torch.max(action_values, -1)
-                previous_action_value = self.previous_action_values
+                pass
+                #max_action_value, _ = torch.max(action_values, -1)
+                #chosen_action_value = action_values[current_action]
+                #print(f'max action value : {max_action_value}')
+                #previous_action_value = self.previous_action_values
+                #print(f'previous action value : {previous_action_value}')
                                 # self.function_approximator.get_action_value(self.previous_state, self.previous_action)
-                delta = (previous_action_value[self.previous_action] - (reward + self.discount_factor * max_action_value)) **2
-
+                #delta = (previous_action_value[self.previous_action] - (reward + self.discount_factor * chosen_action_value)) **2
+                #print(f'delta : {delta}')
+                delta = None
             else:
                 previous_action_value = self.function_approximator.get_action_value(self.previous_state,
                                                                                     self.previous_action)
@@ -91,7 +94,8 @@ class Agent:
                         delta = reward + self.discount_factor * np.mean(action_values) - previous_action_value
         #print(self.function_approximator.tile_coder)
         #print(delta)
-        self.function_approximator.change_weights(self.learning_rate, delta, self.previous_state, self.previous_action)
+
+        self.function_approximator.compute_weights(self.learning_rate, delta, self.previous_state, self.previous_action)
 
 
     # ====== Agent core functions =======================================================
@@ -102,7 +106,9 @@ class Agent:
         # choosing the action to take
         if self.function_approximation_method == "neural network":
             numpy_action_values = action_values.clone().detach().numpy()
-        current_action = self.choose_action(numpy_action_values)
+            current_action = self.choose_action(numpy_action_values)
+        else:
+            current_action = self.choose_action(action_values)
 
         # saving the action and the tiles activated
         self.previous_action = current_action
@@ -114,14 +120,18 @@ class Agent:
 
 
     def agent_step(self, state, reward):
-
+        # getting the action values from the function approximator
         action_values = self.function_approximator.get_action_value(state)
         if self.function_approximation_method == "neural network":
+            # storing the transition in the function approximator memory for further use
+            self.function_approximator.store_transition(self.previous_state, self.previous_action, reward, state)
+            # choosing an action
             numpy_action_values = action_values.clone().detach().numpy()
             current_action = self.choose_action(numpy_action_values)
         else:
             current_action = self.choose_action(action_values)
 
+        #print(f'action taken : {current_action}')
         self.control(reward, action_values, current_action)
 
         self.previous_action = current_action
@@ -130,9 +140,8 @@ class Agent:
 
         return current_action
 
-    def agent_end(self, reward):
-        if self.function_approximation_method != "neural network": # TODO: check si c'est toujours pertinent
-            self.control(reward, last_state=True)
+    def agent_end(self, state, reward):
+        self.function_approximator.store_transition(self.previous_state, self.previous_action, reward, state)
 
 
 
