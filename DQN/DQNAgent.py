@@ -6,7 +6,7 @@ class DQNAgent:
         self.epsilon = None
         self.num_actions = None
         self.is_greedy = None
-        self.dqn = None
+        self.function_approximator = None
 
         # parameters not set at initilization
         self.previous_action = None
@@ -20,11 +20,11 @@ class DQNAgent:
         self.epsilon = params.get("epsilon", 0.9)
         self.num_actions = params.get("num_actions", 0)
         self.is_greedy = params.get("is_greedy", False)
-        params["function_approximator"]["num_actions"] = self.num_actions
-        self.initialize_dqn(params.get("function_approximator"))
+        params["function_approximator_info"]["num_actions"] = self.num_actions
+        self.initialize_dqn(params.get("function_approximator_info"))
 
     def initialize_dqn(self, params):
-        self.dqn = DQN(params)
+        self.function_approximator = DQN(params)
 
     # ====== Action choice related functions =======================================================
 
@@ -47,13 +47,13 @@ class DQNAgent:
     # ====== Control related functions =======================================================
 
     def control(self):
-        self.dqn.compute_weights()
+        self.function_approximator.compute_weights()
 
     # ====== Agent core functions =======================================================
 
     def start(self, state):
         # getting actions
-        action_values = self.dqn.get_action_value(state)
+        action_values = self.function_approximator.get_action_value(state)
         # choosing the action to take
         numpy_action_values = action_values.clone().detach().numpy() # TODO : check if still relevant
         current_action = self.choose_action(numpy_action_values)
@@ -67,10 +67,10 @@ class DQNAgent:
 
     def step(self, state, reward):
         # getting the action values from the function approximator
-        action_values = self.dqn.get_action_value(state)
+        action_values = self.function_approximator.get_action_value(state)
 
         # storing the transition in the function approximator memory for further use
-        self.dqn.store_transition(self.previous_state, self.previous_action, reward, state)
+        self.function_approximator.store_transition(self.previous_state, self.previous_action, reward, state)
         # choosing an action
         numpy_action_values = action_values.clone().detach().numpy() # TODO : check if still relevant
         current_action = self.choose_action(numpy_action_values)
@@ -83,5 +83,5 @@ class DQNAgent:
         return current_action
 
     def end(self, state, reward):
-        self.dqn.store_transition(self.previous_state, self.previous_action, reward, state)
+        self.function_approximator.store_transition(self.previous_state, self.previous_action, reward, state)
         self.control()

@@ -1,5 +1,5 @@
 import numpy as np
-
+from TileCoder.IHT import *
 
 class TileCoderSutton:
     def __init__(self, params):
@@ -9,8 +9,6 @@ class TileCoderSutton:
         self.num_tiles = None
         self.min_values = None
         self.max_values = None
-
-
 
         self.set_params_from_dict(params)
 

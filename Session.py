@@ -35,12 +35,12 @@ class Session:
 
     def set_env_and_agent(self, params):
         self.environment = gym.make(self.environment_name)
-        params["agent_info"]["function_approximator"]["env_min_values"] = self.environment.observation_space.low
-        params["agent_info"]["function_approximator"]["env_max_values"] = self.environment.observation_space.high
+        params["agent_info"]["function_approximator_info"]["env_min_values"] = self.environment.observation_space.low
+        params["agent_info"]["function_approximator_info"]["env_max_values"] = self.environment.observation_space.high
         self.initialize_agent(params["agent_info"])
 
     def initialize_agent(self, params={}):
-        self.agent = DQNAgent(params)
+        self.agent = Agent(params)
 
     def episode(self, episode_id):
         state = self.environment.reset()
@@ -52,8 +52,8 @@ class Session:
             print(f'EPISODE: {episode_id}')
         while not done:
             new_state, reward, done, _ = self.environment.step(action)
-            x, x_dot, theta, theta_dot = new_state
-            reward = reward_func(self.environment, x, x_dot, theta, theta_dot)
+            #x, x_dot, theta, theta_dot = new_state
+            #reward = reward_func(self.environment, x, x_dot, theta, theta_dot)
             episode_reward += reward
 
             if (self.show is True) and (episode_id % self.show_every == 0):
@@ -64,8 +64,8 @@ class Session:
                 action = self.agent.step(new_state, reward)
             else:
                 self.agent.end(new_state, reward)
-                #if new_state[0] >= self.environment.goal_position:
-                #    success = True
+                if new_state[0] >= self.environment.goal_position:
+                    success = True
                 return episode_reward, success
 
 
@@ -87,22 +87,26 @@ class Session:
 
 
 if __name__ == "__main__":
-    session_parameters = {"num_episodes": 300,
+    session_parameters = {"num_episodes": 100,
                           "plot": True,
-                          "show": True,
-                          "show_every": 10,
-                          "environment_name": "CartPole-v0"}
-    agent_parameters = {"num_actions": 2,
-                        "is_greedy": False,
+                          "show": False,
+                          "show_every": 50,
+                          "environment_name": "MountainCar-v0"} # CartPole-v0
+
+    agent_parameters = {"num_actions": 3,
+                        "is_greedy": True,
                         "epsilon": 0.9,
                         "control_method": "q-learning",
-                        "function_approximation_method": "neural network",
-                        "function_approximator": {
+                        "function_approximation_method": "tile coder",
+                        "discount_factor": 1,
+                        "function_approximator_info": {
                             "num_tiles": 4,
                             "num_tilings": 32,
-                            "type": "neural network"
+                            "type": "tile coder"
                         }}
-    function_approx_parameters = {"type": "neural network",
+
+    """
+    function_approx_parameters = {"type": "tile coder",
                                   "state_dim": 4,
                                   "action_dim": 2,
                                   "memory_size": 2000,
@@ -111,7 +115,8 @@ if __name__ == "__main__":
                                   "learning_rate": 0.01,
                                   "discount_factor": 0.90
                                 }
-    agent_parameters["function_approximator"] = function_approx_parameters
+    """
+    # agent_parameters["function_approximator_info"] = function_approx_parameters
     session_parameters["agent_info"] = agent_parameters
 
     sess = Session(session_parameters)

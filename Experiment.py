@@ -24,21 +24,27 @@ class Experiment:
         # isolate the parameters
         session_params = params.get("session_info")
         agent_params = session_params.get("agent_info")
+        function_approximator_params = agent_params.get("function_approximator_info")
+
         # creating the sessions with their own values
         for n_session in range(self.num_sessions):
             for key in params["session_variants"].keys():
-                agent_params[key] = params["session_variants"][key][n_session]
+                if params["session_variants"][key]["level"] == "agent":
+                    agent_params[key] = params["session_variants"][key]["values"][n_session]
+                elif params["session_variants"][key]["level"] == "function_approximator":
+                    function_approximator_params[key] = params["session_variants"][key]["values"][n_session]
+                agent_params["function_approximator_info"] = function_approximator_params
                 session_params["agent_info"] = agent_params
             self.sessions.append(Session(session_params))
 
-        # TODO: find another system for this
         for key in params["session_variants"].keys():
-            self.varying_params.append(key)
+            self.varying_params.append((key, params["session_variants"][key]["level"]))
 
 
     def run(self):
         rewards_by_session = []
         for session in self.sessions:
+            print("coucou")
             rewards = session.run()
             rewards_by_session.append(rewards)
 
@@ -66,21 +72,27 @@ class Experiment:
 
     def plot_rewards(self, rewards_by_session):
 
-
         plt.plot(np.array(rewards_by_session).T)
         plt.xlabel("Episode")
         plt.ylabel("reward Per Episode")
         plt.yscale("linear")
         plt.legend(
-            [[f'{varying_param}: {getattr(session.agent,varying_param)}' for varying_param in self.varying_params] for
+            [[f'{varying_param[0]}: {getattr(session.agent,varying_param[0])}' if varying_param[1] == "agent" else f'{varying_param[0]}: {getattr(session.agent.function_approximator,varying_param[0])}' for varying_param in self.varying_params] for
              session in self.sessions])
         plt.show()
 
 
 
 if __name__ == "__main__":
+    experiment_parameters = {"num_sessions": 3,
+                             "session_variants": {
+                                 "discount_factor": {"values": [1, 1, 1],
+                                                   "level": "function_approximator"}
+                             },
+                             "avg_results": True
+                             }
 
-    session_parameters = {"num_episodes": 300,
+    session_parameters = {"num_episodes": 200,
                           "environment_name": "CartPole-v0",
                           "return_results": True}
 
@@ -91,22 +103,14 @@ if __name__ == "__main__":
     function_approx_parameters = {"type": "neural network",
                                   "state_dim": 4,
                                   "action_dim": 2,
-                                  "memory_size": 2000,
+                                  "memory_size": 1000,
                                   "update_target_rate": 100,
                                   "batch_size": 128,
                                   "learning_rate": 0.01,
                                   "discount_factor": 0.90
                                   }
 
-
-    experiment_parameters = {"num_sessions":  2,
-                             "session_variants": {
-                                "control_method": ["expected sarsa", "q-learning"]
-                                },
-                             "avg_results":True
-                             }
-
-
+    agent_parameters["function_approximator_info"] = function_approx_parameters
     session_parameters["agent_info"] = agent_parameters
     experiment_parameters["session_info"] = session_parameters
 
