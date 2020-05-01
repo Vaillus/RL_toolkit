@@ -14,6 +14,9 @@ class FunctionApproximator:
         self.tile_coder = None
         self.num_actions = None
 
+        self.eligibility_traces = None
+        self.trace_decay = None
+
         self.set_params_from_dict(params)
 
     def set_params_from_dict(self, params={}):
@@ -61,3 +64,8 @@ class FunctionApproximator:
             grad = np.ones(self.num_tilings)
             tiles = self.tile_coder.get_activated_tiles(state)
             self.weights[action, tiles] += (learning_rate / self.num_tilings) * delta * grad
+
+    def compute_weights_with_eligibility_traces(self, learning_rate, delta, eligibility_traces):
+        if self.type == "tile coder":
+            self.weights += (learning_rate / self.num_tilings) * delta * eligibility_traces
+

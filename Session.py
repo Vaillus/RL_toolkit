@@ -63,9 +63,11 @@ class Session:
             if not done:
                 action = self.agent.step(new_state, reward)
             else:
-                self.agent.end(new_state, reward)
+
                 if new_state[0] >= self.environment.goal_position:
                     success = True
+                    reward = 1
+                self.agent.end(new_state, reward)
                 return episode_reward, success
 
 
@@ -89,8 +91,8 @@ class Session:
 if __name__ == "__main__":
     session_parameters = {"num_episodes": 100,
                           "plot": True,
-                          "show": False,
-                          "show_every": 50,
+                          "show": True,
+                          "show_every": 10,
                           "environment_name": "MountainCar-v0"} # CartPole-v0
 
     agent_parameters = {"num_actions": 3,

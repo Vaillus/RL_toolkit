@@ -10,6 +10,10 @@ class Agent:
         self.num_actions = None
         self.is_greedy = None
 
+        self.eligibility_traces = None
+        self.trace_decay = None
+        # self.weights = np.ones((self.num_actions, self.iht_size)) * self.initial_weights
+
         self.control_method = None
         self.function_approximation_method = None
         self.function_approximator = None
@@ -19,6 +23,7 @@ class Agent:
         self.previous_state = None
         self.previous_action_values = None # TODO : useless for now
         self.set_params_from_dict(params)
+        self.set_other_params()
 
     # ====== Initialization functions =======================================================
 
@@ -34,8 +39,11 @@ class Agent:
         params["function_approximator_info"]["num_actions"] = self.num_actions
         self.initialize_function_approximator(params.get("function_approximator_info"))
 
+        self.trace_decay = params.get("trace_decay", 0.1)
 
-    #def set_other_params(self):
+
+    def set_other_params(self):
+        self.eligibility_traces = np.zeros(self.function_approximator.weights.shape)
         #self.weights = np.ones((self.num_actions, self.iht_size)) * self.initial_weights
         #self.learning_rate /= self.num_tilings
 
@@ -75,8 +83,15 @@ class Agent:
             elif self.control_method == 'expected sarsa':
                 delta = reward + self.discount_factor * np.mean(action_values) - previous_action_value
 
-        self.function_approximator.compute_weights(self.learning_rate, delta, self.previous_state, self.previous_action)
+        # TODO : organize that later
+        #self.function_approximator.compute_weights(self.learning_rate, delta, self.previous_state, self.previous_action)
+        self.update_eligibility_traces()
+        self.function_approximator.compute_weights_with_eligibility_traces(self.learning_rate, delta, self.eligibility_traces)
 
+    def update_eligibility_traces(self):
+        self.eligibility_traces = self.discount_factor * self.trace_decay * self.eligibility_traces
+        tiles = self.function_approximator.tile_coder.get_activated_tiles(self.previous_state)
+        self.eligibility_traces[self.previous_action, tiles] += 1
 
     # ====== Agent core functions =======================================================
 

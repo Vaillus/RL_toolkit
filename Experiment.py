@@ -15,7 +15,7 @@ class Experiment:
     def set_params_from_dict(self, params={}):
         self.num_sessions = params.get("num_sessions", 0)
         self.avg_results = params.get("avg_results", False)
-        self.avg_length = params.get("avg_length", 10)
+        self.avg_length = params.get("avg_length", 100)
 
         self.init_sessions(params)
 
@@ -44,7 +44,6 @@ class Experiment:
     def run(self):
         rewards_by_session = []
         for session in self.sessions:
-            print("coucou")
             rewards = session.run()
             rewards_by_session.append(rewards)
 
@@ -84,23 +83,35 @@ class Experiment:
 
 
 if __name__ == "__main__":
-    experiment_parameters = {"num_sessions": 3,
+    experiment_parameters = {"num_sessions": 5,
                              "session_variants": {
-                                 "discount_factor": {"values": [1, 1, 1],
-                                                   "level": "function_approximator"}
+                                 "trace_decay": {"values": [0, 0.2, 0.4, 0.6, 0.8],
+                                                   "level": "agent"}
                              },
                              "avg_results": True
                              }
 
-    session_parameters = {"num_episodes": 200,
-                          "environment_name": "CartPole-v0",
+    session_parameters = {"num_episodes": 100,
+                          "environment_name": "MountainCar-v0",
                           "return_results": True}
 
-    agent_parameters = {"num_actions": 2,
+    agent_parameters = {"num_actions": 3,
+                        "is_greedy": True,
+                        "epsilon": 0.95,
+                        "control_method": "q-learning",
+                        "function_approximation_method": "tile coder",
+                        "discount_factor": 1,
+                        "function_approximator_info": {
+                            "num_tiles": 4,
+                            "num_tilings": 32,
+                            "type": "tile coder"
+                        }}
+    """
+    agent_parameters = {"num_actions": 3,
                         "is_greedy": False,
                         "epsilon": 0.9,
                         }
-    function_approx_parameters = {"type": "neural network",
+    function_approx_parameters = {"type": "tile",
                                   "state_dim": 4,
                                   "action_dim": 2,
                                   "memory_size": 1000,
@@ -111,6 +122,7 @@ if __name__ == "__main__":
                                   }
 
     agent_parameters["function_approximator_info"] = function_approx_parameters
+    """
     session_parameters["agent_info"] = agent_parameters
     experiment_parameters["session_info"] = session_parameters
 
