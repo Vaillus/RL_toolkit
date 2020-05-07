@@ -83,24 +83,27 @@ class Experiment:
 
 
 if __name__ == "__main__":
-    experiment_parameters = {"num_sessions": 5,
+    experiment_parameters = {"num_sessions": 2,
                              "session_variants": {
-                                 "trace_decay": {"values": [0, 0.2, 0.4, 0.6, 0.8],
-                                                   "level": "agent"}
+                                 "trace_decay": {"values": [0.4, 0.9],
+                                                   "level": "agent"},
+                                 "control_method": {"values": ["sarsa", "sarsa"],
+                                                 "level": "agent"}
                              },
                              "avg_results": True
                              }
 
-    session_parameters = {"num_episodes": 100,
+    session_parameters = {"num_episodes": 500,
                           "environment_name": "MountainCar-v0",
                           "return_results": True}
 
     agent_parameters = {"num_actions": 3,
                         "is_greedy": True,
                         "epsilon": 0.95,
-                        "control_method": "q-learning",
+                        "control_method": "sarsa",
                         "function_approximation_method": "tile coder",
                         "discount_factor": 1,
+                        "learning_rate": 0.1,
                         "function_approximator_info": {
                             "num_tiles": 4,
                             "num_tilings": 32,

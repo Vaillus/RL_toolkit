@@ -66,7 +66,7 @@ class Session:
 
                 if new_state[0] >= self.environment.goal_position:
                     success = True
-                    reward = 1
+                    #reward = 1
                 self.agent.end(new_state, reward)
                 return episode_reward, success
 
@@ -89,18 +89,20 @@ class Session:
 
 
 if __name__ == "__main__":
-    session_parameters = {"num_episodes": 100,
+    session_parameters = {"num_episodes": 500,
                           "plot": True,
                           "show": True,
-                          "show_every": 10,
+                          "show_every": 100,
                           "environment_name": "MountainCar-v0"} # CartPole-v0
 
     agent_parameters = {"num_actions": 3,
                         "is_greedy": True,
                         "epsilon": 0.9,
-                        "control_method": "q-learning",
+                        "control_method": "expected sarsa",
                         "function_approximation_method": "tile coder",
-                        "discount_factor": 1,
+                        "discount_factor": 0.99,
+                        "trace_decay": 0.1,
+                        "learning_rate": 0.1,
                         "function_approximator_info": {
                             "num_tiles": 4,
                             "num_tilings": 32,
@@ -114,7 +116,7 @@ if __name__ == "__main__":
                                   "memory_size": 2000,
                                   "update_target_rate": 100,
                                   "batch_size": 128,
-                                  "learning_rate": 0.01,
+                                  "learning_rate": 0.9,
                                   "discount_factor": 0.90
                                 }
     """

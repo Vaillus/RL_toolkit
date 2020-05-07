@@ -59,13 +59,33 @@ class FunctionApproximator:
             weights = self.weights[:, tiles]
         return weights
 
+    def get_one_hot_state(self, state, action=None):
+        tiles = self.tile_coder.get_activated_tiles(state)
+        one_hot_state = np.zeros(self.iht_size)
+        one_hot_state[tiles] = 1
+        return one_hot_state
+
+    # == Weights computing functions ==================================================================================
+
     def compute_weights(self, learning_rate, delta, state, action):
         if self.type == "tile coder":
             grad = np.ones(self.num_tilings)
             tiles = self.tile_coder.get_activated_tiles(state)
             self.weights[action, tiles] += (learning_rate / self.num_tilings) * delta * grad
+        else:
+            print(f'no traces not yet implemented for {self.type}')
 
     def compute_weights_with_eligibility_traces(self, learning_rate, delta, eligibility_traces):
         if self.type == "tile coder":
             self.weights += (learning_rate / self.num_tilings) * delta * eligibility_traces
+        else:
+            print(f'eligibility traces not yet implemented for {self.type}')
 
+    def compute_weights_with_dutch_traces(self, learning_rate, delta, state, action, eligibility_traces, action_value,
+                                          old_action_value):
+        if self.type == "tile coder":
+            self.weights += (learning_rate / self.num_tilings) * (delta + action_value - old_action_value) * eligibility_traces
+            tiles = self.tile_coder.get_activated_tiles(state)
+            self.weights[action, tiles] -= (learning_rate / self.num_tilings) * (action_value - old_action_value)
+        else:
+            print(f'dutch traces not yet implemented for {self.type}')
