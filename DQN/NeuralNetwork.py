@@ -6,7 +6,9 @@ import numpy as np
 
 
 class Net(nn.Module):
-
+    """
+    Class that is specific to my first DQN use. I will probably get rid of it.
+    """
     def __init__(self, input_size, output_size, learning_rate):
         super(Net, self).__init__()
         # TODO : handle input and output size

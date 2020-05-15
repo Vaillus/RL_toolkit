@@ -1,0 +1,23 @@
+{
+  "session_info":{
+    "session_type": "tile_coder_test",
+    "num_episodes": 501,
+    "plot": false,
+    "show": true,
+    "show_every": 100,
+    "environment_name": "MountainCar-v0",
+    "return_results": true
+  },
+  "agent_info": {"num_actions": 3,
+                     "is_greedy": false,
+                     "epsilon": 0.95,
+                     "control_method": "expected_sarsa",
+                     "function_approximation_method": "tile coder",
+                     "discount_factor": 1,
+                     "learning_rate": 0.1,
+                     "function_approximator_info": {
+                         "num_tiles": 4,
+                         "num_tilings": 32,
+                         "type": "tile coder"
+                     }}
+}

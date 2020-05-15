@@ -89,3 +89,8 @@ class FunctionApproximator:
             self.weights[action, tiles] -= (learning_rate / self.num_tilings) * (action_value - old_action_value)
         else:
             print(f'dutch traces not yet implemented for {self.type}')
+
+    def compute_weights_with_reinforce(self, learning_rate, discount_factor, G, pw, state, action):
+        if self.type == "tile coder":
+            tiles = self.tile_coder.get_activated_tiles(state)
+            self.weights[:, tiles] = learning_rate * discount_factor ** pw * G

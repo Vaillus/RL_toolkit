@@ -25,6 +25,7 @@ class Experiment:
         session_params = params.get("session_info")
         agent_params = session_params.get("agent_info")
         function_approximator_params = agent_params.get("function_approximator_info")
+        policy_estimator_params = agent_params.get("policy_estimator_info")
 
         # creating the sessions with their own values
         for n_session in range(self.num_sessions):
@@ -33,7 +34,11 @@ class Experiment:
                     agent_params[key] = params["session_variants"][key]["values"][n_session]
                 elif params["session_variants"][key]["level"] == "function_approximator":
                     function_approximator_params[key] = params["session_variants"][key]["values"][n_session]
+                elif params["session_variants"][key]["level"] == "policy_estimator":
+                    policy_estimator_params[key] = params["session_variants"][key]["values"][n_session]
+
                 agent_params["function_approximator_info"] = function_approximator_params
+                agent_params["policy_estimator_info"] = policy_estimator_params
                 session_params["agent_info"] = agent_params
             self.sessions.append(Session(session_params))
 
@@ -69,66 +74,97 @@ class Experiment:
 
         return rewards_to_return
 
+    def generate_legend_text(self, varying_param, session):
+        legend = ''
+        if varying_param[1] == "agent":
+            legend = f'{varying_param[0]}: {getattr(session.agent,varying_param[0])}'
+        elif varying_param[1] == "function_approximator":
+            legend = f'{varying_param[0]}: {getattr(session.agent.function_approximator,varying_param[0])}'
+        elif varying_param[1]  == "policy_estimator":
+            legend = f'{varying_param[0]}: {getattr(session.agent.policy_estimator,varying_param[0])}'
+        return legend
+
     def plot_rewards(self, rewards_by_session):
 
         plt.plot(np.array(rewards_by_session).T)
         plt.xlabel("Episode")
         plt.ylabel("reward Per Episode")
         plt.yscale("linear")
-        plt.legend(
-            [[f'{varying_param[0]}: {getattr(session.agent,varying_param[0])}' if varying_param[1] == "agent" else f'{varying_param[0]}: {getattr(session.agent.function_approximator,varying_param[0])}' for varying_param in self.varying_params] for
-             session in self.sessions])
+        plt.legend([[self.generate_legend_text(varying_param, session) for varying_param in self.varying_params] for
+                    session in self.sessions])
         plt.show()
 
 
 
 if __name__ == "__main__":
+    with open('params/reinforce_params.json') as json_file:
+        data = json.load(json_file)
+        session_parameters = data["session_info"]
+        session_parameters["agent_info"] = data["agent_info"]
+
     experiment_parameters = {"num_sessions": 2,
                              "session_variants": {
-                                 "trace_decay": {"values": [0.4, 0.9],
-                                                   "level": "agent"},
-                                 "control_method": {"values": ["sarsa", "sarsa"],
-                                                 "level": "agent"}
+                                 "learning_rate": {"values": [0.0001, 0.001],
+                                                 "level": "policy_estimator"}
                              },
-                             "avg_results": True
+                             "avg_results": True,
+                             "session_info": session_parameters
                              }
 
-    session_parameters = {"num_episodes": 500,
-                          "environment_name": "MountainCar-v0",
-                          "return_results": True}
-
-    agent_parameters = {"num_actions": 3,
-                        "is_greedy": True,
-                        "epsilon": 0.95,
-                        "control_method": "sarsa",
-                        "function_approximation_method": "tile coder",
-                        "discount_factor": 1,
-                        "learning_rate": 0.1,
-                        "function_approximator_info": {
-                            "num_tiles": 4,
-                            "num_tilings": 32,
-                            "type": "tile coder"
-                        }}
-    """
-    agent_parameters = {"num_actions": 3,
-                        "is_greedy": False,
-                        "epsilon": 0.9,
-                        }
-    function_approx_parameters = {"type": "tile",
-                                  "state_dim": 4,
-                                  "action_dim": 2,
-                                  "memory_size": 1000,
-                                  "update_target_rate": 100,
-                                  "batch_size": 128,
-                                  "learning_rate": 0.01,
-                                  "discount_factor": 0.90
-                                  }
-
-    agent_parameters["function_approximator_info"] = function_approx_parameters
-    """
-    session_parameters["agent_info"] = agent_parameters
-    experiment_parameters["session_info"] = session_parameters
+    #experiment_parameters["session_info"] = session_parameters
 
     experiment = Experiment(experiment_parameters)
     experiment.run()
 
+"""
+ session_parameters = {"num_episodes": 500,
+                       "environment_name": "CartPole-v0",
+                       "return_results": True}
+
+ agent_parameters = {"num_actions": 2,
+                     "is_greedy": False,
+                     "epsilon": 0.95,
+                     "control_method": "q-learning",
+                     "function_approximation_method": "tile coder",
+                     "discount_factor": 1,
+                     "learning_rate": 0.1,
+                     "function_approximator_info": {
+                         "num_tiles": 4,
+                         "num_tilings": 32,
+                         "type": "tile coder"
+                     }}
+
+ # tile coder
+ "function_approximator_info": {
+                         "num_tiles": 4,
+                         "num_tilings": 32,
+                         "type": "tile coder"
+                     }
+ # neural network
+ "function_approximator_info": {
+                         "type": "neural network",
+                         "state_dim": 4,
+                         "action_dim": 2,
+                         "memory_size": 1000,
+                         "update_target_rate": 100,
+                         "batch_size": 128,
+                         "learning_rate": 0.01,
+                         "discount_factor": 0.90
+                     }}                        
+
+ agent_parameters = {"num_actions": 3,
+                     "is_greedy": False,
+                     "epsilon": 0.9,
+                     }
+ function_approx_parameters = {"type": "neural network",
+                               "state_dim": 4,
+                               "action_dim": 2,
+                               "memory_size": 1000,
+                               "update_target_rate": 100,
+                               "batch_size": 128,
+                               "learning_rate": 0.01,
+                               "discount_factor": 0.90
+                               }
+
+ agent_parameters["function_approximator_info"] = function_approx_parameters
+ """

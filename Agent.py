@@ -2,7 +2,7 @@ from FunctionApproximator import *
 
 
 class Agent:
-    def __init__(self, params={}):
+    def __init__(self, params):
         # parameters to be set from params dict
         self.learning_rate = None # TODO : passer au function approximator?
         self.discount_factor = None
@@ -18,18 +18,16 @@ class Agent:
         self.function_approximation_method = None
         self.function_approximator = None
 
-
-
         # parameters not set at initilization
         self.previous_action = None
         self.previous_state = None
         self.previous_action_values = None  # only for dutch traces
         self.set_params_from_dict(params)
-        self.set_other_params()
+        #self.set_other_params()
 
     # ====== Initialization functions =======================================================
 
-    def set_params_from_dict(self, params={}):
+    def set_params_from_dict(self, params):
         self.discount_factor = params.get("discount_factor", 0.9)
         self.epsilon = params.get("epsilon", 0.0)
         self.num_actions = params.get("num_actions", 0)
@@ -47,15 +45,13 @@ class Agent:
 
     def set_other_params(self):
         self.traces = np.zeros(self.function_approximator.weights.shape)
-        #self.weights = np.ones((self.num_actions, self.iht_size)) * self.initial_weights
-        #self.learning_rate /= self.num_tilings
 
     def initialize_function_approximator(self, params):
         self.function_approximator = FunctionApproximator(params)
 
     # ====== Action choice related functions =======================================================
 
-    def choose_epsilon_greedy_action(self, action_values):
+    def _choose_epsilon_greedy_action(self, action_values):
         """
         choose the action with the maximum value with probability 1/epsilon, or a random action else.
         :param action_values: list containing the action values
@@ -72,11 +68,11 @@ class Agent:
         if self.is_greedy:
             action_chosen = np.argmax(action_values)
         else:
-            action_chosen = self.choose_epsilon_greedy_action(action_values)
+            action_chosen = self._choose_epsilon_greedy_action(action_values)
         # returning the chosen action and its value
         return action_chosen
 
-    def get_expected_sarsa_state_value(self, action_values):
+    def _get_expected_sarsa_state_value(self, action_values):
         values = []
         max_action = np.argmax(action_values)
         for action_number, action_value in enumerate(action_values):
@@ -89,6 +85,7 @@ class Agent:
     # ====== Control related functions =======================================================
 
     def control(self, reward, action_values=None, current_action=None, last_state=False, current_state=None):
+        delta = None
         if last_state is True:
             delta = reward
         else:
@@ -99,25 +96,30 @@ class Agent:
             elif self.control_method == 'q-learning':
                 delta = reward + self.discount_factor * np.max(action_values) - previous_action_value
             elif self.control_method == 'expected sarsa':
-                delta = reward + self.discount_factor * self.get_expected_sarsa_state_value(action_values) - previous_action_value
+                delta = reward + self.discount_factor * self._get_expected_sarsa_state_value(action_values) - \
+                        previous_action_value
 
         # compute the weights of the function approximator:
         # without traces:
         if self.traces_type == "no traces":
-            self.function_approximator.compute_weights(self.learning_rate, delta, self.previous_state, self.previous_action)
+            self.function_approximator.compute_weights(self.learning_rate, delta, self.previous_state,
+                                                       self.previous_action)
         # with eligibility traces:
         elif self.traces_type == "eligibility traces":
-            x = self.function_approximator.get_one_hot_state(current_state, current_action)
             self.update_eligibility_traces()
-            self.function_approximator.compute_weights_with_eligibility_traces(self.learning_rate, delta, self.eligibility_traces)
+            self.function_approximator.compute_weights_with_eligibility_traces(self.learning_rate, delta,
+                                                                               self.traces)
         # with dutch traces:
         elif self.traces_type == "dutch traces":
             if last_state is False:
                 self.update_dutch_traces()
-                self.function_approximator.compute_weights_with_dutch_traces(self.learning_rate, delta, self.previous_state,
-                                                                             self.previous_action, self.traces,
+                self.function_approximator.compute_weights_with_dutch_traces(self.learning_rate, delta,
+                                                                             self.previous_state,
+                                                                             self.previous_action,
+                                                                             self.traces,
                                                                              action_values[current_action],
-                                                                             self.previous_action_values[self.previous_action])
+                                                                             self.previous_action_values[
+                                                                                 self.previous_action])
 
     def update_eligibility_traces(self, cumulative=True):
         self.traces = self.discount_factor * self.trace_decay * self.traces
@@ -129,10 +131,10 @@ class Agent:
 
     def update_dutch_traces(self):
         tiles = self.function_approximator.tile_coder.get_activated_tiles(self.previous_state)
-        tmp = 1 - np.sum(self.learning_rate * self.discount_factor * self.trace_decay * self.traces[self.previous_action, tiles])
+        tmp = 1 - np.sum(self.learning_rate * self.discount_factor * self.trace_decay * self.traces[
+            self.previous_action, tiles])
         self.traces = self.discount_factor * self.trace_decay * self.traces
         self.traces[self.previous_action, tiles] += tmp
-        #print("coucou")
 
 
     # ====== Agent core functions =======================================================

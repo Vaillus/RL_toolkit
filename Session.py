@@ -1,7 +1,10 @@
 from Agent import *
 from DQN.DQNAgent import *
+from GradientPolicyMethods.REINFORCEAgent import *
 import gym
 import matplotlib.pyplot as plt
+import json
+
 
 def reward_func(env, x, x_dot, theta, theta_dot):  # TODO: do something about it
     r1 = (env.x_threshold - abs(x)) / env.x_threshold - 0.5
@@ -21,6 +24,8 @@ class Session:
         self.plot = None
         self.return_results = None
 
+        self.session_type = None
+
         self.set_params_from_dict(params=params)
 
         self.set_env_and_agent(params)
@@ -32,15 +37,22 @@ class Session:
         self.environment_name = params.get("environment_name", "MountainCar-v0")
         self.plot = params.get("plot", False)
         self.return_results = params.get("return_results", False)
+        self.session_type = params.get("session_type", "REINFORCE")
 
     def set_env_and_agent(self, params):
         self.environment = gym.make(self.environment_name)
-        params["agent_info"]["function_approximator_info"]["env_min_values"] = self.environment.observation_space.low
-        params["agent_info"]["function_approximator_info"]["env_max_values"] = self.environment.observation_space.high
+        if self.session_type == "tile coder":  # TODO: might be a problem later
+            params["agent_info"]["function_approximator_info"]["env_min_values"] = self.environment.observation_space.low
+            params["agent_info"]["function_approximator_info"]["env_max_values"] = self.environment.observation_space.high
         self.initialize_agent(params["agent_info"])
 
     def initialize_agent(self, params={}):
-        self.agent = Agent(params)
+        if params.get("function_approximation_method") == "neural network":
+            self.agent = DQNAgent(params)
+        elif params.get("function_approximation_method") == "tile coder":
+            self.agent = Agent(params)
+        elif self.session_type == "REINFORCE":
+            self.agent = REINFORCEAgent(params)
 
     def episode(self, episode_id):
         state = self.environment.reset()
@@ -52,22 +64,25 @@ class Session:
             print(f'EPISODE: {episode_id}')
         while not done:
             new_state, reward, done, _ = self.environment.step(action)
-            #x, x_dot, theta, theta_dot = new_state
-            #reward = reward_func(self.environment, x, x_dot, theta, theta_dot)
+            if self.environment_name == "CartPole-v0":  # TODO : might want to change that
+                x, x_dot, theta, theta_dot = new_state
+                reward = reward_func(self.environment, x, x_dot, theta, theta_dot)
             episode_reward += reward
 
             if (self.show is True) and (episode_id % self.show_every == 0):
                     self.environment.render()
 
-
             if not done:
                 action = self.agent.step(new_state, reward)
             else:
-
-                if new_state[0] >= self.environment.goal_position:
-                    success = True
-                    #reward = 1
+                if self.environment_name == "MountainCar-v0":  # TODO: might want to change that too
+                    if new_state[0] >= self.environment.goal_position:
+                        success = True
+                        #reward = 1
                 self.agent.end(new_state, reward)
+                if self.session_type == "REINFORCE":
+                    self.agent.learn_from_experience()
+
                 return episode_reward, success
 
 
@@ -89,27 +104,42 @@ class Session:
 
 
 if __name__ == "__main__":
-    session_parameters = {"num_episodes": 500,
-                          "plot": True,
-                          "show": True,
-                          "show_every": 100,
-                          "environment_name": "MountainCar-v0"} # CartPole-v0
+    with open('params/reinforce_params.json') as json_file:
+        data = json.load(json_file)
+        session_parameters = data["session_info"]
+        session_parameters["agent_info"] = data["agent_info"]
 
-    agent_parameters = {"num_actions": 3,
-                        "is_greedy": True,
-                        "epsilon": 0.9,
-                        "control_method": "expected sarsa",
-                        "function_approximation_method": "tile coder",
-                        "discount_factor": 0.99,
-                        "trace_decay": 0.1,
-                        "learning_rate": 0.1,
-                        "function_approximator_info": {
-                            "num_tiles": 4,
-                            "num_tilings": 32,
-                            "type": "tile coder"
-                        }}
+    sess = Session(session_parameters)
+    sess.run()
 
     """
+    session_parameters = {"algo_type": "REINFORCE",
+                        "num_episodes": 1001,
+                          "plot": True,
+                          "show": True,
+                          "show_every": 10,
+                          "environment_name": "CartPole-v0"} # MountainCar-v0
+
+    agent_parameters = {"num_actions": 2,
+                        "is_greedy": False,
+                        "epsilon": 0.9,
+                        "control_method": "expected sarsa",
+                        "function_approximation_method": "neural network",
+                        "discount_factor": 1,
+                        "trace_decay": 0.9,
+                        "learning_rate": 0.9,
+                        "function_approximator_info": {
+                            "type": "neural network",
+                            "state_dim": 4,
+                            "action_dim": 2,
+                            "memory_size": 1000,
+                            "update_target_rate": 100,
+                            "batch_size": 128,
+                            "learning_rate": 0.01,
+                            "discount_factor": 0.90
+                        }}
+
+    
     function_approx_parameters = {"type": "tile coder",
                                   "state_dim": 4,
                                   "action_dim": 2,
@@ -120,9 +150,7 @@ if __name__ == "__main__":
                                   "discount_factor": 0.90
                                 }
     """
-    # agent_parameters["function_approximator_info"] = function_approx_parameters
-    session_parameters["agent_info"] = agent_parameters
 
-    sess = Session(session_parameters)
-    sess.run()
+
+
 
