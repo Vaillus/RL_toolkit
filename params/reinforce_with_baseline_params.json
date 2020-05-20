@@ -1,6 +1,6 @@
 {
   "session_info":{
-    "session_type ": "REINFORCE",
+    "session_type": "REINFORCE with baseline",
     "num_episodes": 5001,
     "plot": false,
     "show": true,
@@ -14,6 +14,10 @@
     "policy_estimator_info": {
       "input_size": 4,
       "learning_rate": 0.0001
+    },
+    "function_approximator_info": {
+      "input_size": 4,
+      "learning_rate": 0.001
     }
   }
 

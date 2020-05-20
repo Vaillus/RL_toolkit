@@ -1,0 +1,7 @@
+{
+  "experiment_type": "models comparison",
+  "num_sessions": 2,
+  "session_variants": {},
+  "avg_results": true,
+  "path_to_model_params": ["params/reinforce_params.json", "params/reinforce_with_baseline_params.json"]
+}

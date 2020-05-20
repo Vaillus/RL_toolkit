@@ -72,8 +72,6 @@ class FunctionApproximator:
             grad = np.ones(self.num_tilings)
             tiles = self.tile_coder.get_activated_tiles(state)
             self.weights[action, tiles] += (learning_rate / self.num_tilings) * delta * grad
-        else:
-            print(f'no traces not yet implemented for {self.type}')
 
     def compute_weights_with_eligibility_traces(self, learning_rate, delta, eligibility_traces):
         if self.type == "tile coder":

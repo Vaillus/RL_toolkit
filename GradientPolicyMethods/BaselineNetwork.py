@@ -3,10 +3,10 @@ import torch.nn as nn
 import torch.optim as optim
 
 
-class PolicyEstimator():
+class BaselineNetwork():
     def __init__(self, params):
         self.input_size = params.get("input_size", 2)
-        self.output_size = params.get("output_size", 2)
+        self.output_size = params.get("output_size", 1)
         self.learning_rate = params.get("learning_rate", 0.9)
         self.is_continuous = params.get("is_continuous", False)  # to be used later
 
@@ -14,9 +14,9 @@ class PolicyEstimator():
         self.network = nn.Sequential(
             nn.Linear(self.input_size, 16),
             nn.ReLU(),
-            nn.Linear(16, self.output_size),
-            #nn.Tanh())
-            nn.Softmax(dim=-1))
+            nn.Linear(16, self.output_size)#,
+            #nn.ReLU()
+        )
 
         self.optimizer = optim.Adam(self.network.parameters(), lr=self.learning_rate)
 

@@ -1,0 +1,12 @@
+{
+  "experiment_type": "parameters testing",
+  "num_sessions": 2,
+  "session_variants": {
+    "learning_rate": {
+      "values": [0.0001, 0.001],
+      "level": "policy_estimator"
+    }
+  },
+  "avg_results": true,
+  "path_to_model_params": "params/reinforce_params.json"
+}

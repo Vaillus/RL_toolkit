@@ -1,6 +1,7 @@
 from Agent import *
 from DQN.DQNAgent import *
 from GradientPolicyMethods.REINFORCEAgent import *
+from GradientPolicyMethods.REINFORCEAgentWithBaseline import *
 import gym
 import matplotlib.pyplot as plt
 import json
@@ -30,6 +31,10 @@ class Session:
 
         self.set_env_and_agent(params)
 
+
+    # ====== Initialization functions =======================================================
+
+
     def set_params_from_dict(self, params={}):
         self.num_episodes = params.get("num_episodes", 100)
         self.show = params.get("show", False)
@@ -47,12 +52,18 @@ class Session:
         self.initialize_agent(params["agent_info"])
 
     def initialize_agent(self, params={}):
-        if params.get("function_approximation_method") == "neural network":
+        if self.session_type == "DQN test":
             self.agent = DQNAgent(params)
-        elif params.get("function_approximation_method") == "tile coder":
+        elif self.session_type == "tile coder test":
             self.agent = Agent(params)
         elif self.session_type == "REINFORCE":
             self.agent = REINFORCEAgent(params)
+        elif self.session_type == "REINFORCE with baseline":
+            self.agent = REINFORCEAgentWithBaseline(params)
+        else:
+            print("agent not initialized")
+
+    # ====== Execution functions =======================================================
 
     def episode(self, episode_id):
         state = self.environment.reset()
@@ -60,10 +71,13 @@ class Session:
         episode_reward = 0
         done = False
         success = False
+
         if (self.show is True) and (episode_id % self.show_every == 0):
             print(f'EPISODE: {episode_id}')
+
         while not done:
-            new_state, reward, done, _ = self.environment.step(action)
+            new_state, reward, done, _ = self.environment.step(action) # self.environment.step([float(action)]) | if continuous mountian car
+
             if self.environment_name == "CartPole-v0":  # TODO : might want to change that
                 x, x_dot, theta, theta_dot = new_state
                 reward = reward_func(self.environment, x, x_dot, theta, theta_dot)
@@ -80,11 +94,10 @@ class Session:
                         success = True
                         #reward = 1
                 self.agent.end(new_state, reward)
-                if self.session_type == "REINFORCE":
+                if self.session_type == "REINFORCE" or self.session_type == "REINFORCE with baseline":
                     self.agent.learn_from_experience()
 
                 return episode_reward, success
-
 
     def run(self):
         episode_reward = 0
@@ -104,7 +117,7 @@ class Session:
 
 
 if __name__ == "__main__":
-    with open('params/reinforce_params.json') as json_file:
+    with open('params/REINFORCE_with_baseline_params.json') as json_file:
         data = json.load(json_file)
         session_parameters = data["session_info"]
         session_parameters["agent_info"] = data["agent_info"]

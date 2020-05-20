@@ -1,6 +1,37 @@
 from Session import *
 import matplotlib.pyplot as plt
 
+def load_experiment_params(path):
+    """
+    loads the parameters differently when we want to test the model parameters and when we want to compare
+    different models
+    """
+    # get the experiment parameters
+    with open(path) as json_file:
+        experiment_parameters = json.load(json_file)
+
+    # get the sessions parameters for the same model tested with different parameters
+    if experiment_parameters["experiment_type"] == "parameters testing":
+        with open(experiment_parameters["path_to_model_params"]) as json_file:
+            data = json.load(json_file)
+            session_parameters = data["session_info"]
+            session_parameters["agent_info"] = data["agent_info"]
+        experiment_parameters["session_info"] = session_parameters
+
+    # get the sessions parameters for different models
+    elif experiment_parameters["experiment_type"] == "models comparison":
+        sessions_parameters = []
+        for model_path in experiment_parameters["path_to_model_params"]:
+            with open(model_path) as json_file:
+                data = json.load(json_file)
+                session_parameters = data["session_info"]
+                session_parameters["agent_info"] = data["agent_info"]
+            sessions_parameters.append(session_parameters)
+            experiment_parameters["session_info"] = sessions_parameters
+
+    return experiment_parameters
+
+
 class Experiment:
     def __init__(self, params={}):
         self.num_sessions = None
@@ -9,42 +40,53 @@ class Experiment:
         self.varying_params = []
         self.avg_results = None
         self.avg_length = None
+        self.experiment_type = None
 
         self.set_params_from_dict(params)
+
+    # initialization functions ============================================================================
 
     def set_params_from_dict(self, params={}):
         self.num_sessions = params.get("num_sessions", 0)
         self.avg_results = params.get("avg_results", False)
         self.avg_length = params.get("avg_length", 100)
+        self.experiment_type = params.get("experiment_type", "parameters testing")
 
         self.init_sessions(params)
 
     def init_sessions(self, params):
         """ Initialize sessions with parameters """
-        # isolate the parameters
-        session_params = params.get("session_info")
-        agent_params = session_params.get("agent_info")
-        function_approximator_params = agent_params.get("function_approximator_info")
-        policy_estimator_params = agent_params.get("policy_estimator_info")
+        if self.experiment_type == "parameters testing":
+            # isolate the parameters
+            session_params = params.get("session_info")
+            agent_params = session_params.get("agent_info")
+            function_approximator_params = agent_params.get("function_approximator_info")
+            policy_estimator_params = agent_params.get("policy_estimator_info")
 
-        # creating the sessions with their own values
-        for n_session in range(self.num_sessions):
+            # creating the sessions with their own values
+            for n_session in range(self.num_sessions):
+                for key in params["session_variants"].keys():
+                    if params["session_variants"][key]["level"] == "agent":
+                        agent_params[key] = params["session_variants"][key]["values"][n_session]
+                    elif params["session_variants"][key]["level"] == "function_approximator":
+                        function_approximator_params[key] = params["session_variants"][key]["values"][n_session]
+                    elif params["session_variants"][key]["level"] == "policy_estimator":
+                        policy_estimator_params[key] = params["session_variants"][key]["values"][n_session]
+
+                    agent_params["function_approximator_info"] = function_approximator_params
+                    agent_params["policy_estimator_info"] = policy_estimator_params
+                    session_params["agent_info"] = agent_params
+                self.sessions.append(Session(session_params))
+
             for key in params["session_variants"].keys():
-                if params["session_variants"][key]["level"] == "agent":
-                    agent_params[key] = params["session_variants"][key]["values"][n_session]
-                elif params["session_variants"][key]["level"] == "function_approximator":
-                    function_approximator_params[key] = params["session_variants"][key]["values"][n_session]
-                elif params["session_variants"][key]["level"] == "policy_estimator":
-                    policy_estimator_params[key] = params["session_variants"][key]["values"][n_session]
+                self.varying_params.append((key, params["session_variants"][key]["level"]))
 
-                agent_params["function_approximator_info"] = function_approximator_params
-                agent_params["policy_estimator_info"] = policy_estimator_params
-                session_params["agent_info"] = agent_params
-            self.sessions.append(Session(session_params))
+        elif self.experiment_type == "models comparison":
+            sessions_params = params.get("session_info")
+            for session_params in sessions_params:
+                self.sessions.append(Session(session_params))
 
-        for key in params["session_variants"].keys():
-            self.varying_params.append((key, params["session_variants"][key]["level"]))
-
+    # main function ===================================================================================================
 
     def run(self):
         rewards_by_session = []
@@ -55,6 +97,8 @@ class Experiment:
         rewards_by_session = self.modify_rewards(rewards_by_session)
         self.plot_rewards(rewards_by_session)
 
+    # plotting functions ==============================================================================================
+
     def modify_rewards(self, rewards_by_session):
         rewards_to_return = rewards_by_session
         # transform the rewards to their avergage on the last n episodes (n being specified in the class parameters)
@@ -63,7 +107,7 @@ class Experiment:
 
             for rewards in rewards_by_session:  # split the rewards sequences by episode
                 avg_rewards = []
-                for i in range(len(rewards)):  # we iterate through rewards
+                for i in range(len(rewards)):  # iterate through rewards
                     curr_reward = rewards[i]
                     last_n_rewards = [rewards[j] for j in range(i - self.avg_length - 1, i) if j >= 0]
                     last_n_rewards.append(curr_reward)
@@ -87,32 +131,22 @@ class Experiment:
     def plot_rewards(self, rewards_by_session):
 
         plt.plot(np.array(rewards_by_session).T)
+        plt.title(f'Models comparison in {self.environment_name}')
         plt.xlabel("Episode")
-        plt.ylabel("reward Per Episode")
+        plt.ylabel("Reward")
         plt.yscale("linear")
-        plt.legend([[self.generate_legend_text(varying_param, session) for varying_param in self.varying_params] for
+        if self.experiment_type == "parameters testing":
+            plt.legend([[self.generate_legend_text(varying_param, session) for varying_param in self.varying_params] for
                     session in self.sessions])
+        elif self.experiment_type == "models comparison":
+            plt.legend([session.session_type for session in self.sessions])
         plt.show()
 
 
 
 if __name__ == "__main__":
-    with open('params/reinforce_params.json') as json_file:
-        data = json.load(json_file)
-        session_parameters = data["session_info"]
-        session_parameters["agent_info"] = data["agent_info"]
-
-    experiment_parameters = {"num_sessions": 2,
-                             "session_variants": {
-                                 "learning_rate": {"values": [0.0001, 0.001],
-                                                 "level": "policy_estimator"}
-                             },
-                             "avg_results": True,
-                             "session_info": session_parameters
-                             }
-
-    #experiment_parameters["session_info"] = session_parameters
-
+    experiment_path = 'params/experiment_different_models_params.json'
+    experiment_parameters = load_experiment_params(experiment_path)
     experiment = Experiment(experiment_parameters)
     experiment.run()
 

@@ -23,20 +23,22 @@ class DQN:
 
         self.set_params_from_dict(params)
 
+        self.set_other_params()
+
     def set_params_from_dict(self, params={}):
         self.state_dim = params.get("state_dim", 4)
         self.action_dim = params.get("action_dim", 2)
-
-        self.update_target_counter = params.get("update_counter", 0)
         self.memory_size = params.get("memory_size", 200)
         self.update_target_rate = params.get("learn_every", 50)
-        self.memory = np.zeros((self.memory_size, 2 * self.state_dim + 2))
         self.batch_size = params.get("batch_size", 128)
         self.discount_factor = params.get("discount_factor", 0.995)
         self.learning_rate = params.get("learning_rate", 0.9)
+
+
+    def set_other_params(self):
+        self.memory = np.zeros((self.memory_size, 2 * self.state_dim + 2))
         self.target_net, self.eval_net = Net(self.state_dim, self.action_dim, self.learning_rate), \
                                          Net(self.state_dim, self.action_dim, self.learning_rate)
-
 
     def get_action_value(self, state, action=None):
         # Compute action values from the eval net
@@ -96,7 +98,7 @@ class DQN:
         """
         Updates target net, sample a batch of transitions and compute loss from it
         :return: None
-        """
+        """""
         # every n learning cycle, the target network will be replaced with the eval network
         self.update_target_net()
         # we can start learning when the memory is full

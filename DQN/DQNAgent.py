@@ -20,7 +20,7 @@ class DQNAgent:
         self.epsilon = params.get("epsilon", 0.9)
         self.num_actions = params.get("num_actions", 0)
         self.is_greedy = params.get("is_greedy", False)
-        params["function_approximator_info"]["num_actions"] = self.num_actions
+        params["function_approximator_info"]["action_dim"] = self.num_actions
         self.initialize_dqn(params.get("function_approximator_info"))
 
     def initialize_dqn(self, params):
@@ -49,7 +49,7 @@ class DQNAgent:
     def control(self):
         self.function_approximator.compute_weights()
 
-    # ====== Agent core functions =======================================================
+    # ====== Agent core functions ============================================================
 
     def start(self, state):
         # getting actions
