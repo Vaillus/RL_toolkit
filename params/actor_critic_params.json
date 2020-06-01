@@ -1,9 +1,9 @@
 {
   "session_info":{
     "session_type": "actor-critic",
-    "num_episodes": 801,
+    "num_episodes": 1501,
     "plot": true,
-    "show": true,
+    "show": false,
     "show_every": 100,
     "environment_name": "CartPole-v0",
     "return_results": true
@@ -34,7 +34,15 @@
             "type": "adam",
             "learning_rate": 0.0001
         },
-      "discount_factor": 0.90
+
+
+      "state_dim": 4,
+      "type": "neural network",
+      "memory_size": 1000,
+      "update_target_rate": 100,
+      "batch_size": 128,
+      "learning_rate": 0.0001,
+      "discount_factor": 0.99
     }
   }
 

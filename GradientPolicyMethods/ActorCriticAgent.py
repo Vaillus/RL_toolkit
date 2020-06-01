@@ -40,6 +40,7 @@ class ActorCriticAgent:
         self.policy_estimator = CustomNeuralNetwork(params)
 
     def initialize_function_approximator(self, params):
+        #self.function_approximator = DQN(params)
         self.function_approximator = CustomNeuralNetwork(params)
 
     # ====== Memory functions =============================================================
@@ -68,19 +69,18 @@ class ActorCriticAgent:
 
     def control(self, state, reward):
         self.function_approximator.optimizer.zero_grad()
-        td_target = reward + self.discount_factor * self.function_approximator(torch.FloatTensor(self.previous_state))
-        current_state_value = self.function_approximator(torch.FloatTensor(state))
-        loss_test = nn.MSELoss()
-        critic_loss = loss_test(td_target.detach(), current_state_value.detach())
+        advantage = reward + self.discount_factor * self.function_approximator(torch.FloatTensor(state)) - \
+                    self.function_approximator(torch.FloatTensor(self.previous_state))
+        #current_state_value = self.function_approximator(torch.FloatTensor(self.previous_state))
+        critic_loss = advantage.pow(2)
         critic_loss.backward()
         self.function_approximator.optimizer.step()
 
         self.policy_estimator.optimizer.zero_grad()
-        td_error = td_target.detach() - current_state_value.detach()
         probs = self.policy_estimator(self.previous_state)
         prev_action = torch.LongTensor([self.previous_action])
         action_chosen_prob = torch.gather(probs, dim=0, index=prev_action)
-        actor_loss = - torch.log(action_chosen_prob) * td_error
+        actor_loss = - torch.log(action_chosen_prob) * advantage.detach()
         actor_loss.backward()
         self.policy_estimator.optimizer.step()
 
