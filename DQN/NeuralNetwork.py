@@ -26,7 +26,8 @@ class Net(nn.Module):
             x = torch.from_numpy(x).to(torch.float32)
         x = F.relu(self.fc1(x))
         x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
+        #x = F.relu(self.fc3(x))
+        x = self.fc3(x)
 
         return x
 

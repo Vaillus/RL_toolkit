@@ -2,8 +2,8 @@
   "session_info":{
     "session_type ": "REINFORCE",
     "num_episodes": 5001,
-    "plot": false,
-    "show": true,
+    "plot": true,
+    "show": false,
     "show_every": 100,
     "environment_name": "CartPole-v0",
     "return_results": true

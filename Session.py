@@ -1,7 +1,8 @@
-from Agent import *
+from TDAgent import *
 from DQN.DQNAgent import *
 from GradientPolicyMethods.REINFORCEAgent import *
 from GradientPolicyMethods.REINFORCEAgentWithBaseline import *
+from GradientPolicyMethods.ActorCriticAgent import *
 import gym
 import matplotlib.pyplot as plt
 import json
@@ -55,11 +56,13 @@ class Session:
         if self.session_type == "DQN test":
             self.agent = DQNAgent(params)
         elif self.session_type == "tile coder test":
-            self.agent = Agent(params)
+            self.agent = TDAgent(params)
         elif self.session_type == "REINFORCE":
             self.agent = REINFORCEAgent(params)
         elif self.session_type == "REINFORCE with baseline":
             self.agent = REINFORCEAgentWithBaseline(params)
+        elif self.session_type == "actor-critic":
+            self.agent = ActorCriticAgent(params)
         else:
             print("agent not initialized")
 
@@ -99,6 +102,18 @@ class Session:
 
                 return episode_reward, success
 
+    def average_rewards(self, rewards):
+        avg_rewards = []
+        # transform the rewards to their avergage on the last n episodes (n being specified in the class parameters)
+        for i in range(len(rewards)):  # iterate through rewards
+            curr_reward = rewards[i]
+            last_n_rewards = [rewards[j] for j in range(i - 100 - 1, i) if j >= 0]
+            last_n_rewards.append(curr_reward)
+            avg_reward = np.average(last_n_rewards)
+            avg_rewards += [avg_reward]
+
+        return avg_rewards
+
     def run(self):
         episode_reward = 0
         success = False
@@ -107,7 +122,7 @@ class Session:
             episode_reward, success = self.episode(id_episode)
             rewards = np.append(rewards, episode_reward)
         if self.plot is True:
-            plt.plot(rewards)
+            plt.plot(self.average_rewards(rewards))
             plt.show()
             #print(episode_reward)
 
@@ -117,53 +132,10 @@ class Session:
 
 
 if __name__ == "__main__":
-    with open('params/REINFORCE_with_baseline_params.json') as json_file:
+    with open('params/actor_critic_params.json') as json_file:
         data = json.load(json_file)
         session_parameters = data["session_info"]
         session_parameters["agent_info"] = data["agent_info"]
 
     sess = Session(session_parameters)
     sess.run()
-
-    """
-    session_parameters = {"algo_type": "REINFORCE",
-                        "num_episodes": 1001,
-                          "plot": True,
-                          "show": True,
-                          "show_every": 10,
-                          "environment_name": "CartPole-v0"} # MountainCar-v0
-
-    agent_parameters = {"num_actions": 2,
-                        "is_greedy": False,
-                        "epsilon": 0.9,
-                        "control_method": "expected sarsa",
-                        "function_approximation_method": "neural network",
-                        "discount_factor": 1,
-                        "trace_decay": 0.9,
-                        "learning_rate": 0.9,
-                        "function_approximator_info": {
-                            "type": "neural network",
-                            "state_dim": 4,
-                            "action_dim": 2,
-                            "memory_size": 1000,
-                            "update_target_rate": 100,
-                            "batch_size": 128,
-                            "learning_rate": 0.01,
-                            "discount_factor": 0.90
-                        }}
-
-    
-    function_approx_parameters = {"type": "tile coder",
-                                  "state_dim": 4,
-                                  "action_dim": 2,
-                                  "memory_size": 2000,
-                                  "update_target_rate": 100,
-                                  "batch_size": 128,
-                                  "learning_rate": 0.9,
-                                  "discount_factor": 0.90
-                                }
-    """
-
-
-
-

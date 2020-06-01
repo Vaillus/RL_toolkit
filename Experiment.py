@@ -51,9 +51,11 @@ class Experiment:
         self.avg_results = params.get("avg_results", False)
         self.avg_length = params.get("avg_length", 100)
         self.experiment_type = params.get("experiment_type", "parameters testing")
+        self.environment_name = params.get("environment_name", "unknown environment")
 
         self.init_sessions(params)
 
+        self.environment_name = self.sessions[0].environment_name
     def init_sessions(self, params):
         """ Initialize sessions with parameters """
         if self.experiment_type == "parameters testing":
@@ -145,7 +147,7 @@ class Experiment:
 
 
 if __name__ == "__main__":
-    experiment_path = 'params/experiment_different_models_params.json'
+    experiment_path = 'params/experiment_same_model_params.json'
     experiment_parameters = load_experiment_params(experiment_path)
     experiment = Experiment(experiment_parameters)
     experiment.run()

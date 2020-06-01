@@ -110,6 +110,7 @@ class REINFORCEAgentWithBaseline:
             loss = - torch.log(self.policy_estimator.predict(state)[action]) * (discounted_reward - state_value)
             loss.backward()
             self.policy_estimator.optimizer.step()
+            self.function_approximator.optimizer.step()
 
             last_state = state
             last_action = action

@@ -3,10 +3,10 @@
   "num_sessions": 2,
   "session_variants": {
     "learning_rate": {
-      "values": [0.0001, 0.001],
-      "level": "policy_estimator"
+      "values": [0.01, 0.0001],
+      "level": "function_approximator"
     }
   },
   "avg_results": true,
-  "path_to_model_params": "params/reinforce_params.json"
+  "path_to_model_params": "params/actor_critic_params.json"
 }
