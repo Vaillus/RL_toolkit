@@ -1,4 +1,4 @@
-from DQN.NeuralNetwork import *
+from DQN.CustomNeuralNetwork import *
 
 class DQN:
     def __init__(self, params={}):
@@ -26,19 +26,26 @@ class DQN:
         self.set_other_params()
 
     def set_params_from_dict(self, params={}):
+        print(params)
         self.state_dim = params.get("state_dim", 4)
         self.action_dim = params.get("action_dim", 2)
         self.memory_size = params.get("memory_size", 200)
-        self.update_target_rate = params.get("learn_every", 50)
+        self.update_target_rate = params.get("update_target_rate", 50)
         self.batch_size = params.get("batch_size", 128)
         self.discount_factor = params.get("discount_factor", 0.995)
-        self.learning_rate = params.get("learning_rate", 0.9)
+
+        self.initialize_neural_networks(params.get("neural_nets_info"))
+
+        self.set_other_params()
 
 
     def set_other_params(self):
         self.memory = np.zeros((self.memory_size, 2 * self.state_dim + 2))
-        self.target_net, self.eval_net = Net(self.state_dim, self.action_dim, self.learning_rate), \
-                                         Net(self.state_dim, self.action_dim, self.learning_rate)
+
+    def initialize_neural_networks(self, params):
+        print(params)
+        self.target_net, self.eval_net = CustomNeuralNetwork(params), CustomNeuralNetwork(params)
+
 
     def get_action_value(self, state, action=None):
         # Compute action values from the eval net

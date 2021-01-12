@@ -33,6 +33,8 @@ class DQNAgent:
             action_chosen = np.argmax(action_values)
         else:
             action_chosen = np.random.randint(self.num_actions)
+        #action_chosen = np.zeros(len(action_values))
+        #action_chosen[action_chosen_id] = 1
         return action_chosen
 
     def choose_action(self, action_values):

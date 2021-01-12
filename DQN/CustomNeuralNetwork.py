@@ -23,7 +23,7 @@ class CustomNeuralNetwork(nn.Module):
         for layer_info in layers_info:
             if layer_info["type"] == "linear":
                 layer = nn.Linear(layer_info["input_size"], layer_info["output_size"])
-
+                layer.weight.data.normal_(0, 0.1) # TODO : I don't think it should be optional, but it might be. See later.
             self.layers.append(layer)
             self.activations.append(layer_info["activation"])
 
@@ -32,8 +32,14 @@ class CustomNeuralNetwork(nn.Module):
             self.optimizer = optim.Adam(self.parameters(), lr=optimizer_info["learning_rate"])
 
     def forward(self, x):
+        # format the input data
         if isinstance(x, np.ndarray):
             x = torch.from_numpy(x).to(torch.float32)
+        elif isinstance(x, list):
+            x = torch.FloatTensor(x)
+        elif isinstance(x, tuple):
+            x = torch.FloatTensor(x)
+
         for i in range(len(self.layers)):
             if self.activations[i] == "relu":
                 x = F.relu(self.layers[i](x))

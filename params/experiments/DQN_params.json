@@ -1,0 +1,52 @@
+{
+  "session_info":{
+    "session_type": "DQN test",
+    "num_episodes": 500,
+    "plot": true,
+    "show": true,
+    "show_every": 1,
+    "environment_type": "godot",
+    "environment_name": "Godot-Test-v0",
+    "return_results": true,
+    "is_multiagent": true
+  },
+
+  "agent_info" : {
+    "num_actions": 13,
+    "is_greedy": false,
+    "epsilon": 0.9,
+
+    "function_approximator_info": {
+      "state_dim": 4,
+      "type": "neural network",
+      "memory_size": 1000,
+      "update_target_rate": 100,
+      "batch_size": 32,
+      "discount_factor": 0.99,
+
+      "neural_nets_info": {
+        "layers_info": [
+          {"type": "linear", "input_size": 4, "output_size": 24, "activation": "relu"},
+          {"type": "linear", "input_size": 24, "output_size": 48, "activation": "relu"},
+          {"type": "linear", "input_size": 48, "output_size": 13, "activation": "none"}
+        ],
+        "optimizer_info": {
+            "type": "adam",
+            "learning_rate": 0.001
+        }
+      }
+    }
+  },
+  "environment_info": {
+    "agent names": ["Player", "Player2"],
+    "host": "127.0.0.1",
+    "port": 4243,
+    "godot path": "mnt/c/Users/Hugo/Desktop/Godot_v3.2.3-stable_win64.exe",
+    "environment path": "C:/Users/Hugo/Documents/AI/projects/LonesomeTown/godot_environments/dev/lonesome_town_game/lonesome_town_v0.pck",
+    "state min": [-431, -546],
+    "state max": [524, 427],
+    "display actions": false,
+    "display states": false,
+    "seed":4
+  }
+}

@@ -82,10 +82,10 @@ class ActorCriticAgent:
 
         self.policy_estimator.optimizer.zero_grad()
         # get the probabilities of previous actions
-        probs = self.policy_estimator(self.previous_state)
+        action = self.policy_estimator(self.previous_state)
         prev_action = torch.LongTensor([self.previous_action])
-        action_chosen_prob = torch.gather(probs, dim=0, index=prev_action)
-        actor_loss = - torch.log(action_chosen_prob) * advantage.detach()
+        #action_chosen_prob = torch.gather(probs, dim=0, index=prev_action)
+        actor_loss = (action - prev_action) ** 2
         actor_loss.backward()
         self.policy_estimator.optimizer.step()
 

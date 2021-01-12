@@ -1,0 +1,38 @@
+{
+  "session_info":{
+    "session_type": "DQN test",
+    "num_episodes": 501,
+    "plot": true,
+    "show": true,
+    "show_every": 100,
+    "environment_name": "CartPole-v0",
+    "return_results": true
+  },
+
+  "agent_info" : {
+    "num_actions": 2,
+    "is_greedy": false,
+    "epsilon": 0.9,
+
+    "function_approximator_info": {
+      "state_dim": 4,
+      "type": "neural network",
+      "memory_size": 1000,
+      "update_target_rate": 100,
+      "batch_size": 128,
+      "discount_factor": 0.90,
+
+      "neural_nets_info": {
+        "layers_info": [
+          {"type": "linear", "input_size": 4, "output_size": 50, "activation": "relu"},
+          {"type": "linear", "input_size": 50, "output_size": 30, "activation": "relu"},
+          {"type": "linear", "input_size": 30, "output_size": 2, "activation": "none"}
+        ],
+        "optimizer_info": {
+            "type": "adam",
+            "learning_rate": 0.01
+        }
+      }
+    }
+  }
+}
