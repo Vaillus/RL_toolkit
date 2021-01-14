@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 import json
 
 import os
+import pathlib
 import sys
-# for an import from another folder, we go one level up.
-sys.path.append('../')
-import lonesome_town.GodotEnvironment as godot
+
+import godot_interface.GodotEnvironment as godot
 
 from utils import *
 
@@ -153,7 +153,7 @@ class Session:
 
             # shaping reward for cartpole
             if self.environment_name == "CartPole-v0":  # TODO : might want to change that
-                x, x_dot, theta, theta_dot = new_state
+                x, x_dot, theta, theta_dot = new_state_data
                 reward = reward_func(self.environment, x, x_dot, theta, theta_dot)
             episode_reward += reward_data[0]["reward"]
             # render environment (gym environments only)
@@ -164,7 +164,7 @@ class Session:
                 action_data = self.get_agent_action(new_state_data, reward_data)
             else:
                 if self.environment_name == "MountainCar-v0":  # TODO : might want to change that too
-                    if new_state[0] >= self.environment.goal_position:
+                    if new_state_data[0] >= self.environment.goal_position:
                         success = True
                         reward_data = 1
                 self.end_agent(new_state_data, reward_data)
