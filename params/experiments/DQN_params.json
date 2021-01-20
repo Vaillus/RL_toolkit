@@ -42,7 +42,7 @@
     "host": "127.0.0.1",
     "port": 4243,
     "godot path": "mnt/c/Users/Hugo/Desktop/Godot_v3.2.3-stable_win64.exe",
-    "environment path": "C:/Users/Hugo/Documents/work/projects/godot/godot_projects/lonesome_town/godot_environments/lonesome_town_v0.pck",
+    "environment path": "C:/Users/Hugo/Documents/work/projects/godot/godot_projects/lonesome_town_game/lonesome_town_v0.pck",
     "state min": [-431, -546], 
     "state max": [524, 427],
     "display actions": false,

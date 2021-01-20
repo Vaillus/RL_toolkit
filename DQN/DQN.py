@@ -1,4 +1,6 @@
 from DQN.CustomNeuralNetwork import *
+import numpy as np
+import torch
 
 class DQN:
     def __init__(self, params={}):
@@ -26,7 +28,6 @@ class DQN:
         self.set_other_params()
 
     def set_params_from_dict(self, params={}):
-        print(params)
         self.state_dim = params.get("state_dim", 4)
         self.action_dim = params.get("action_dim", 2)
         self.memory_size = params.get("memory_size", 200)
@@ -43,7 +44,6 @@ class DQN:
         self.memory = np.zeros((self.memory_size, 2 * self.state_dim + 2))
 
     def initialize_neural_networks(self, params):
-        print(params)
         self.target_net, self.eval_net = CustomNeuralNetwork(params), CustomNeuralNetwork(params)
 
 
