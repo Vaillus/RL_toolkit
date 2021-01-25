@@ -6,7 +6,8 @@
     "show": true,
     "show_every": 100,
     "environment_name": "CartPole-v0",
-    "return_results": true
+    "return_results": true,
+    "environment_type": "gym"
   },
 
   "agent_info" : {

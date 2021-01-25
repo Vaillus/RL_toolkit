@@ -11,7 +11,7 @@ import os
 import pathlib
 import sys
 
-import godot_interface.GodotEnvironment as godot
+#import godot_interface.GodotEnvironment as godot
 
 from utils import *
 
@@ -133,13 +133,16 @@ class Session:
             self.agent.end(state_data, reward_data)
 
     def episode(self, episode_id):
+        # Reset the environment, in both godot and gym case
         if self.environment_type == "godot":
+            # set the right render type for the episode
             render = False
             if (self.show is True) and (episode_id % self.show_every == 0):
                 render = True
             state_data = self.environment.reset(render)
         else:
             state_data = self.environment.reset()
+        
         action_data = self.get_agent_action(state_data, start=True)
         episode_reward = 0
         done = False
@@ -154,8 +157,9 @@ class Session:
             # shaping reward for cartpole
             if self.environment_name == "CartPole-v0":  # TODO : might want to change that
                 x, x_dot, theta, theta_dot = new_state_data
-                reward = reward_func(self.environment, x, x_dot, theta, theta_dot)
-            episode_reward += reward_data[0]["reward"]
+                reward_data = reward_func(self.environment, x, x_dot, theta, theta_dot)
+            episode_reward += reward_data
+            #episode_reward += reward_data[0]["reward"] # godot only
             # render environment (gym environments only)
             if (self.show is True) and (episode_id % self.show_every == 0) and (self.environment_type != "godot"):
                     self.environment.render()
@@ -185,6 +189,7 @@ class Session:
         return avg_rewards
 
     def run(self):
+
         episode_reward = 0
         success = False
         rewards = np.array([])
@@ -209,10 +214,10 @@ if __name__ == "__main__":
     # '../LonesomeTown/params/first_test_params.json'
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
-    with open('params/experiments/DQN_params.json') as json_file:
+    with open('params/functional_examples/DQN_params.json') as json_file:
         data = json.load(json_file)
         session_parameters = data["session_info"]
         session_parameters["agent_info"] = data["agent_info"]
-        session_parameters["environment_info"] = data["environment_info"]
+        #session_parameters["environment_info"] = data["environment_info"]
     sess = Session(session_parameters)
     sess.run()
