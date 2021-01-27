@@ -2,6 +2,8 @@ from GradientPolicyMethods.PolicyEstimator import *
 from DQN.DQN import *
 from GradientPolicyMethods.BaselineNetwork import *
 from DQN.CustomNeuralNetwork import *
+import numpy as np
+import torch
 
 class ActorCriticAgent:
     def __init__(self, params={}):
@@ -70,7 +72,8 @@ class ActorCriticAgent:
         :return:
         """
         self.function_approximator.optimizer.zero_grad()
-        # computing the advantage
+        # computing the advantage.
+        # The advantage is... I need to re-read my RL notes.
         advantage = reward + self.discount_factor * self.function_approximator(torch.FloatTensor(state)) - \
                     self.function_approximator(torch.FloatTensor(self.previous_state))
         #current_state_value = self.function_approximator(torch.FloatTensor(self.previous_state))
@@ -83,8 +86,11 @@ class ActorCriticAgent:
         self.policy_estimator.optimizer.zero_grad()
         # get the probabilities of previous actions
         probs = self.policy_estimator(self.previous_state)
+        # get the action that was actually taken
         prev_action = torch.LongTensor([self.previous_action])
+        # the probability of the action that was taken
         action_chosen_prob = torch.gather(probs, dim=0, index=prev_action)
+
         actor_loss = - torch.log(action_chosen_prob) * advantage.detach()
         actor_loss.backward()
         self.policy_estimator.optimizer.step()

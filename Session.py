@@ -151,19 +151,23 @@ class Session:
         if (self.show is True) and (episode_id % self.show_every == 0):
             print(f'EPISODE: {episode_id}')
 
+        # Main loop
         while not done:
+            # run a step in the environment and get the new state, reward and info about whether the 
+            # episode is over.
             new_state_data, reward_data, done, _ = self.environment.step(action_data) # self.environment.step([float(action)]) | if continuous mountian car
 
             # shaping reward for cartpole
             if self.environment_name == "CartPole-v0":  # TODO : might want to change that
                 x, x_dot, theta, theta_dot = new_state_data
                 reward_data = reward_func(self.environment, x, x_dot, theta, theta_dot)
+            # save the reward
             episode_reward += reward_data
-            #episode_reward += reward_data[0]["reward"] # godot only
+            # episode_reward += reward_data[0]["reward"] # godot only
             # render environment (gym environments only)
             if (self.show is True) and (episode_id % self.show_every == 0) and (self.environment_type != "godot"):
                     self.environment.render()
-
+            # get the action if it's not the last step
             if not done:
                 action_data = self.get_agent_action(new_state_data, reward_data)
             else:
@@ -193,6 +197,7 @@ class Session:
         episode_reward = 0
         success = False
         rewards = np.array([])
+        # run the episodes and store the rewards
         for id_episode in range(self.num_episodes):
             episode_reward, success = self.episode(id_episode)
             self.environment.close()
@@ -200,11 +205,12 @@ class Session:
             print(f'reward: {episode_reward}')
             print(f'success: {success}')
             rewards = np.append(rewards, episode_reward)
+        # plot the rewards
         if self.plot is True:
             plt.plot(self.average_rewards(rewards))
             plt.show()
             #print(episode_reward)
-
+        # return the rewards
         if self.return_results:
             return rewards
 
@@ -214,10 +220,9 @@ if __name__ == "__main__":
     # '../LonesomeTown/params/first_test_params.json'
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
-    with open('params/functional_examples/DQN_params.json') as json_file:
-        data = json.load(json_file)
-        session_parameters = data["session_info"]
-        session_parameters["agent_info"] = data["agent_info"]
-        #session_parameters["environment_info"] = data["environment_info"]
+    data = get_params("actor_critic_params")
+    session_parameters = data["session_info"]
+    session_parameters["agent_info"] = data["agent_info"]
+
     sess = Session(session_parameters)
     sess.run()
