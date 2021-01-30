@@ -11,7 +11,7 @@ import os
 import pathlib
 import sys
 
-#import godot_interface.GodotEnvironment as godot
+import godot_interface.GodotEnvironment as godot
 
 from utils import *
 
@@ -38,18 +38,18 @@ class Session:
         self.environment_type = None
         self.environment_name = None
         self.environment = None
+
         self.num_episodes = None
+        self.session_type = None
+        self.is_multiagent = None
+
         self.show = None
         self.show_every = None
+
         self.plot = None
         self.return_results = None
 
-        self.session_type = None
-
-        self.is_multiagent = None
-
         self.set_params_from_dict(params=params)
-
         self.set_env_and_agent(params)
 
 
@@ -66,107 +66,225 @@ class Session:
         self.return_results = params.get("return_results", False)
         self.session_type = params.get("session_type", "REINFORCE")
         self.is_multiagent = params.get("is_multiagent", False)
-
+ 
     def set_env_and_agent(self, params):
+        env_params = params.get("environment_info", {})
+        self.init_env(env_params)
+        agent_params = params.get("agent_info", {})
+        self.init_agent(agent_params)
+    
+    def init_env(self, env_params):
+        """the environment is set differently if it's a gym environment or a godot environment.
+
+        Args:
+            env_params (dict): used only in case of a godot env.
+        """
         if self.environment_type == "gym":
             self.environment = gym.make(self.environment_name)
         elif self.environment_type == "godot":
-            self.environment = godot.GodotEnvironment(params["environment_info"])
-        if self.session_type == "tile coder":  # TODO: might be a problem later
-            params["agent_info"]["function_approximator_info"]["env_min_values"] = self.environment.observation_space.low
-            params["agent_info"]["function_approximator_info"]["env_max_values"] = self.environment.observation_space.high
+            self.environment = godot.GodotEnvironment(env_params)
+    
+    def init_agent(self, agent_params):
+        """initialize one or several agents
+
+        Args:
+            agent_params (dict)
+        """
         if self.is_multiagent:
             self.agents_names = self.environment.agent_names
-            self.initialize_agents(params["agent_info"])
+            self.init_multiagent(agent_params)
         else:
-            self.agent = self.create_agent(params["agent_info"])
+            self.agent = self.init_single_agent(agent_params)
 
-    def initialize_agents(self, params={}):
+    def init_multiagent(self, agent_params):
         self.agent = {}
         for agent_name in self.agents_names:
-            self.agent[agent_name] = self.create_agent(params)
+            self.agent[agent_name] = self.init_single_agent(agent_params)
 
-    def create_agent(self, params={}):
+    def init_single_agent(self, agent_params):
+        """Create and return an agent. The type of agent depends on the self.session_type parameter
+
+        Args:
+            agent_params (dict)
+
+        Returns:
+            Agent: the agent initialized
+        """
         agent = None
         if self.session_type == "DQN test":
-            agent = DQNAgent(params)
+            agent = DQNAgent(agent_params)
         elif self.session_type == "tile coder test":
-            agent = TDAgent(params)
+            agent = self.init_tc_agent(agent_params)
         elif self.session_type == "REINFORCE":
-            agent = REINFORCEAgent(params)
+            agent = REINFORCEAgent(agent_params)
         elif self.session_type == "REINFORCE with baseline":
-            agent = REINFORCEAgentWithBaseline(params)
+            agent = REINFORCEAgentWithBaseline(agent_params)
         elif self.session_type == "actor-critic":
-            agent = ActorCriticAgent(params)
+            agent = ActorCriticAgent(agent_params)
         else:
             print("agent not initialized")
         return agent
+    
+    def init_tc_agent(self, agent_params):
+        """initialization of a tile coder agent, which depends on the gym environment
 
-    # ====== Execution functions =======================================================
+        Args:
+            agent_params (dict)
+
+        Returns:
+            Agent
+        """
+        assert self.environment_name == "gym", "tile coder not supported for godot environments"
+        
+        params["agent_info"]["function_approximator_info"]["env_min_values"] = \
+            self.environment.observation_space.low
+        params["agent_info"]["function_approximator_info"]["env_max_values"] = \
+            self.environment.observation_space.high
+        agent = TDAgent(agent_params)
+         
+        return agent
+
+    # ====== Agent execution functions =======================================================
+
     def get_agent_action(self, state_data, reward_data=None, start=False):
         if self.is_multiagent:
-            action_data = []
-            for n_agent in range(len(state_data)):
-                agent_name = state_data[n_agent]["name"]
-                agent_state = state_data[n_agent]["state"]
-                if start is True:
-                    action = self.agent[agent_name].start(agent_state)
-                else:
-                    agent_reward = reward_data[n_agent]["reward"]
-                    action = self.agent[agent_name].step(agent_state, agent_reward)
-                action_data.append({"name": agent_name, "action": action})
+            action_data = self.get_multiagent_action(state_data=state_data, 
+                                                    reward_data=reward_data=, 
+                                                    start=start)
         else:
-            if start is True:
-                action_data = self.agent.start(state_data)
-            else:
-                action_data = self.agent.step(state_data, reward_data)
+            action_data = self.get_single_agent_action(agent=self.agent, 
+                                        state_data=state_data, 
+                                        reward_data=reward_data, 
+                                        start=start)
+        return action_data
+    
+    def get_multiagent_action(self, state_data, reward_data=None, start=False):
+        """ distribute states to all agents and get their actions back.
+
+        Args:
+            state_data (dict)
+            reward_data (dict, optional): Defaults to None.
+            start (bool, optional): indicates whether it is the first step of the agent. 
+                                    Defaults to False.
+
+        Returns:
+            dict
+        """
+        action_data = []
+        # for each agent, get 
+        for n_agent in range(len(state_data)):
+            agent_name = state_data[n_agent]["name"]
+            agent_state = state_data[n_agent]["state"]
+            action = self.get_single_agent_action(agent=self.agent[agent_name], 
+                                        state_data=agent_state, 
+                                        reward_data=reward_data, 
+                                        start=start)
+            action_data.append({"name": agent_name, "action": action})
+        return action_data
+    
+    def get_single_agent_action(self, agent, state_data, reward_data=None, start=False):
+        """if this is the first state of the episode, get the first action of the agent
+        else, also give reward of the previous action to complete the previous transition.
+
+        Args:
+            agent (Agent)
+            state_data (dict)
+            reward_data (dict, optional): Defaults to None.
+            start (bool, optional): indicates whether it is the first step of the agent. 
+                                    Defaults to False.
+
+        Returns:
+            int : id of action taken
+        """
+        if start is True:
+            action_data = agent.start(state_data)
+        else:
+            action_data = agent.step(state_data, reward_data)
         return action_data
 
     def end_agent(self, state_data, reward_data):
         if self.is_multiagent:
-            for n_agent in range(len(state_data)):
+            self.end_multiagent(state_data, reward_data)
+        else:
+            self.agent.end(state_data, reward_data)
+        
+    def end_multiagent(state_data, reward_data):
+        """send the terminal state and the final reward to every agent so they can 
+        complete their last transitions
+
+        Args:
+            state_data (dict): [description]
+            reward_data (dict): [description]
+        """
+        for n_agent in range(len(state_data)):
                 agent_name = state_data[n_agent]["name"]
                 agent_state = state_data[n_agent]["state"]
                 agent_reward = reward_data[n_agent]["reward"]
-                self.agent[agent_name].end(agent_state, agent_reward)
-        else:
-            self.agent.end(state_data, reward_data)
 
-    def episode(self, episode_id):
+                self.agent[agent_name].end(agent_state, agent_reward)
+
+    # ==== Name to be defined =================================================================
+
+    def godot_env_reset(self):
+        # set the right render type for the episode
+        render = False
+        if (self.show is True) and (episode_id % self.show_every == 0):
+            render = True
+        state_data = self.environment.reset(render)
+        return state_data
+
+    def env_reset(self):
         # Reset the environment, in both godot and gym case
         if self.environment_type == "godot":
-            # set the right render type for the episode
-            render = False
-            if (self.show is True) and (episode_id % self.show_every == 0):
-                render = True
-            state_data = self.environment.reset(render)
+            state_data = self.godot_env_reset()
         else:
             state_data = self.environment.reset()
-        
+        return state_data
+    
+    def print_episode_count(self, episode_id):
+        if (self.show is True) and (episode_id % self.show_every == 0):
+            print(f'EPISODE: {episode_id}')
+    
+    def shape_reward(state_data, reward_data):
+        # shaping reward for cartpole
+        if self.environment_name == "CartPole-v0":  # TODO : might want to change that
+            x, x_dot, theta, theta_dot = new_state_data
+            reward_data = reward_func(self.environment, x, x_dot, theta, theta_dot)
+
+        return reward_data
+    
+    def save_reward(self, episode_reward, reward_data):
+        if self.session_type == "godot":
+            episode_reward += reward_data[0]["reward"]
+        else:
+            episode_reward += reward_data
+        return episode_reward
+    
+    def render_gym_env(self, episode_id):
+        # render environment (gym environments only) it specified so
+        if (self.show is True) and (episode_id % self.show_every == 0) and (self.environment_type != "godot"):
+            self.environment.render()
+
+    def episode(self, episode_id):
+        self.print_episode_count()
+        state_data = self.env_reset()
         action_data = self.get_agent_action(state_data, start=True)
+
         episode_reward = 0
         done = False
         success = False
-
-        if (self.show is True) and (episode_id % self.show_every == 0):
-            print(f'EPISODE: {episode_id}')
 
         # Main loop
         while not done:
             # run a step in the environment and get the new state, reward and info about whether the 
             # episode is over.
-            new_state_data, reward_data, done, _ = self.environment.step(action_data) # self.environment.step([float(action)]) | if continuous mountian car
-
-            # shaping reward for cartpole
-            if self.environment_name == "CartPole-v0":  # TODO : might want to change that
-                x, x_dot, theta, theta_dot = new_state_data
-                reward_data = reward_func(self.environment, x, x_dot, theta, theta_dot)
+            new_state_data, reward_data, done, _ = self.environment.step(action_data)
+             # self.environment.step([float(action)]) | if continuous mountian car
+            reward_data = self.shape_reward(state_data, reward_data)
             # save the reward
-            episode_reward += reward_data
-            # episode_reward += reward_data[0]["reward"] # godot only
+            episode_reward = self.save_reward(episode_reward, reward_data)
             # render environment (gym environments only)
-            if (self.show is True) and (episode_id % self.show_every == 0) and (self.environment_type != "godot"):
-                    self.environment.render()
+            self.render_gym_env(episode_id)
             # get the action if it's not the last step
             if not done:
                 action_data = self.get_agent_action(new_state_data, reward_data)
@@ -220,7 +338,7 @@ if __name__ == "__main__":
     # '../LonesomeTown/params/first_test_params.json'
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
-    data = get_params("actor_critic_params")
+    data = get_params("experiments/DQN_params")
     session_parameters = data["session_info"]
     session_parameters["agent_info"] = data["agent_info"]
 
