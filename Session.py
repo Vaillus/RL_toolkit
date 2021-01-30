@@ -225,47 +225,15 @@ class Session:
 
     # ==== Name to be defined =================================================================
 
-    def godot_env_reset(self):
-        # set the right render type for the episode
-        render = False
-        if (self.show is True) and (episode_id % self.show_every == 0):
-            render = True
-        state_data = self.environment.reset(render)
-        return state_data
-
-    def env_reset(self):
-        # Reset the environment, in both godot and gym case
-        if self.environment_type == "godot":
-            state_data = self.godot_env_reset()
-        else:
-            state_data = self.environment.reset()
-        return state_data
-    
-    def print_episode_count(self, episode_id):
-        if (self.show is True) and (episode_id % self.show_every == 0):
-            print(f'EPISODE: {episode_id}')
-    
-    def shape_reward(state_data, reward_data):
-        # shaping reward for cartpole
-        if self.environment_name == "CartPole-v0":  # TODO : might want to change that
-            x, x_dot, theta, theta_dot = new_state_data
-            reward_data = reward_func(self.environment, x, x_dot, theta, theta_dot)
-
-        return reward_data
-    
-    def save_reward(self, episode_reward, reward_data):
-        if self.session_type == "godot":
-            episode_reward += reward_data[0]["reward"]
-        else:
-            episode_reward += reward_data
-        return episode_reward
-    
-    def render_gym_env(self, episode_id):
-        # render environment (gym environments only) it specified so
-        if (self.show is True) and (episode_id % self.show_every == 0) and (self.environment_type != "godot"):
-            self.environment.render()
-
     def episode(self, episode_id):
+        """[summary]
+
+        Args:
+            episode_id ([type]): [description]
+
+        Returns:
+            [type]: [description]
+        """
         self.print_episode_count()
         state_data = self.env_reset()
         action_data = self.get_agent_action(state_data, start=True)
@@ -285,33 +253,19 @@ class Session:
             episode_reward = self.save_reward(episode_reward, reward_data)
             # render environment (gym environments only)
             self.render_gym_env(episode_id)
-            # get the action if it's not the last step
+
             if not done:
+                # get the action if it's not the last step
                 action_data = self.get_agent_action(new_state_data, reward_data)
             else:
-                if self.environment_name == "MountainCar-v0":  # TODO : might want to change that too
-                    if new_state_data[0] >= self.environment.goal_position:
-                        success = True
-                        reward_data = 1
+                # get the final reward and success in the mountaincar env
+                reward_data, success = self.assess_mc_success(new_state_data)
                 self.end_agent(new_state_data, reward_data)
                 if self.session_type == "REINFORCE" or self.session_type == "REINFORCE with baseline":
                     self.agent.learn_from_experience()
                 return episode_reward, success
 
-    def average_rewards(self, rewards):
-        avg_rewards = []
-        # transform the rewards to their avergage on the last n episodes (n being specified in the class parameters)
-        for i in range(len(rewards)):  # iterate through rewards
-            curr_reward = rewards[i]
-            last_n_rewards = [rewards[j] for j in range(i - 100 - 1, i) if j >= 0]
-            last_n_rewards.append(curr_reward)
-            avg_reward = np.average(last_n_rewards)
-            avg_rewards += [avg_reward]
-
-        return avg_rewards
-
     def run(self):
-
         episode_reward = 0
         success = False
         rewards = np.array([])
@@ -332,10 +286,74 @@ class Session:
         if self.return_results:
             return rewards
 
+    def godot_env_reset(self):
+        """ set the right render type for the godot env episode
+        """
+        render = False
+        if (self.show is True) and (episode_id % self.show_every == 0):
+            render = True
+        state_data = self.environment.reset(render)
+        return state_data
 
+    def env_reset(self):
+        """ Reset the environment, in both godot and gym case
+        """
+        if self.environment_type == "godot":
+            state_data = self.godot_env_reset()
+        else:
+            state_data = self.environment.reset()
+        return state_data
+    
+    def print_episode_count(self, episode_id):
+        if (self.show is True) and (episode_id % self.show_every == 0):
+            print(f'EPISODE: {episode_id}')
+    
+    def shape_reward(state_data, reward_data):
+        """ shaping reward for cartpole environment
+        """
+        if self.environment_name == "CartPole-v0":  # TODO : might want to change that
+            x, x_dot, theta, theta_dot = new_state_data
+            reward_data = reward_func(self.environment, x, x_dot, theta, theta_dot)
+
+        return reward_data
+    
+    def save_reward(self, episode_reward, reward_data):
+        """ add the reward to the reward history
+        """
+        if self.session_type == "godot":
+            episode_reward += reward_data[0]["reward"]
+        else:
+            episode_reward += reward_data
+        return episode_reward
+    
+    def render_gym_env(self, episode_id):
+        """ render environment (gym environments only) if specified so
+        """
+        if (self.show is True) and (episode_id % self.show_every == 0) and (self.environment_type != "godot"):
+            self.environment.render()
+    
+    def assess_mc_success(selfnew_state_data):
+        """ if the environment is mountaincar, assess whether the agent succeeded
+        """
+        if self.environment_name == "MountainCar-v0":
+            if new_state_data[0] >= self.environment.goal_position:
+                success = True
+                reward_data = 1
+
+    def average_rewards(self, rewards):
+        avg_rewards = []
+        # transform the rewards to their avergage on the last n episodes 
+        # (n being specified in the class parameters)
+        for i in range(len(rewards)):  # iterate through rewards
+            curr_reward = rewards[i]
+            last_n_rewards = [rewards[j] for j in range(i - 100 - 1, i) if j >= 0]
+            last_n_rewards.append(curr_reward)
+            avg_reward = np.average(last_n_rewards)
+            avg_rewards += [avg_reward]
+
+        return avg_rewards
 
 if __name__ == "__main__":
-    # '../LonesomeTown/params/first_test_params.json'
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
     data = get_params("experiments/DQN_params")

@@ -43,8 +43,8 @@ class DQN:
     def set_other_params(self):
         self.memory = np.zeros((self.memory_size, 2 * self.state_dim + 2))
 
-    def initialize_neural_networks(self, params):
-        self.target_net, self.eval_net = CustomNeuralNetwork(params), CustomNeuralNetwork(params)
+    def initialize_neural_networks(self, nn_params):
+        self.target_net, self.eval_net = CustomNeuralNetwork(nn_params), CustomNeuralNetwork(nn_params)
 
 
     def get_action_value(self, state, action=None):

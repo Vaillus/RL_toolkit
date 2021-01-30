@@ -68,12 +68,15 @@ class REINFORCEAgent:
 
 
     def learn_from_experience(self):
+        """ replays the episode backward and make gradient ascent over the policy
+        """
         #self.policy_estimator.optimizer.zero_grad()
         discounted_reward = 0
         reversed_episode = zip(self.rewards[::-1], self.states[::-1], self.actions[::-1])
         for reward, state, action in reversed_episode:
             self.policy_estimator.optimizer.zero_grad()
             discounted_reward = reward + self.discount_factor * discounted_reward
+            α γ^t Gt×   
             loss = - torch.log(self.policy_estimator.predict(state)[action]) * discounted_reward
             loss.backward()
             self.policy_estimator.optimizer.step()
