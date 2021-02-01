@@ -148,8 +148,8 @@ class Session:
 
     def get_agent_action(self, state_data, reward_data=None, start=False):
         if self.is_multiagent:
-            action_data = self.get_multiagent_action(state_data=state_data, 
-                                                    reward_data=reward_data=, 
+            action_data = self.get_multiagent_action(state_data=state_data,
+                                                    reward_data=reward_data,
                                                     start=start)
         else:
             action_data = self.get_single_agent_action(agent=self.agent, 
@@ -234,7 +234,7 @@ class Session:
         Returns:
             [type]: [description]
         """
-        self.print_episode_count()
+        self.print_episode_count(episode_id=episode_id)
         state_data = self.env_reset()
         action_data = self.get_agent_action(state_data, start=True)
 
@@ -283,6 +283,7 @@ class Session:
             plt.show()
             #print(episode_reward)
         # return the rewards
+        
         if self.return_results:
             return rewards
 
@@ -305,14 +306,14 @@ class Session:
         return state_data
     
     def print_episode_count(self, episode_id):
-        if (self.show is True) and (episode_id % self.show_every == 0):
+        if ((self.show is True) and (episode_id % self.show_every == 0)):
             print(f'EPISODE: {episode_id}')
     
-    def shape_reward(state_data, reward_data):
+    def shape_reward(self, state_data, reward_data):
         """ shaping reward for cartpole environment
         """
         if self.environment_name == "CartPole-v0":  # TODO : might want to change that
-            x, x_dot, theta, theta_dot = new_state_data
+            x, x_dot, theta, theta_dot = state_data
             reward_data = reward_func(self.environment, x, x_dot, theta, theta_dot)
 
         return reward_data
@@ -332,13 +333,17 @@ class Session:
         if (self.show is True) and (episode_id % self.show_every == 0) and (self.environment_type != "godot"):
             self.environment.render()
     
-    def assess_mc_success(selfnew_state_data):
+    def assess_mc_success(self, new_state_data):
         """ if the environment is mountaincar, assess whether the agent succeeded
         """
+        success = False
+        reward_data = 0.0
         if self.environment_name == "MountainCar-v0":
             if new_state_data[0] >= self.environment.goal_position:
                 success = True
                 reward_data = 1
+
+        return reward_data, success 
 
     def average_rewards(self, rewards):
         avg_rewards = []
@@ -356,7 +361,7 @@ class Session:
 if __name__ == "__main__":
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
-    data = get_params("experiments/DQN_params")
+    data = get_params("actor_critic_params")
     session_parameters = data["session_info"]
     session_parameters["agent_info"] = data["agent_info"]
 

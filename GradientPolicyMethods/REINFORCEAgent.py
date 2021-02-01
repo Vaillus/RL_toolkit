@@ -1,5 +1,7 @@
 from FunctionApproximator import *
 from GradientPolicyMethods.PolicyEstimator import *
+import torch
+
 
 class REINFORCEAgent:
     def __init__(self, params={}):
@@ -15,7 +17,6 @@ class REINFORCEAgent:
         self.is_continuous = None
 
         self.set_params_from_dict(params)
-        # self.set_other_params()
 
     # ====== Initialization functions =======================================================
 
@@ -65,8 +66,6 @@ class REINFORCEAgent:
         # self.states.extend(state)
         # self.episode_memory.extend((reward, state))
 
-
-
     def learn_from_experience(self):
         """ replays the episode backward and make gradient ascent over the policy
         """
@@ -76,7 +75,7 @@ class REINFORCEAgent:
         for reward, state, action in reversed_episode:
             self.policy_estimator.optimizer.zero_grad()
             discounted_reward = reward + self.discount_factor * discounted_reward
-            α γ^t Gt×   
+            # on prend le contraire de l'expression pour que notre loss pénalise au bon moment.
             loss = - torch.log(self.policy_estimator.predict(state)[action]) * discounted_reward
             loss.backward()
             self.policy_estimator.optimizer.step()

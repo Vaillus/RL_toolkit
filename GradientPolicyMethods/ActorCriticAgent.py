@@ -15,9 +15,9 @@ class ActorCriticAgent:
 
         self.function_approximator = None
 
-        self.states = []
-        self.actions = []
-        self.rewards = []
+        self.previous_state = None
+        self.previous_action = None
+        #self.rewards = []
         self.is_continuous = None
 
         self.set_params_from_dict(params)
@@ -72,8 +72,23 @@ class ActorCriticAgent:
         :return:
         """
         self.function_approximator.optimizer.zero_grad()
+        state_value = self.function_approximator.predict(state)
+        prev_state_value = self.function_approximator.predict(self.previous_state)
+        δ = reward + self.discount_factor * state_value.detach() - prev_state_value.detach()
+        value_loss = - prev_state_value * δ
+        value_loss.backward()
+        self.function_approximator.optimizer.step()
+
+        loss = - torch.log(self.policy_estimator.predict(self.previous_state)[self.previous_action]) * δ
+        loss.backward()
+        self.policy_estimator.optimizer.step()
+
+
+        """
+        self.function_approximator.optimizer.zero_grad()
         # computing the advantage.
-        # The advantage is... I need to re-read my RL notes.
+        # The advantage is r + γ * St - St-1
+        # 
         advantage = reward + self.discount_factor * self.function_approximator(torch.FloatTensor(state)) - \
                     self.function_approximator(torch.FloatTensor(self.previous_state))
         #current_state_value = self.function_approximator(torch.FloatTensor(self.previous_state))
@@ -94,7 +109,7 @@ class ActorCriticAgent:
         actor_loss = - torch.log(action_chosen_prob) * advantage.detach()
         actor_loss.backward()
         self.policy_estimator.optimizer.step()
-
+        """
         """
         advantage = reward + self.discount_factor * self.function_approximator(torch.FloatTensor(state)) - \
             self.function_approximator(torch.FloatTensor(self.previous_state))
