@@ -1,7 +1,7 @@
 {
   "session_info":{
     "session_type": "REINFORCE with baseline",
-    "num_episodes": 3001,
+    "num_episodes": 1501,
     "plot": true,
     "show": false,
     "show_every": 100,
@@ -17,8 +17,7 @@
     },
     "function_approximator_info": {
       "input_size": 4,
-      "learning_rate": 0.0001
+      "learning_rate": 0.001
     }
   }
-
 }

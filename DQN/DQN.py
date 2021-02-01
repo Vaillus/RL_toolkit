@@ -37,15 +37,14 @@ class DQN:
 
         self.initialize_neural_networks(params.get("neural_nets_info"))
 
-        self.set_other_params()
-
-
     def set_other_params(self):
+        # two slots for the states, + 1 for the reward an the last for the action (per memory slot)
         self.memory = np.zeros((self.memory_size, 2 * self.state_dim + 2))
 
     def initialize_neural_networks(self, nn_params):
         self.target_net, self.eval_net = CustomNeuralNetwork(nn_params), CustomNeuralNetwork(nn_params)
 
+    # === functional functions ============================================================
 
     def get_action_value(self, state, action=None):
         # Compute action values from the eval net
@@ -55,14 +54,19 @@ class DQN:
             action_value = self.eval_net(state)[action]
         return action_value
 
-    # memory related functions ========================================================
+    # === memory related functions ========================================================
 
     def store_transition(self, state, action, reward, next_state):
         # store a transition (SARS') in the memory
         transition = np.hstack((state, [action, reward], next_state))
-        index = self.memory_counter % self.memory_size
-        self.memory[index, :] = transition
+        self.memory[self.memory_counter, :] = transition
+        self.increment_mem_cnt()
+        
+    def increment_mem_cnt(self):
+        # to avoid a too large value in the memory counter
         self.memory_counter += 1
+        if self.memory_counter == self.memory_size:
+            self.memory_counter = 0
 
     def sample_memory(self):
         # Sampling some indices from memory
@@ -77,7 +81,7 @@ class DQN:
 
         return batch_state, batch_action, batch_reward, batch_next_state
 
-    # parameters update functions ==============================================================
+    # === parameters update functions =========================================================
 
     def update_target_net(self):
         # every n learning cycle, the target network will be replaced with the eval network

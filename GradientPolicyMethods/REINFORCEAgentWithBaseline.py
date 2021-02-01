@@ -93,7 +93,6 @@ class REINFORCEAgentWithBaseline:
     def learn_from_experience(self):
         # TODO: probleme: comme j'ai pas ajouté le dernier état à la listes des états, on ne prend pas en compte la
         # dernière transition dans la partie DQN.
-
         discounted_reward = 0
         last_state, last_action, last_reward = None, None, None
 

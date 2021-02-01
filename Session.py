@@ -208,7 +208,7 @@ class Session:
         else:
             self.agent.end(state_data, reward_data)
         
-    def end_multiagent(state_data, reward_data):
+    def end_multiagent(self, state_data, reward_data):
         """send the terminal state and the final reward to every agent so they can 
         complete their last transitions
 
@@ -235,7 +235,7 @@ class Session:
             [type]: [description]
         """
         self.print_episode_count(episode_id=episode_id)
-        state_data = self.env_reset()
+        state_data = self.env_reset(episode_id=episode_id)
         action_data = self.get_agent_action(state_data, start=True)
 
         episode_reward = 0
@@ -287,22 +287,22 @@ class Session:
         if self.return_results:
             return rewards
 
-    def godot_env_reset(self):
+    def env_reset(self, episode_id):
+        """ Reset the environment, in both godot and gym case
+        """
+        if self.environment_type == "godot":
+            state_data = self.godot_env_reset(episode_id)
+        else:
+            state_data = self.environment.reset()
+        return state_data
+
+    def godot_env_reset(self, episode_id):
         """ set the right render type for the godot env episode
         """
         render = False
         if (self.show is True) and (episode_id % self.show_every == 0):
             render = True
         state_data = self.environment.reset(render)
-        return state_data
-
-    def env_reset(self):
-        """ Reset the environment, in both godot and gym case
-        """
-        if self.environment_type == "godot":
-            state_data = self.godot_env_reset()
-        else:
-            state_data = self.environment.reset()
         return state_data
     
     def print_episode_count(self, episode_id):
@@ -361,7 +361,7 @@ class Session:
 if __name__ == "__main__":
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
-    data = get_params("actor_critic_params")
+    data = get_params("reinforce_with_baseline_params")
     session_parameters = data["session_info"]
     session_parameters["agent_info"] = data["agent_info"]
 
