@@ -16,7 +16,7 @@ import godot_interface.GodotEnvironment as godot
 from utils import *
 
 
-def reward_func(env, x, x_dot, theta, theta_dot):  # TODO: do something about it
+def reward_func(env, x, x_dot, theta, theta_dot):
     """
     For cartpole
     :param env:
@@ -52,9 +52,7 @@ class Session:
         self.set_params_from_dict(params=params)
         self.set_env_and_agent(params)
 
-
-    # ====== Initialization functions =======================================================
-
+    # ====== Initialization functions ==================================
 
     def set_params_from_dict(self, params={}):
         self.num_episodes = params.get("num_episodes", 100)
@@ -74,7 +72,8 @@ class Session:
         self.init_agent(agent_params)
     
     def init_env(self, env_params):
-        """the environment is set differently if it's a gym environment or a godot environment.
+        """the environment is set differently if it's a gym environment 
+        or a godot environment.
 
         Args:
             env_params (dict): used only in case of a godot env.
@@ -102,8 +101,8 @@ class Session:
             self.agent[agent_name] = self.init_single_agent(agent_params)
 
     def init_single_agent(self, agent_params):
-        """Create and return an agent. The type of agent depends on the self.session_type parameter
-
+        """Create and return an agent. The type of agent depends on the 
+        self.session_type parameter
         Args:
             agent_params (dict)
 
@@ -126,7 +125,8 @@ class Session:
         return agent
     
     def init_tc_agent(self, agent_params):
-        """initialization of a tile coder agent, which depends on the gym environment
+        """initialization of a tile coder agent, which depends on the 
+        gym environment
 
         Args:
             agent_params (dict)
@@ -164,8 +164,8 @@ class Session:
         Args:
             state_data (dict)
             reward_data (dict, optional): Defaults to None.
-            start (bool, optional): indicates whether it is the first step of the agent. 
-                                    Defaults to False.
+            start (bool, optional): indicates whether it is the first 
+            step of the agent. Defaults to False.
 
         Returns:
             dict
@@ -183,15 +183,16 @@ class Session:
         return action_data
     
     def get_single_agent_action(self, agent, state_data, reward_data=None, start=False):
-        """if this is the first state of the episode, get the first action of the agent
-        else, also give reward of the previous action to complete the previous transition.
+        """if this is the first state of the episode, get the first 
+        action of the agent else, also give reward of the previous 
+        action to complete the previous transition.
 
         Args:
             agent (Agent)
             state_data (dict)
             reward_data (dict, optional): Defaults to None.
-            start (bool, optional): indicates whether it is the first step of the agent. 
-                                    Defaults to False.
+            start (bool, optional): indicates whether it is the first 
+                                    step of the agent. Defaults to False.
 
         Returns:
             int : id of action taken
@@ -209,8 +210,8 @@ class Session:
             self.agent.end(state_data, reward_data)
         
     def end_multiagent(self, state_data, reward_data):
-        """send the terminal state and the final reward to every agent so they can 
-        complete their last transitions
+        """send the terminal state and the final reward to every agent 
+        so they can complete their last transitions
 
         Args:
             state_data (dict): [description]
@@ -244,10 +245,11 @@ class Session:
 
         # Main loop
         while not done:
-            # run a step in the environment and get the new state, reward and info about whether the 
-            # episode is over.
+            # run a step in the environment and get the new state, reward 
+            # and info about whether the episode is over.
             new_state_data, reward_data, done, _ = self.environment.step(action_data)
-             # self.environment.step([float(action)]) | if continuous mountian car
+             # self.environment.step([float(action)]) | if continuous 
+             # mountian car
             reward_data = self.shape_reward(state_data, reward_data)
             # save the reward
             episode_reward = self.save_reward(episode_reward, reward_data)
@@ -312,7 +314,7 @@ class Session:
     def shape_reward(self, state_data, reward_data):
         """ shaping reward for cartpole environment
         """
-        if self.environment_name == "CartPole-v0":  # TODO : might want to change that
+        if self.environment_name == "CartPole-v0":  
             x, x_dot, theta, theta_dot = state_data
             reward_data = reward_func(self.environment, x, x_dot, theta, theta_dot)
 

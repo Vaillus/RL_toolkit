@@ -1,0 +1,36 @@
+{
+    "session_info":{
+        "session_type": "random_action",
+        "num_episodes": 5,
+        "plot": true,
+        "show": true,
+        "show_every": 1,
+        "environment_type": "godot",
+        "environment_name": "Abaddon",
+        "return_results": true,
+        "is_multiagent": false
+    },
+  
+    "agent_info" : {
+        "num_actions": 1,
+        "is_greedy": false,
+        "epsilon": 0.9,
+  
+        "function_approximator_info": {
+            "state_dim": 4,
+            "type": "neural network"
+        }
+    },
+    "environment_info": {
+      "agent names": ["Plane"],
+      "host": "127.0.0.1",
+      "port": 4243,
+      "godot path": "mnt/c/Users/Hugo/Desktop/Godot_v3.2.3-stable_win64.exe",
+      "environment path": "C:/Users/Hugo/Documents/work/projects/godot/flight_simulator/.pck",
+      "state min": [-431, -546], 
+      "state max": [524, 427],
+      "display actions": false,
+      "display states": false,
+      "seed":4
+    }
+}
