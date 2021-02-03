@@ -38,13 +38,15 @@ class DQN:
         self.initialize_neural_networks(params.get("neural_nets_info"))
 
     def set_other_params(self):
-        # two slots for the states, + 1 for the reward an the last for the action (per memory slot)
+        # two slots for the states, + 1 for the reward an the last for 
+        # the action (per memory slot)
         self.memory = np.zeros((self.memory_size, 2 * self.state_dim + 2))
 
     def initialize_neural_networks(self, nn_params):
-        self.target_net, self.eval_net = CustomNeuralNetwork(nn_params), CustomNeuralNetwork(nn_params)
+        self.target_net, self.eval_net = CustomNeuralNetwork(nn_params), 
+            CustomNeuralNetwork(nn_params)
 
-    # === functional functions ============================================================
+    # === functional functions =========================================
 
     def get_action_value(self, state, action=None):
         # Compute action values from the eval net
@@ -54,16 +56,17 @@ class DQN:
             action_value = self.eval_net(state)[action]
         return action_value
 
-    # === memory related functions ========================================================
+    # === memory related functions =====================================
 
     def store_transition(self, state, action, reward, next_state):
         # store a transition (SARS') in the memory
         transition = np.hstack((state, [action, reward], next_state))
         self.memory[self.memory_counter, :] = transition
-        self.increment_mem_cnt()
+        self.incr_mem_cnt()
         
-    def increment_mem_cnt(self):
-        # to avoid a too large value in the memory counter
+    def incr_mem_cnt(self):
+        # increment the memory counter and resets it to 0 when reached 
+        # the memory size value to avoid a too large value
         self.memory_counter += 1
         if self.memory_counter == self.memory_size:
             self.memory_counter = 0
@@ -71,52 +74,63 @@ class DQN:
     def sample_memory(self):
         # Sampling some indices from memory
         sample_index = np.random.choice(self.memory_size, self.batch_size)
-        # Getting the batch of samples corresponding to those indices and dividing it into state, action, reward and
-        # next state
+        # Getting the batch of samples corresponding to those indices 
+        # and dividing it into state, action, reward and next state
         batch_memory = self.memory[sample_index, :]
         batch_state = torch.FloatTensor(batch_memory[:, :self.state_dim])
-        batch_action = torch.LongTensor(batch_memory[:, self.state_dim:self.state_dim + 1].astype(int))
-        batch_reward = torch.FloatTensor(batch_memory[:, self.state_dim + 1:self.state_dim + 2])
+        batch_action = torch.LongTensor(batch_memory[:, 
+            self.state_dim:self.state_dim + 1].astype(int))
+        batch_reward = torch.FloatTensor(batch_memory[:, 
+            self.state_dim + 1:self.state_dim + 2])
         batch_next_state = torch.FloatTensor(batch_memory[:, -self.state_dim:])
 
         return batch_state, batch_action, batch_reward, batch_next_state
 
-    # === parameters update functions =========================================================
+    # === parameters update functions ==================================
 
     def update_target_net(self):
-        # every n learning cycle, the target network will be replaced with the eval network
+        # every n learning cycle, the target network will be replaced 
+        # with the eval network
         if self.update_target_counter % self.update_target_rate == 0:
             self.target_net.load_state_dict(self.eval_net.state_dict())
         self.update_target_counter += 1
 
-    def compute_loss(self, batch_state, batch_action, batch_reward, batch_next_state):
+    def compute_loss(self, batch_state, batch_action, batch_reward, 
+                        batch_next_state):
         """
         Compute the loss
-        :param batch_state: pytorch tensor of shape [batch_size, state_dim]
+        :param batch_state: pytorch tensor of shape [batch_size, 
+                                                            state_dim]
         :param batch_action: pytorch tensor of shape [batch_size, 1]
         :param batch_reward: pytorch tensor of shape [batch_size, 1]
-        :param batch_next_state: pytorch tensor of shape [batch_size, state_dim]
+        :param batch_next_state: pytorch tensor of shape [batch_size, 
+                                                            state_dim]
         :return:
         """
         q_eval = self.eval_net(batch_state).gather(1, batch_action)
         q_next = self.target_net(batch_next_state).detach()
-        q_target = batch_reward + self.discount_factor * q_next.max(1)[0].view(self.batch_size, 1)
+        q_target = batch_reward + self.discount_factor * q_next.max(1)[0].view(
+            self.batch_size, 1)
         loss = self.loss_func(q_eval, q_target)
 
         return loss
 
-    def compute_weights(self):
+    def update_weights(self):
         """
-        Updates target net, sample a batch of transitions and compute loss from it
+        Updates target net, sample a batch of transitions and compute 
+        loss from it
         :return: None
         """""
-        # every n learning cycle, the target network will be replaced with the eval network
+        # every n learning cycle, the target network will be replaced 
+        # with the eval network
         self.update_target_net()
         # we can start learning when the memory is full
         if self.memory_counter > self.memory_size:
             # getting batch data
-            batch_state, batch_action, batch_reward, batch_next_state = self.sample_memory()
+            batch_state, batch_action, batch_reward, batch_next_state = 
+                self.sample_memory()
 
             # Compute and backpropagate loss
-            loss = self.compute_loss(batch_state, batch_action, batch_reward, batch_next_state)
+            loss = self.compute_loss(batch_state, batch_action, batch_reward, 
+                                        batch_next_state)
             self.eval_net.backpropagate(loss)

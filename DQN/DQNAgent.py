@@ -49,7 +49,7 @@ class DQNAgent:
     # ====== Control related functions =======================================================
 
     def control(self):
-        self.function_approximator.compute_weights()
+        self.function_approximator.update_weights()
 
     # ====== Agent core functions ============================================================
 
@@ -68,11 +68,11 @@ class DQNAgent:
 
 
     def step(self, state, reward):
-        # getting the action values from the function approximator
-        action_values = self.function_approximator.get_action_value(state)
-
         # storing the transition in the function approximator memory for further use
         self.function_approximator.store_transition(self.previous_state, self.previous_action, reward, state)
+
+        # getting the action values from the function approximator
+        action_values = self.function_approximator.get_action_value(state)
         # choosing an action
         numpy_action_values = action_values.clone().detach().numpy() # TODO : check if still relevant
         current_action = self.choose_action(numpy_action_values)
