@@ -1,10 +1,10 @@
 {
   "session_info":{
     "session_type": "actor-critic",
-    "num_episodes": 501,
+    "num_episodes": 30001,
     "plot": true,
     "show": true,
-    "show_every": 100,
+    "show_every": 1000,
     "environment_name": "CartPole-v0",
     "return_results": true
   },
@@ -19,27 +19,27 @@
 
     "policy_estimator_info": {
       "layers_info": [
-            {"type": "linear", "input_size": 4, "output_size": 32, 
+            {"type": "linear", "input_size": 4, "output_size": 16, 
               "activation": "relu"},
-            {"type": "linear", "input_size": 32, "output_size": 2, 
+            {"type": "linear", "input_size": 16, "output_size": 2, 
               "activation": "softmax"}
         ],
         "optimizer_info": {
             "type": "adam",
-            "learning_rate": 0.01
+            "learning_rate": 0.0001
         }
     },
 
     "function_approximator_info": {
       "layers_info": [
-            {"type": "linear", "input_size": 4, "output_size": 32, 
+            {"type": "linear", "input_size": 4, "output_size": 16, 
               "activation": "relu"},
-            {"type": "linear", "input_size": 32, "output_size": 1, 
+            {"type": "linear", "input_size": 16, "output_size": 1, 
               "activation": "none"}
         ],
         "optimizer_info": {
             "type": "adam",
-            "learning_rate": 0.01
+            "learning_rate": 0.001
         }
 
       

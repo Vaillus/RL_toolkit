@@ -43,8 +43,8 @@ class DQN:
         self.memory = np.zeros((self.memory_size, 2 * self.state_dim + 2))
 
     def initialize_neural_networks(self, nn_params):
-        self.target_net, self.eval_net = CustomNeuralNetwork(nn_params), 
-            CustomNeuralNetwork(nn_params)
+        self.target_net, self.eval_net = (CustomNeuralNetwork(nn_params), 
+        CustomNeuralNetwork(nn_params))
 
     # === functional functions =========================================
 
@@ -127,7 +127,7 @@ class DQN:
         # we can start learning when the memory is full
         if self.memory_counter > self.memory_size:
             # getting batch data
-            batch_state, batch_action, batch_reward, batch_next_state = 
+            batch_state, batch_action, batch_reward, batch_next_state = \
                 self.sample_memory()
 
             # Compute and backpropagate loss

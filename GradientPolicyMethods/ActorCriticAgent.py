@@ -23,11 +23,11 @@ class ActorCriticAgent:
 
         # memory parameters
         self.memory_size = None
-        self.memory = None
+        self.memory = []
         self.memory_counter = 0
         self.batch_size = None
 
-        self.update_target_counter = None
+        self.update_target_counter = 0
         self.update_target_rate = None
         self.state_dim = None
 
@@ -123,17 +123,24 @@ class ActorCriticAgent:
         :param reward:
         :return:
         """
-        self.function_approximator_eval.optimizer.zero_grad()
-        state_value = self.function_approximator_target.predict(state)
-        prev_state_value = self.function_approximator_eval.predict(self.previous_state)
-        δ = reward + self.discount_factor * state_value.detach() - prev_state_value.detach()
-        value_loss = - prev_state_value * δ
-        value_loss.backward()
-        self.function_approximator_eval.optimizer.step()
+        # every n learning cycle, the target network will be replaced 
+        # with the eval network
+        self.update_target_net()
 
-        loss = - torch.log(self.policy_estimator.predict(self.previous_state)[self.previous_action]) * δ
-        loss.backward()
-        self.policy_estimator.optimizer.step()
+        if self.memory_counter > self.memory_size:
+            # getting batch data
+            batch_state, batch_action, batch_reward, batch_next_state = self.sample_memory()
+            self.function_approximator_eval.optimizer.zero_grad()
+            prev_state_value = self.function_approximator_eval.predict(batch_state)
+            state_value = self.function_approximator_target.predict(batch_next_state)
+            δ = batch_reward + self.discount_factor * state_value.detach() - prev_state_value.detach()
+            value_loss = - prev_state_value * δ
+            value_loss.backward()
+            self.function_approximator_eval.optimizer.step()
+
+            loss = - torch.log(self.policy_estimator.predict(self.previous_state)[self.previous_action]) * δ
+            loss.backward()
+            self.policy_estimator.optimizer.step()
 
 
         """
