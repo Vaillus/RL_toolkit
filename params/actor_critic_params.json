@@ -1,7 +1,7 @@
 {
   "session_info":{
     "session_type": "actor-critic",
-    "num_episodes": 30001,
+    "num_episodes": 15001,
     "plot": true,
     "show": true,
     "show_every": 1000,
@@ -19,9 +19,9 @@
 
     "policy_estimator_info": {
       "layers_info": [
-            {"type": "linear", "input_size": 4, "output_size": 16, 
+            {"type": "linear", "input_size": 4, "output_size": 128, 
               "activation": "relu"},
-            {"type": "linear", "input_size": 16, "output_size": 2, 
+            {"type": "linear", "input_size": 128, "output_size": 2, 
               "activation": "softmax"}
         ],
         "optimizer_info": {
@@ -32,14 +32,14 @@
 
     "function_approximator_info": {
       "layers_info": [
-            {"type": "linear", "input_size": 4, "output_size": 16, 
+            {"type": "linear", "input_size": 4, "output_size": 128, 
               "activation": "relu"},
-            {"type": "linear", "input_size": 16, "output_size": 1, 
+            {"type": "linear", "input_size": 128, "output_size": 1, 
               "activation": "none"}
         ],
         "optimizer_info": {
             "type": "adam",
-            "learning_rate": 0.001
+            "learning_rate": 0.0001
         }
 
       

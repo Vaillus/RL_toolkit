@@ -1,9 +1,7 @@
-from GradientPolicyMethods.PolicyEstimator import *
-from DQN.DQN import *
-from GradientPolicyMethods.BaselineNetwork import *
 from DQN.CustomNeuralNetwork import *
 import numpy as np
 import torch
+from torch.distributions import Categorical
 
 class ActorCriticAgent:
     def __init__(self, params={}):
@@ -32,7 +30,7 @@ class ActorCriticAgent:
         self.state_dim = None
 
         self.set_params_from_dict(params)
-        #self.set_other_params()
+        self.set_other_params()
 
     # ====== Initialization functions ==================================
 
@@ -47,6 +45,12 @@ class ActorCriticAgent:
 
         self.memory_size = params.get("memory_size", 200)
         self.update_target_rate = params.get("update_target_rate", 50)
+        self.state_dim = params.get("state_dim", 4)
+
+    def set_other_params(self):
+        # two slots for the states, + 1 for the reward an the last for 
+        # the action (per memory slot)
+        self.memory = np.zeros((self.memory_size, 2 * self.state_dim + 2))
 
     def initialize_policy_estimator(self, params):
         self.policy_estimator = CustomNeuralNetwork(params)
@@ -94,28 +98,6 @@ class ActorCriticAgent:
                 self.function_approximator_eval.state_dict())
         self.update_target_counter += 1
 
-    def control_complicated(self):
-        self.function_approximator.update_target_net()
-        if self.function_approximator.memory_counter > self.function_approximator.memory_size:
-            # get sample batches of transitions
-            batch_state, batch_action, batch_reward, batch_next_state = self.function_approximator.sample_memory()
-
-            self.function_approximator.eval_net.optimizer.zero_grad()
-            self.policy_estimator.optimizer.zero_grad()
-
-
-            td_error = batch_reward + self.discount_factor * self.function_approximator.eval_net(batch_next_state) - \
-                    self.function_approximator.eval_net(batch_state).detach()
-
-            actor_loss = - torch.log(self.policy_estimator.predict(batch_state).gather(1, batch_action))
-
-            loss = (actor_loss * td_error).sum()
-            #loss = - torch.log(self.policy_estimator.predict(batch_state).gather(1, batch_action)) * delta
-
-            loss.backward()
-            self.policy_estimator.optimizer.step()
-            self.function_approximator.eval_net.optimizer.step()
-
     def control(self, state, reward):
         """
 
@@ -134,65 +116,28 @@ class ActorCriticAgent:
             prev_state_value = self.function_approximator_eval.predict(batch_state)
             state_value = self.function_approximator_target.predict(batch_next_state)
             δ = batch_reward + self.discount_factor * state_value.detach() - prev_state_value.detach()
-            value_loss = - prev_state_value * δ
+            value_loss = - prev_state_value * δ / self.batch_size
+            print(f"critic loss: {value_loss}")
             value_loss.backward()
             self.function_approximator_eval.optimizer.step()
 
-            loss = - torch.log(self.policy_estimator.predict(self.previous_state)[self.previous_action]) * δ
+            loss = - torch.log(self.policy_estimator.predict(
+                self.previous_state)[self.previous_action]) * δ / self.batch_size
+            print(f"actor loss: {loss}")
             loss.backward()
             self.policy_estimator.optimizer.step()
 
 
-        """
-        self.function_approximator.optimizer.zero_grad()
-        # computing the advantage.
-        # The advantage is r + γ * St - St-1
-        # 
-        advantage = reward + self.discount_factor * self.function_approximator(torch.FloatTensor(state)) - \
-                    self.function_approximator(torch.FloatTensor(self.previous_state))
-        #current_state_value = self.function_approximator(torch.FloatTensor(self.previous_state))
-        critic_loss = advantage.pow(2)
-        # backpropagate the loss function
-        critic_loss.backward()
-        self.function_approximator.optimizer.step()
-
-
-        self.policy_estimator.optimizer.zero_grad()
-        # get the probabilities of previous actions
-        probs = self.policy_estimator(self.previous_state)
-        # get the action that was actually taken
-        prev_action = torch.LongTensor([self.previous_action])
-        # the probability of the action that was taken
-        action_chosen_prob = torch.gather(probs, dim=0, index=prev_action)
-
-        actor_loss = - torch.log(action_chosen_prob) * advantage.detach()
-        actor_loss.backward()
-        self.policy_estimator.optimizer.step()
-        """
-        """
-        advantage = reward + self.discount_factor * self.function_approximator(torch.FloatTensor(state)) - \
-            self.function_approximator(torch.FloatTensor(self.previous_state))
-        critic_loss = advantage ** 2
-        critic_loss.backward()
-        self.function_approximator.optimizer.step()
-        actor_loss = - torch.log(self.policy_estimator(self.previous_state))[self.previous_action] * \
-                     advantage.detach()
-        actor_loss.backward()
-        #loss = actor_loss + critic_loss
-        #loss.backward()
-        self.policy_estimator.optimizer.step()
-        """
-
-
     # ====== Action choice related functions ===========================
 
-    def choose_action(self, state):
+    def choose_action(self, state): # TODO fix first if
         if self.is_continuous:
             action_chosen = self.policy_estimator(state).detach().numpy()
+            return action_chosen
         else:
-            action_probs = self.policy_estimator(state).detach().numpy()
-            action_chosen = np.random.choice(len(action_probs), p=action_probs)
-        return action_chosen
+            action_probs = Categorical(self.policy_estimator(state))
+            action_chosen = action_probs.sample()
+            return action_chosen.item()
 
     # ====== Agent core functions ======================================
 
@@ -208,7 +153,7 @@ class ActorCriticAgent:
     def step(self, state, reward):
 
         # storing the transition in the function approximator memory for further use
-        #self.function_approximator.store_transition(self.previous_state, self.previous_action, reward, state)
+        self.store_transition(self.previous_state, self.previous_action, reward, state)
 
         # getting the action values from the function approximator
         current_action = self.choose_action(state)
