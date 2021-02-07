@@ -1,35 +1,35 @@
 from Session import *
 import matplotlib.pyplot as plt
+from utils import get_params, recursive_get
 
-def load_experiment_params(path):
-    """
-    loads the parameters differently when we want to test the model parameters and when we want to compare
-    different models
-    """
-    # get the experiment parameters
-    with open(path) as json_file:
-        experiment_parameters = json.load(json_file)
+# === format params functions ==========================================
 
+def format_session_params(session_params_name):
+    data = get_params(experiment_params["session_params"])
+    session_params = data["session_info"]
+    session_params["agent_info"] = data["agent_info"]
+    return session_params
+
+def load_experiment_params(experiment_params):
+    """
+    loads the parameters differently when we want to test the model 
+    parameters and when we want to compare different models
+    """
     # get the sessions parameters for the same model tested with different parameters
-    if experiment_parameters["experiment_type"] == "parameters testing":
-        with open(experiment_parameters["path_to_model_params"]) as json_file:
-            data = json.load(json_file)
-            session_parameters = data["session_info"]
-            session_parameters["agent_info"] = data["agent_info"]
-        experiment_parameters["session_info"] = session_parameters
+    if experiment_params["experiment_type"] == "parameters testing":
+        session_params = format_session_params(experiment_params["session_params"])
+        experiment_params["session_info"] = session_params
 
     # get the sessions parameters for different models
-    elif experiment_parameters["experiment_type"] == "models comparison":
-        sessions_parameters = []
-        for model_path in experiment_parameters["path_to_model_params"]:
-            with open(model_path) as json_file:
-                data = json.load(json_file)
-                session_parameters = data["session_info"]
-                session_parameters["agent_info"] = data["agent_info"]
-            sessions_parameters.append(session_parameters)
-            experiment_parameters["session_info"] = sessions_parameters
+    elif experiment_params["experiment_type"] == "models comparison":
+        sessions_params = []
+        for session_params_name in experiment_params["session_params"]:
+            session_params = format_session_params(session_params_name)
+            sessions_params.append(session_params)
+        experiment_params["session_info"] = sessions_params
 
-    return experiment_parameters
+    return experiment_params
+
 
 
 class Experiment:
@@ -44,7 +44,7 @@ class Experiment:
 
         self.set_params_from_dict(params)
 
-    # initialization functions ============================================================================
+    # initialization functions =========================================
 
     def set_params_from_dict(self, params={}):
         self.num_sessions = params.get("num_sessions", 0)
@@ -53,42 +53,56 @@ class Experiment:
         self.experiment_type = params.get("experiment_type", "parameters testing")
         self.environment_name = params.get("environment_name", "unknown environment")
 
-        self.init_sessions(params)
+        self.init_sess(params)
 
         self.environment_name = self.sessions[0].environment_name
-    def init_sessions(self, params):
-        """ Initialize sessions with parameters """
+
+    def init_sess(self, params):
+        """ Initialize sessions with parameters 
+        """
         if self.experiment_type == "parameters testing":
-            # isolate the parameters
-            session_params = params.get("session_info")
-            agent_params = session_params.get("agent_info")
-            function_approximator_params = agent_params.get("function_approximator_info")
-            policy_estimator_params = agent_params.get("policy_estimator_info")
-
-            # creating the sessions with their own values
-            for n_session in range(self.num_sessions):
-                for key in params["session_variants"].keys():
-                    if params["session_variants"][key]["level"] == "agent":
-                        agent_params[key] = params["session_variants"][key]["values"][n_session]
-                    elif params["session_variants"][key]["level"] == "function_approximator":
-                        function_approximator_params[key] = params["session_variants"][key]["values"][n_session]
-                    elif params["session_variants"][key]["level"] == "policy_estimator":
-                        policy_estimator_params[key] = params["session_variants"][key]["values"][n_session]
-
-                    agent_params["function_approximator_info"] = function_approximator_params
-                    agent_params["policy_estimator_info"] = policy_estimator_params
-                    session_params["agent_info"] = agent_params
-                self.sessions.append(Session(session_params))
-
-            for key in params["session_variants"].keys():
-                self.varying_params.append((key, params["session_variants"][key]["level"]))
-
+           self.init_sess_param_test(params)
         elif self.experiment_type == "models comparison":
-            sessions_params = params.get("session_info")
-            for session_params in sessions_params:
-                self.sessions.append(Session(session_params))
+            self.init_sess_model_comp(params)
+            
+    def init_sess_param_test(self, params):
+        # isolate the parameters
+        session_params = params.get("session_params")
+        session_variants = params.get("session_variants")
 
-    # main function ===================================================================================================
+        # creating the sessions with their own values
+        for n_session in range(self.num_sessions):
+            for hyperparam in params["session_variants"].keys():
+                session_params = Experiment.modify_session(session_params, 
+                                                        session_variants,
+                                                        hyperparam,
+                                                        n_session)
+            self.sessions.append(Session(session_params))
+
+        # storing the hyperparams names for plotting purpose
+        for key in params["session_variants"].keys():
+            self.varying_params.append((key, params["session_variants"][key]["level"]))
+    
+    def init_sess_model_comp(self, params):
+        sessions_params = params.get("session_info")
+        for session_params in sessions_params:
+            self.sessions.append(Session(session_params))
+
+    @staticmethod
+    def modify_session(session_params, session_variants, hyperparam, n_session):
+        level = session_variants[hyperparam]["level"]
+        value = session_variants[hyperparam]["values"][n_session]
+
+        if level == "agent":
+            session_params["agent_info"][hyperparam] = value
+        elif level == "function_approximator":
+            session_params["agent_info"]["function_approximator_info"][hyperparam] = value
+        elif level == "policy_estimator":
+            session_params["agent_info"]["policy_estimator_info"][hyperparam] = value
+        
+        return session_params
+        
+    # === main function ================================================
 
     def run(self):
         rewards_by_session = []
@@ -99,7 +113,7 @@ class Experiment:
         rewards_by_session = self.modify_rewards(rewards_by_session)
         self.plot_rewards(rewards_by_session)
 
-    # plotting functions ==============================================================================================
+    # === plotting functions ===========================================
 
     def modify_rewards(self, rewards_by_session):
         rewards_to_return = rewards_by_session
@@ -147,9 +161,9 @@ class Experiment:
 
 
 if __name__ == "__main__":
-    experiment_path = 'params/experiment_same_model_params.json'
-    experiment_parameters = load_experiment_params(experiment_path)
-    experiment = Experiment(experiment_parameters)
+    experiment_params = get_params('experiments/experiment_same_model_params')
+    experiment_params = load_experiment_params(experiment_params)
+    experiment = Experiment(experiment_params)
     experiment.run()
 
 """

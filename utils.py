@@ -1,5 +1,6 @@
 import os
 import json
+from functools import reduce
 
 def get_params(file_name):
     complete_path = make_full_params_path(file_name)
@@ -37,3 +38,6 @@ def get_path(string_path, add_absolute=False):
     else:
         modified_string_path = os.path.join(*string_path.split("/"))
     return modified_string_path
+
+def recursive_get(d, *keys):
+    return reduce(lambda c, k: c.get(k, {}), keys, d)

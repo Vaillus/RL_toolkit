@@ -8,5 +8,5 @@
     }
   },
   "avg_results": true,
-  "path_to_model_params": "params/actor_critic_params.json"
+  "session_params": "actor_critic_params"
 }
