@@ -15,11 +15,11 @@ def load_experiment_params(experiment_params):
     loads the parameters differently when we want to test the model 
     parameters and when we want to compare different models
     """
-    # get the sessions parameters for the same model tested with different parameters
+    # get the sessions parameters for the same model tested with 
+    # different parameters
     if experiment_params["experiment_type"] == "parameters testing":
         session_params = format_session_params(experiment_params["session_params"])
         experiment_params["session_info"] = session_params
-
     # get the sessions parameters for different models
     elif experiment_params["experiment_type"] == "models comparison":
         sessions_params = []
@@ -29,7 +29,6 @@ def load_experiment_params(experiment_params):
         experiment_params["session_info"] = sessions_params
 
     return experiment_params
-
 
 
 class Experiment:
@@ -58,53 +57,116 @@ class Experiment:
         self.environment_name = self.sessions[0].environment_name
 
     def init_sess(self, params):
-        """ Initialize sessions with parameters 
+        """Initialize sessions differently if we want to test the same 
+        model with varying parameters, or if we want to compare models.
+        Args:
+            params (dict): experiment params
         """
+        # parameters testing case
         if self.experiment_type == "parameters testing":
-           self.init_sess_param_test(params)
+            # extract params
+            session_params_name = params.get("session_params_name")
+            session_variants = params.get("session_variants")
+            # initialize sessions
+            self.init_sess_param_test(session_params_name, session_variants)
+            # store varying hyperparams for plotting purposes
+            self.store_varying_params(session_variants)
+
+        # models comparison case
         elif self.experiment_type == "models comparison":
-            self.init_sess_model_comp(params)
+            session_params_names = params.get("session_params_names")
+            self.init_sess_model_comp(session_params_names)
             
-    def init_sess_param_test(self, params):
-        # isolate the parameters
-        session_params = params.get("session_params")
-        session_variants = params.get("session_variants")
+    def init_sess_param_test(self, session_params_name, session_variants):
+        """initialize sessions with the same base params, varying those that
+        are specified
 
-        # creating the sessions with their own values
+        Args:
+            session_params (dict): base session parameters
+            session_variants (dict): varying parameters
+        """
+        # read the params in the param file with its name
+        session_params = get_params(session_params_name)
+        # creating the sessions with their own hyperparams
         for n_session in range(self.num_sessions):
-            for hyperparam in params["session_variants"].keys():
-                session_params = Experiment.modify_session(session_params, 
-                                                        session_variants,
-                                                        hyperparam,
-                                                        n_session)
+            session_params = Experiment.modify_session_params(session_params,
+                                                            session_variants,
+                                                            n_session)
+            # create a session with the params created and add it to the
+            # sessions list
             self.sessions.append(Session(session_params))
-
-        # storing the hyperparams names for plotting purpose
-        for key in params["session_variants"].keys():
-            self.varying_params.append((key, params["session_variants"][key]["level"]))
     
-    def init_sess_model_comp(self, params):
-        sessions_params = params.get("session_info")
-        for session_params in sessions_params:
-            self.sessions.append(Session(session_params))
+    @staticmethod
+    def modify_session_params(session_params, session_variants, n_session):
+        """iterate through the hyperparams to change and apply them to the 
+        session selected
+
+        Args:
+            session_params (dict): params of the session before update
+            session_variants (dict): all the hyperparams data
+            n_session (int): the id of the session that is concerned by the 
+                modification.
+
+        Returns:
+            dict: params of the session after update
+        """
+        for hyperparam_data in session_variants:
+            session_params = Experiment.modify_session(session_params, 
+                                                            hyperparam_data,
+                                                            n_session)
+        return session_params
 
     @staticmethod
-    def modify_session(session_params, session_variants, hyperparam, n_session):
-        level = session_variants[hyperparam]["level"]
-        value = session_variants[hyperparam]["values"][n_session]
+    def modify_session(session_params, hyperparam_data, n_session):
+        """apply the selected hyperparameter to the selected mission
 
+        Args:
+            session_params (dict): params of the session before update
+            hyperparam_data (dict): contain the level, the name and the values
+                of the hyperparameter.
+            n_session (int): the id of the session that is concerned by the 
+                modification.
+
+        Returns:
+            dict: params of the session after update
+        """
+        # separating the hyperparam information
+        level = hyperparam_data["level"]
+        hp_name = hyperparam_data["param"]
+        value = hyperparam_data["values"][n_session]
+        # adjusting the level in the params where to assign the value to
+        # the hyperparam
         if level == "agent":
-            session_params["agent_info"][hyperparam] = value
+            session_params["agent_info"][hp_name] = value
         elif level == "function_approximator":
-            session_params["agent_info"]["function_approximator_info"][hyperparam] = value
+            session_params["agent_info"]["function_approximator_info"][hp_name] = value
         elif level == "policy_estimator":
-            session_params["agent_info"]["policy_estimator_info"][hyperparam] = value
+            session_params["agent_info"]["policy_estimator_info"][hp_name] = value
         
         return session_params
+
+    def store_varying_params(self, session_variants):
+        # storing the hyperparams names for plotting purpose
+        for key in session_variants.keys():
+            self.varying_params.append((key, session_variants[key]["level"]))
+    
+    def init_sess_model_comp(self, sessions_params_names):
+        """If we compare models, just add their session params to sessions.
+
+        Args:
+            params (list): the names of the params files to read
+        """
+        for session_params_name in sessions_params_names:
+            session_params = get_params(session_params_name)
+            self.sessions.append(Session(session_params))
         
     # === main function ================================================
 
     def run(self):
+        """Run the sessions sequentially and store the rewards at the
+        end of each session.
+        Then plot rewards for the sessions.
+        """
         rewards_by_session = []
         for session in self.sessions:
             rewards = session.run()
@@ -112,6 +174,9 @@ class Experiment:
 
         rewards_by_session = self.modify_rewards(rewards_by_session)
         self.plot_rewards(rewards_by_session)
+
+    def run_meaningful_session(session):
+        
 
     # === plotting functions ===========================================
 
@@ -165,56 +230,3 @@ if __name__ == "__main__":
     experiment_params = load_experiment_params(experiment_params)
     experiment = Experiment(experiment_params)
     experiment.run()
-
-"""
- session_parameters = {"num_episodes": 500,
-                       "environment_name": "CartPole-v0",
-                       "return_results": True}
-
- agent_parameters = {"num_actions": 2,
-                     "is_greedy": False,
-                     "epsilon": 0.95,
-                     "control_method": "q-learning",
-                     "function_approximation_method": "tile coder",
-                     "discount_factor": 1,
-                     "learning_rate": 0.1,
-                     "function_approximator_info": {
-                         "num_tiles": 4,
-                         "num_tilings": 32,
-                         "type": "tile coder"
-                     }}
-
- # tile coder
- "function_approximator_info": {
-                         "num_tiles": 4,
-                         "num_tilings": 32,
-                         "type": "tile coder"
-                     }
- # neural network
- "function_approximator_info": {
-                         "type": "neural network",
-                         "state_dim": 4,
-                         "action_dim": 2,
-                         "memory_size": 1000,
-                         "update_target_rate": 100,
-                         "batch_size": 128,
-                         "learning_rate": 0.01,
-                         "discount_factor": 0.90
-                     }}                        
-
- agent_parameters = {"num_actions": 3,
-                     "is_greedy": False,
-                     "epsilon": 0.9,
-                     }
- function_approx_parameters = {"type": "neural network",
-                               "state_dim": 4,
-                               "action_dim": 2,
-                               "memory_size": 1000,
-                               "update_target_rate": 100,
-                               "batch_size": 128,
-                               "learning_rate": 0.01,
-                               "discount_factor": 0.90
-                               }
-
- agent_parameters["function_approximator_info"] = function_approx_parameters
- """

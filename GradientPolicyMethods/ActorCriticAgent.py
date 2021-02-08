@@ -29,6 +29,8 @@ class ActorCriticAgent:
         self.update_target_rate = None
         self.state_dim = None
 
+        self.seed = None
+
         self.set_params_from_dict(params)
         self.set_other_params()
 
@@ -46,6 +48,8 @@ class ActorCriticAgent:
         self.memory_size = params.get("memory_size", 200)
         self.update_target_rate = params.get("update_target_rate", 50)
         self.state_dim = params.get("state_dim", 4)
+
+        self.seed = params.get("seed", None)
 
     def set_other_params(self):
         # two slots for the states, + 1 for the reward an the last for 
@@ -77,7 +81,7 @@ class ActorCriticAgent:
 
     def sample_memory(self):
         # Sampling some indices from memory
-        sample_index = np.random.choice(self.memory_size, self.batch_size)
+        sample_index = np.ra ndom.choice(self.memory_size, self.batch_size)
         # Getting the batch of samples corresponding to those indices 
         # and dividing it into state, action, reward and next state
         batch_memory = self.memory[sample_index, :]

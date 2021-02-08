@@ -6,8 +6,7 @@ import numpy as np
 
 
 class CustomNeuralNetwork(nn.Module):
-    """
-    Attempt to make an easy-to-use neural net class
+    """ Attempt to make an easy-to-use neural net class
     """
     def __init__(self, params):
         super(CustomNeuralNetwork, self).__init__()
@@ -16,14 +15,22 @@ class CustomNeuralNetwork(nn.Module):
         self.activations = []
         self.init_layers(params["layers_info"])
         self.optimizer = None
+        self.seed = None
+    
+    def set_params_from_dict(self, params):
+
+        self.init_layers(params["layers_info"])
         self.init_optimizer(params["optimizer_info"])
-        #optim.Adam(self.parameters(), lr=learning_rate)
+        self.seed = params.get("seed", "None")
+        if self.seed:
+            torch.manual_seed(self.seed)
+        self.set_params_from_dict(params=params)
 
     def init_layers(self, layers_info):
         for layer_info in layers_info:
             if layer_info["type"] == "linear":
                 layer = nn.Linear(layer_info["input_size"], layer_info["output_size"])
-                layer.weight.data.normal_(0, 0.1) # TODO : I don't think it should be optional, but it might be. See later.
+                layer.weight.data.normal_(0, 0.1) 
             self.layers.append(layer)
             self.activations.append(layer_info["activation"])
 
@@ -34,11 +41,11 @@ class CustomNeuralNetwork(nn.Module):
     def forward(self, x):
         # format the input data
         if isinstance(x, np.ndarray):
-            x = torch.from_numpy(x).to(torch.float32)
+            x = torch.from_numpy(x).float()
         elif isinstance(x, list):
-            x = torch.FloatTensor(x)
+            x = torch.Tensor(x).float()
         elif isinstance(x, tuple):
-            x = torch.FloatTensor(x)
+            x = torch.Tensor(x).float()
 
         for i in range(len(self.layers)):
             if self.activations[i] == "relu":

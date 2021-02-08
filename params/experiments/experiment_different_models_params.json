@@ -3,5 +3,5 @@
   "num_sessions": 2,
   "session_variants": {},
   "avg_results": true,
-  "session_params": ["params/reinforce_params", "params/reinforce_with_baseline_params"]
+  "session_params_names": ["reinforce_params", "reinforce_with_baseline_params"]
 }

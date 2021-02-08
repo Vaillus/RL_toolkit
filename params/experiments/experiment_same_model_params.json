@@ -1,12 +1,12 @@
 {
   "experiment_type": "parameters testing",
   "num_sessions": 2,
-  "session_variants": {
-    "learning_rate": {
-      "values": [0.01, 0.0001],
-      "level": "function_approximator"
+  "session_variants": [
+    {"level": "function_approximator",
+      "param": "learning_rate",
+      "values": [0.01, 0.0001]
     }
-  },
+  ],
   "avg_results": true,
-  "session_params": "actor_critic_params"
+  "session_params_name": "actor_critic_params"
 }

@@ -49,6 +49,8 @@ class Session:
         self.plot = None
         self.return_results = None
 
+        self.seed = None
+
         self.set_params_from_dict(params=params)
         self.set_env_and_agent(params)
 
@@ -64,6 +66,7 @@ class Session:
         self.return_results = params.get("return_results", False)
         self.session_type = params.get("session_type", "REINFORCE")
         self.is_multiagent = params.get("is_multiagent", False)
+        self.seed = params.get("seed", None)
  
     def set_env_and_agent(self, params):
         env_params = params.get("environment_info", {})
@@ -80,6 +83,7 @@ class Session:
         """
         if self.environment_type == "gym":
             self.environment = gym.make(self.environment_name)
+            self.environment.seed = self.seed
         elif self.environment_type == "godot":
             self.environment = godot.GodotEnvironment(env_params)
     
