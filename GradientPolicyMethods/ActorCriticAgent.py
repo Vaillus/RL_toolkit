@@ -1,4 +1,4 @@
-from DQN.CustomNeuralNetwork import *
+from CustomNeuralNetwork import *
 import numpy as np
 import torch
 from torch.distributions import Categorical
@@ -55,6 +55,7 @@ class ActorCriticAgent:
         # two slots for the states, + 1 for the reward an the last for 
         # the action (per memory slot)
         self.memory = np.zeros((self.memory_size, 2 * self.state_dim + 2))
+        
 
     def initialize_policy_estimator(self, params):
         self.policy_estimator = CustomNeuralNetwork(params)
@@ -81,7 +82,7 @@ class ActorCriticAgent:
 
     def sample_memory(self):
         # Sampling some indices from memory
-        sample_index = np.ra ndom.choice(self.memory_size, self.batch_size)
+        sample_index = np.random.choice(self.memory_size, self.batch_size)
         # Getting the batch of samples corresponding to those indices 
         # and dividing it into state, action, reward and next state
         batch_memory = self.memory[sample_index, :]

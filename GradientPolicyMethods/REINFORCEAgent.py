@@ -1,6 +1,7 @@
-from DQN.CustomNeuralNetwork import CustomNeuralNetwork
+from CustomNeuralNetwork import CustomNeuralNetwork
 import torch
 import numpy as np
+from torch.distributions import Categorical
 
 
 class REINFORCEAgent:
@@ -13,6 +14,8 @@ class REINFORCEAgent:
         self.states = []
         self.actions = []
         self.rewards = []
+
+        self.seed = None
         
         self.set_params_from_dict(params)
 
@@ -23,6 +26,9 @@ class REINFORCEAgent:
         self.is_continuous = params.get("is_continuous", False)
         self.initialize_policy_estimator(params.get("policy_estimator_info"))
         self.is_continuous = params.get("is_continuous", False)
+        self.seed = params.get("seed", None)
+        if self.seed:
+            torch.manual_seed(self.seed)
 
     def initialize_policy_estimator(self, params):
         self.policy_estimator = CustomNeuralNetwork(params)
@@ -31,10 +37,11 @@ class REINFORCEAgent:
 
     def choose_action(self, state):
         if self.is_continuous:
-            action_chosen = self.policy_estimator(state).detach().numpy()
+            # TODO: I don't think that's correct
+            action_probs = Categorical(self.policy_estimator(state))
         else:
-            action_probs = self.policy_estimator(state).detach().numpy()
-            action_chosen = np.random.choice(len(action_probs), p=action_probs)
+            action_probs = Categorical(self.policy_estimator(state))
+            action_chosen = action_probs.sample().numpy()
         return action_chosen
 
     def start(self, state):

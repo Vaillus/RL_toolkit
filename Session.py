@@ -148,7 +148,7 @@ class Session:
          
         return agent
 
-    # ====== Agent execution functions =======================================================
+    # ====== Agent execution functions =================================
 
     def get_agent_action(self, state_data, reward_data=None, start=False):
         if self.is_multiagent:
@@ -367,7 +367,7 @@ class Session:
 if __name__ == "__main__":
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
-    data = get_params("actor_critic_params")
+    data = get_params("reinforce_params")
     session_parameters = data["session_info"]
     session_parameters["agent_info"] = data["agent_info"]
 

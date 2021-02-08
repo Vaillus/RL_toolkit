@@ -1,5 +1,4 @@
-from FunctionApproximator import *
-from DQN.CustomNeuralNetwork import CustomNeuralNetwork as CustomNN
+from CustomNeuralNetwork import CustomNeuralNetwork as CustomNN
 import numpy as np
 import torch
 

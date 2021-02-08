@@ -1,4 +1,4 @@
-from FunctionApproximator import *
+from TileCoder.FunctionApproximator import *
 
 
 class TDAgent:

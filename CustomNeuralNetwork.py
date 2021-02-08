@@ -13,24 +13,24 @@ class CustomNeuralNetwork(nn.Module):
 
         self.layers = nn.ModuleList()
         self.activations = []
-        self.init_layers(params["layers_info"])
         self.optimizer = None
         self.seed = None
+
+        self.set_params_from_dict(params=params)
     
     def set_params_from_dict(self, params):
 
         self.init_layers(params["layers_info"])
         self.init_optimizer(params["optimizer_info"])
-        self.seed = params.get("seed", "None")
+        self.seed = params.get("seed", None)
         if self.seed:
             torch.manual_seed(self.seed)
-        self.set_params_from_dict(params=params)
 
     def init_layers(self, layers_info):
         for layer_info in layers_info:
             if layer_info["type"] == "linear":
                 layer = nn.Linear(layer_info["input_size"], layer_info["output_size"])
-                layer.weight.data.normal_(0, 0.1) 
+                layer.weight.data.normal_(0, 0.1)  
             self.layers.append(layer)
             self.activations.append(layer_info["activation"])
 
@@ -47,7 +47,8 @@ class CustomNeuralNetwork(nn.Module):
         elif isinstance(x, tuple):
             x = torch.Tensor(x).float()
 
-        for i in range(len(self.layers)):
+        num_layers = len(self.layers)
+        for i in range(num_layers):
             if self.activations[i] == "relu":
                 x = F.relu(self.layers[i](x))
             elif self.activations[i] == "tanh":

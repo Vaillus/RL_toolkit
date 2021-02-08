@@ -5,9 +5,11 @@ from utils import get_params, recursive_get
 # === format params functions ==========================================
 
 def format_session_params(session_params_name):
-    data = get_params(experiment_params["session_params"])
-    session_params = data["session_info"]
+    session_params = get_params(session_params_name)
+    
+    """session_params = data["session_info"]
     session_params["agent_info"] = data["agent_info"]
+    """
     return session_params
 
 def load_experiment_params(experiment_params):
@@ -18,15 +20,15 @@ def load_experiment_params(experiment_params):
     # get the sessions parameters for the same model tested with 
     # different parameters
     if experiment_params["experiment_type"] == "parameters testing":
-        session_params = format_session_params(experiment_params["session_params"])
-        experiment_params["session_info"] = session_params
+        session_params = format_session_params(experiment_params["session_params_name"])
+        #experiment_params["session_info"] = session_params
     # get the sessions parameters for different models
     elif experiment_params["experiment_type"] == "models comparison":
         sessions_params = []
         for session_params_name in experiment_params["session_params"]:
             session_params = format_session_params(session_params_name)
             sessions_params.append(session_params)
-        experiment_params["session_info"] = sessions_params
+        #experiment_params["session_info"] = sessions_params
 
     return experiment_params
 
@@ -147,8 +149,8 @@ class Experiment:
 
     def store_varying_params(self, session_variants):
         # storing the hyperparams names for plotting purpose
-        for key in session_variants.keys():
-            self.varying_params.append((key, session_variants[key]["level"]))
+        for session_variant in session_variants:
+            self.varying_params.append((session_variant))
     
     def init_sess_model_comp(self, sessions_params_names):
         """If we compare models, just add their session params to sessions.
@@ -176,10 +178,9 @@ class Experiment:
         self.plot_rewards(rewards_by_session)
 
     def run_meaningful_session(session):
-        
+        pass
 
     # === plotting functions ===========================================
-
     def modify_rewards(self, rewards_by_session):
         rewards_to_return = rewards_by_session
         # transform the rewards to their avergage on the last n episodes (n being specified in the class parameters)
@@ -200,13 +201,15 @@ class Experiment:
         return rewards_to_return
 
     def generate_legend_text(self, varying_param, session):
+        varying_param_name = varying_param["param"]
+        param_level = varying_param["level"]
         legend = ''
-        if varying_param[1] == "agent":
-            legend = f'{varying_param[0]}: {getattr(session.agent,varying_param[0])}'
-        elif varying_param[1] == "function_approximator":
-            legend = f'{varying_param[0]}: {getattr(session.agent.function_approximator,varying_param[0])}'
-        elif varying_param[1]  == "policy_estimator":
-            legend = f'{varying_param[0]}: {getattr(session.agent.policy_estimator,varying_param[0])}'
+        if param_level == "agent":
+            legend = f'{varying_param_name}: {getattr(session.agent,varying_param_name)}'
+        elif param_level == "function_approximator":
+            legend = f'{varying_param_name}: {getattr(session.agent.function_approximator,varying_param_name)}'
+        elif param_level  == "policy_estimator":
+            legend = f'{varying_param_name}: {getattr(session.agent.policy_estimator,varying_param_name)}'
         return legend
 
     def plot_rewards(self, rewards_by_session):

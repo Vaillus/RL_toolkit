@@ -1,4 +1,4 @@
-from DQN.CustomNeuralNetwork import *
+from CustomNeuralNetwork import *
 import numpy as np
 import torch
 

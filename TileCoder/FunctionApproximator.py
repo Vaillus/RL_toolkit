@@ -1,4 +1,5 @@
 from TileCoder.TileCoderSutton import *
+import numpy as np
 
 
 class FunctionApproximator:
