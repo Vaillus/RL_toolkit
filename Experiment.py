@@ -4,6 +4,8 @@ from utils import get_params, recursive_get
 
 # === format params functions ==========================================
 
+# Je vais mettre les paramètres des sessions 
+
 def format_session_params(session_params_name):
     session_params = get_params(session_params_name)
     
@@ -20,7 +22,8 @@ def load_experiment_params(experiment_params):
     # get the sessions parameters for the same model tested with 
     # different parameters
     if experiment_params["experiment_type"] == "parameters testing":
-        session_params = format_session_params(experiment_params["session_params_name"])
+        base_sess_params = format_session_params(experiment_params["session_params_name"])
+        
         #experiment_params["session_info"] = session_params
     # get the sessions parameters for different models
     elif experiment_params["experiment_type"] == "models comparison":
@@ -32,6 +35,25 @@ def load_experiment_params(experiment_params):
 
     return experiment_params
 
+def modify_session_params(session_params, session_variants, n_session):
+    """iterate through the hyperparams to change and apply them to the 
+    session selected
+
+    Args:
+        session_params (dict): params of the session before update
+        session_variants (dict): all the hyperparams data
+        n_session (int): the id of the session that is concerned by the 
+            modification.
+
+    Returns:
+        dict: params of the session after update
+    """
+    for hyperparam_data in session_variants:
+        session_params = Experiment.modify_session(session_params, 
+                                                        hyperparam_data,
+                                                        n_session)
+    return session_params
+
 
 class Experiment:
     def __init__(self, params={}):
@@ -42,6 +64,8 @@ class Experiment:
         self.avg_results = None
         self.avg_length = None
         self.experiment_type = None
+        # test for varying params
+        self.base_session_params = None
 
         self.set_params_from_dict(params)
 
