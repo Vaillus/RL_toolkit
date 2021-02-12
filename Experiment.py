@@ -253,7 +253,7 @@ class Experiment:
 
 
 if __name__ == "__main__":
-    experiment_params = get_params('experiments/experiment_same_model_params')
-    experiment_params = load_experiment_params(experiment_params)
-    experiment = Experiment(experiment_params)
+    exp_param = get_params('experiments/experiment_same_model_params')
+    exp_param = load_exp_param(exp_param)
+    experiment = Experiment(exp_param)
     experiment.run()
