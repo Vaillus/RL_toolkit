@@ -4,16 +4,6 @@ from utils import get_params, recursive_get
 
 # === format params functions ==========================================
 
-# Je vais mettre les paramètres des sessions 
-
-def format_session_params(session_params_name):
-    session_params = get_params(session_params_name)
-    
-    """session_params = data["session_info"]
-    session_params["agent_info"] = data["agent_info"]
-    """
-    return session_params
-
 def load_exp_param(experiment_params):
     """
     loads the parameters differently when we want to test the model 
@@ -21,39 +11,63 @@ def load_exp_param(experiment_params):
     """
     # get the sessions parameters for the same model tested with 
     # different parameters
+    sessions_params = []
     if experiment_params["experiment_type"] == "parameters testing":
-        base_sess_params = format_session_params(experiment_params["session_params_name"])
-        
-        #experiment_params["session_info"] = session_params
-    # get the sessions parameters for different models
+        # init sessions params with default session params
+        base_sess_params = get_params(experiment_params["session_params_name"])
+        sessions_params = [base_sess_params] * experiment_params["num_sessions"]
+        # change the params with sessions variants data
+        sess_variants = experiment_params["session_variants"]
+        sessions_params = modify_sess_params(sessions_params, sess_variants)
     elif experiment_params["experiment_type"] == "models comparison":
-        sessions_params = []
-        for session_params_name in experiment_params["session_params"]:
-            session_params = format_session_params(session_params_name)
+        for session_params_name in experiment_params["session_params_names"]:
+            session_params = get_params(session_params_name)
             sessions_params.append(session_params)
-        #experiment_params["session_info"] = sessions_params
-
+    experiment_params["sessions_params"] = sessions_params
     return experiment_params
 
-def modify_session_params(session_params, session_variants, n_session):
+def modify_sess_params(sessions_params, session_variants):
     """iterate through the hyperparams to change and apply them to the 
     session selected
 
     Args:
         session_params (dict): params of the session before update
         session_variants (dict): all the hyperparams data
-        n_session (int): the id of the session that is concerned by the 
-            modification.
 
     Returns:
-        dict: params of the session after update
+        dict: params of the sessions after update
     """
     for hyperparam_data in session_variants:
-        session_params = Experiment.modify_session(session_params, 
-                                                        hyperparam_data,
-                                                        n_session)
-    return session_params
+        sessions_params = change_sess_hyperparam(sessions_params, hyperparam_data)
+    return sessions_params
 
+def change_sess_hyperparam(sessions_params, hyperparam_data):
+    """Change the hyperparameters in sessions_params for those 
+    specified in hyperparam_data
+
+    Args:
+        session_params (dict): params of the sessions before update
+        hyperparam_data (dict): contain the level, the name and the values
+            of the hyperparameter.
+
+    Returns:
+        dict: params of the sessions after update
+    """
+    # separating the hyperparam information
+    level = hyperparam_data["level"]
+    hp_name = hyperparam_data["param"]
+    values = hyperparam_data["values"]
+    # adjusting the level in the params where to assign the value to
+    # the hyperparam
+    for i in range(len(sessions_params)):
+        if level == "agent":
+            sessions_params[i]["agent_info"][hp_name] = values[i]
+        elif level == "function_approximator":
+            sessions_params[i]["agent_info"]["function_approximator_info"][hp_name] = values[i]
+        elif level == "policy_estimator":
+            sessions_params[i]["agent_info"]["policy_estimator_info"][hp_name] = values[i]
+    
+    return sessions_params
 
 class Experiment:
     def __init__(self, params={}):
@@ -64,8 +78,6 @@ class Experiment:
         self.avg_results = None
         self.avg_length = None
         self.experiment_type = None
-        # test for varying params
-        self.base_session_params = None
 
         self.set_params_from_dict(params)
 
@@ -77,114 +89,20 @@ class Experiment:
         self.avg_length = params.get("avg_length", 100)
         self.experiment_type = params.get("experiment_type", "parameters testing")
         self.environment_name = params.get("environment_name", "unknown environment")
+        #self.varying_params = params.get("varying_params", [])
 
         self.init_sess(params)
-
         self.environment_name = self.sessions[0].environment_name
 
     def init_sess(self, params):
-        """Initialize sessions differently if we want to test the same 
-        model with varying parameters, or if we want to compare models.
+        """Initialize the sessions
         Args:
             params (dict): experiment params
         """
-        # parameters testing case
-        if self.experiment_type == "parameters testing":
-            # extract params
-            session_params_name = params.get("session_params_name")
-            session_variants = params.get("session_variants")
-            # initialize sessions
-            self.init_sess_param_test(session_params_name, session_variants)
-            # store varying hyperparams for plotting purposes
-            self.store_varying_params(session_variants)
-
-        # models comparison case
-        elif self.experiment_type == "models comparison":
-            session_params_names = params.get("session_params_names")
-            self.init_sess_model_comp(session_params_names)
-            
-    def init_sess_param_test(self, session_params_name, session_variants):
-        """initialize sessions with the same base params, varying those that
-        are specified
-
-        Args:
-            session_params (dict): base session parameters
-            session_variants (dict): varying parameters
-        """
-        # read the params in the param file with its name
-        session_params = get_params(session_params_name)
-        # creating the sessions with their own hyperparams
-        for n_session in range(self.num_sessions):
-            session_params = Experiment.modify_session_params(session_params,
-                                                            session_variants,
-                                                            n_session)
-            # create a session with the params created and add it to the
-            # sessions list
-            self.sessions.append(Session(session_params))
-    
-    @staticmethod
-    def modify_session_params(session_params, session_variants, n_session):
-        """iterate through the hyperparams to change and apply them to the 
-        session selected
-
-        Args:
-            session_params (dict): params of the session before update
-            session_variants (dict): all the hyperparams data
-            n_session (int): the id of the session that is concerned by the 
-                modification.
-
-        Returns:
-            dict: params of the session after update
-        """
-        for hyperparam_data in session_variants:
-            session_params = Experiment.modify_session(session_params, 
-                                                            hyperparam_data,
-                                                            n_session)
-        return session_params
-
-    @staticmethod
-    def modify_session(session_params, hyperparam_data, n_session):
-        """apply the selected hyperparameter to the selected mission
-
-        Args:
-            session_params (dict): params of the session before update
-            hyperparam_data (dict): contain the level, the name and the values
-                of the hyperparameter.
-            n_session (int): the id of the session that is concerned by the 
-                modification.
-
-        Returns:
-            dict: params of the session after update
-        """
-        # separating the hyperparam information
-        level = hyperparam_data["level"]
-        hp_name = hyperparam_data["param"]
-        value = hyperparam_data["values"][n_session]
-        # adjusting the level in the params where to assign the value to
-        # the hyperparam
-        if level == "agent":
-            session_params["agent_info"][hp_name] = value
-        elif level == "function_approximator":
-            session_params["agent_info"]["function_approximator_info"][hp_name] = value
-        elif level == "policy_estimator":
-            session_params["agent_info"]["policy_estimator_info"][hp_name] = value
-        
-        return session_params
-
-    def store_varying_params(self, session_variants):
-        # storing the hyperparams names for plotting purpose
-        for session_variant in session_variants:
-            self.varying_params.append((session_variant))
-    
-    def init_sess_model_comp(self, sessions_params_names):
-        """If we compare models, just add their session params to sessions.
-
-        Args:
-            params (list): the names of the params files to read
-        """
-        for session_params_name in sessions_params_names:
-            session_params = get_params(session_params_name)
-            self.sessions.append(Session(session_params))
+        for sess_data in params["sessions_params"]:
+            session_parameters = sess_data["session_info"]
+            session_parameters["agent_info"] = sess_data["agent_info"]
+            self.sessions.append(Session(session_parameters))
         
     # === main function ================================================
 
@@ -205,6 +123,7 @@ class Experiment:
         pass
 
     # === plotting functions ===========================================
+
     def modify_rewards(self, rewards_by_session):
         rewards_to_return = rewards_by_session
         # transform the rewards to their avergage on the last n episodes (n being specified in the class parameters)
@@ -253,7 +172,8 @@ class Experiment:
 
 
 if __name__ == "__main__":
-    exp_param = get_params('experiments/experiment_same_model_params')
+    exp_param = get_params('experiments/experiment_different_models_params')
     exp_param = load_exp_param(exp_param)
+    print(exp_param)
     experiment = Experiment(exp_param)
     experiment.run()
