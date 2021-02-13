@@ -14,7 +14,7 @@ def format_session_params(session_params_name):
     """
     return session_params
 
-def load_experiment_params(experiment_params):
+def load_exp_param(experiment_params):
     """
     loads the parameters differently when we want to test the model 
     parameters and when we want to compare different models
