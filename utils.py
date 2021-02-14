@@ -1,6 +1,7 @@
 import os
 import json
 from functools import reduce
+import operator
 
 def get_params(file_name):
     complete_path = make_full_params_path(file_name)
@@ -41,3 +42,17 @@ def get_path(string_path, add_absolute=False):
 
 def recursive_get(d, *keys):
     return reduce(lambda c, k: c.get(k, {}), keys, d)
+
+def set_random_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+
+def get_from_dict(d, map_tuple):
+    return reduce(operator.getitem, map_tuple, d)
+
+def set_in_dict(d, map_tuple, value):
+    get_from_dict(d, map_tuple[:-1])[map_tuple[-1]] = value
+    
+    

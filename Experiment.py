@@ -120,6 +120,9 @@ class Experiment:
         self.plot_rewards(rewards_by_session)
 
     def run_meaningful_session(session):
+        self.set_random_seeds()
+        for session in self.sessions:
+            session.set_seed()
         pass
 
     # === plotting functions ===========================================
