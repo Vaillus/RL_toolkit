@@ -66,13 +66,16 @@ class Session:
         self.return_results = params.get("return_results", False)
         self.session_type = params.get("session_type", "REINFORCE")
         self.is_multiagent = params.get("is_multiagent", False)
-        self.seed = params.get("seed", None)
+        self.init_seed(params.get("seed", None))
  
     def set_env_and_agent(self, params):
         env_params = params.get("environment_info", {})
         self.init_env(env_params)
+
         agent_params = params.get("agent_info", {})
+        agent_params["seed"] = self.seed
         self.init_agent(agent_params)
+        self.agent.set_seed(self.seed)
     
     def init_env(self, env_params):
         """the environment is set differently if it's a gym environment 
@@ -83,9 +86,10 @@ class Session:
         """
         if self.environment_type == "gym":
             self.environment = gym.make(self.environment_name)
-            self.environment.seed = self.seed
+            self.environment.seed(self.seed)
         elif self.environment_type == "godot":
             self.environment = godot.GodotEnvironment(env_params)
+            self.environment.set_seed(self.seed)
     
     def init_agent(self, agent_params):
         """initialize one or several agents
@@ -147,6 +151,21 @@ class Session:
         agent = TDAgent(agent_params)
          
         return agent
+
+    def init_seed(self, seed):
+        self.seed = seed
+
+    def set_seed(self, seed):
+        if seed:
+            self.seed = seed
+            set_random_seed(seed)
+            if self.environment_type == "gym":
+                self.environment.seed(seed)
+            else:
+                self.environment.set_seed(seed)
+            self.agent.set_seed(seed)
+
+
 
     # ====== Agent execution functions =================================
 
@@ -300,6 +319,7 @@ class Session:
             state_data = self.godot_env_reset(episode_id)
         else:
             state_data = self.environment.reset()
+            print(state_data)
         return state_data
 
     def godot_env_reset(self, episode_id):
@@ -370,6 +390,24 @@ if __name__ == "__main__":
     data = get_params("reinforce_params")
     session_parameters = data["session_info"]
     session_parameters["agent_info"] = data["agent_info"]
-
+    set_random_seed(1)
     sess = Session(session_parameters)
-    sess.run()
+    sess.set_seed(1)
+    
+    input = [1,0,0,0]
+    out = sess.agent.start(input)
+    #print(out)
+    state = sess.environment.reset()
+    print(f'state: {state}')
+    action = sess.agent.start(state)
+    action = 0
+    print(f'action: {action}')
+    for i in range(100):
+        state, rew, done, _ = sess.environment.step(action)
+        print(f'state: {state}')
+        state = (0.1,0.1,0.1,0.1)
+        action = sess.agent.step(state, rew)
+        print(f'action: {action}')
+    
+    #print(sess.agent.policy_estimator.layers[0].weight)
+    #sess.run()

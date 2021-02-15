@@ -2,6 +2,7 @@ from CustomNeuralNetwork import CustomNeuralNetwork
 import torch
 import numpy as np
 from torch.distributions import Categorical
+from utils import set_random_seed
 
 
 class REINFORCEAgent:
@@ -24,14 +25,24 @@ class REINFORCEAgent:
     def set_params_from_dict(self, params={}):
         self.γ = params.get("discount_factor", 0.9)
         self.is_continuous = params.get("is_continuous", False)
+        self.init_seed(params.get("seed", None))
         self.initialize_policy_estimator(params.get("policy_estimator_info"))
         self.is_continuous = params.get("is_continuous", False)
-        self.seed = params.get("seed", None)
-        if self.seed:
-            torch.manual_seed(self.seed)
+        
 
     def initialize_policy_estimator(self, params):
         self.policy_estimator = CustomNeuralNetwork(params)
+    
+    def init_seed(self, seed):
+        if seed:
+            self.seed = seed
+            set_random_seed(self.seed)
+
+    def set_seed(self, seed):
+        if seed:
+            self.seed = seed
+            set_random_seed(self.seed)
+            self.policy_estimator.set_seed(seed)
 
     # ====== Action choice related functions ===========================
 
@@ -81,7 +92,24 @@ class REINFORCEAgent:
             loss.backward()
             self.policy_estimator.optimizer.step()
 
-
-
+if __name__=="__main__":
+    params = {
+    "discount_factor": 0.99,
+    "policy_estimator_info": {
+      "layers_info": [
+        {"type": "linear", "input_size": 4, "output_size": 16, "activation": "relu"},
+        {"type": "linear", "input_size": 16, "output_size": 2, "activation": "softmax"}
+      ],
+      "optimizer_info": {
+        "type": "adam",
+        "learning_rate": 0.0001
+      }
+    }
+  }
+    os.chdir(os.path.dirname(os.path.realpath(__file__)))
+    ra = REINFORCEAgent(params)
+    input = torch.randn(4)
+    ra.start(input)
+  
 
 

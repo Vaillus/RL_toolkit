@@ -2,6 +2,9 @@ import os
 import json
 from functools import reduce
 import operator
+import random
+import numpy as np
+import torch
 
 def get_params(file_name):
     complete_path = make_full_params_path(file_name)
@@ -40,19 +43,40 @@ def get_path(string_path, add_absolute=False):
         modified_string_path = os.path.join(*string_path.split("/"))
     return modified_string_path
 
-def recursive_get(d, *keys):
-    return reduce(lambda c, k: c.get(k, {}), keys, d)
-
 def set_random_seed(seed):
+    """set all the seeds of the libraries that are susceptible of doing
+    random stuff
+
+    Args:
+        seed (int)
+    """
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
 
 def get_from_dict(d, map_tuple):
+    """get the value of a specific key in a dictionary
+
+    Args:
+        d (dict): dictionary where we access the data
+        map_tuple (tuple): the keys that lead to the wanted key
+
+    Returns:
+        [type]: [description]
+    """
     return reduce(operator.getitem, map_tuple, d)
 
 def set_in_dict(d, map_tuple, value):
+    """set the value of a specific key in the dictionary to the specified value
+
+    Args:
+        d (dict): dictionary to modify
+        map_tuple (tuple): the keys that lead to the wanted key
+        value: new value
+    """
     get_from_dict(d, map_tuple[:-1])[map_tuple[-1]] = value
     
+def get_attr(o, map_tuple):
+    return reduce(getattr, map_tuple, o)
     

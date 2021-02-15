@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
+from utils import set_random_seed
 
 
 class CustomNeuralNetwork(nn.Module):
@@ -19,12 +20,18 @@ class CustomNeuralNetwork(nn.Module):
         self.set_params_from_dict(params=params)
     
     def set_params_from_dict(self, params):
-
         self.init_layers(params["layers_info"])
         self.init_optimizer(params["optimizer_info"])
         self.seed = params.get("seed", None)
         if self.seed:
             torch.manual_seed(self.seed)
+    
+    def set_seed(self, seed):
+        self.seed = seed
+        set_random_seed(seed)
+        for i in range(len(self.layers)):
+            self.layers[i].weight.data.normal_(0, 0.1)
+
 
     def init_layers(self, layers_info):
         for layer_info in layers_info:
@@ -68,15 +75,18 @@ class CustomNeuralNetwork(nn.Module):
 if __name__=="__main__":
     params = {
         "layers_info": [
-            {"type": "linear", "input_size": 30, "output_size": 3, "activation": "relu"},
-            {"type": "linear", "input_size": 3, "output_size": 1, "activation": "tanh"}
-        ],
-        "optimizer_info": {
-            "type": "adam",
-            "learning_rate": 0.000001
-        }
+        {"type": "linear", "input_size": 4, "output_size": 16, "activation": "relu"},
+        {"type": "linear", "input_size": 16, "output_size": 2, "activation": "softmax"}
+      ],
+      "optimizer_info": {
+        "type": "adam",
+        "learning_rate": 0.0001
+      }
     }
+    set_random_seed(1)
     nn = CustomNeuralNetwork(params)
-    input = torch.randn(30)
-
+    #nn.set_seed(1)
+    
+    input = torch.randn(4)
+    
     print(nn(input))

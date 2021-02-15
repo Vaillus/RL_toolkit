@@ -1,6 +1,7 @@
 from Session import *
 import matplotlib.pyplot as plt
-from utils import get_params, recursive_get
+from utils import get_params, set_random_seed, get_from_dict, set_in_dict, get_attr
+import random
 
 # === format params functions ==========================================
 
@@ -57,17 +58,31 @@ def change_sess_hyperparam(sessions_params, hyperparam_data):
     level = hyperparam_data["level"]
     hp_name = hyperparam_data["param"]
     values = hyperparam_data["values"]
-    # adjusting the level in the params where to assign the value to
-    # the hyperparam
+    keys = select_keys(level, hp_name)
     for i in range(len(sessions_params)):
-        if level == "agent":
-            sessions_params[i]["agent_info"][hp_name] = values[i]
-        elif level == "function_approximator":
-            sessions_params[i]["agent_info"]["function_approximator_info"][hp_name] = values[i]
-        elif level == "policy_estimator":
-            sessions_params[i]["agent_info"]["policy_estimator_info"][hp_name] = values[i]
+        set_in_dict(sessions_params[i], keys, values[i])
     
     return sessions_params
+        
+def select_keys(level, hp_name):
+    """create the tuple of the keys that give access to the desired 
+    hyperparameter
+
+    Args:
+        level (str): level in the agent where to find the hyperparam
+        hp_name (str): name of the hyperparameter to be accessed
+
+    Returns:
+        tuple: keys that lead to the desired hyperparam
+    """
+    keys = ("agent_info",)
+    if (level == "function_approximator") or (level == "policy_estimator"):
+        key_name = level + "_info"
+        keys += (key_name,)
+        if hp_name == "learning_rate":
+            keys += ("optimizer_info",)
+    keys += (hp_name,)
+    return keys
 
 class Experiment:
     def __init__(self, params={}):
@@ -89,10 +104,10 @@ class Experiment:
         self.avg_length = params.get("avg_length", 100)
         self.experiment_type = params.get("experiment_type", "parameters testing")
         self.environment_name = params.get("environment_name", "unknown environment")
-        #self.varying_params = params.get("varying_params", [])
+        self.varying_params = params.get("session_variants", [])
 
         self.init_sess(params)
-        self.environment_name = self.sessions[0].environment_name
+        self.environment_name = self.sessions[0]["environment_name"]
 
     def init_sess(self, params):
         """Initialize the sessions
@@ -102,7 +117,7 @@ class Experiment:
         for sess_data in params["sessions_params"]:
             session_parameters = sess_data["session_info"]
             session_parameters["agent_info"] = sess_data["agent_info"]
-            self.sessions.append(Session(session_parameters))
+            self.sessions.append(session_parameters)
         
     # === main function ================================================
 
@@ -115,15 +130,30 @@ class Experiment:
         for session in self.sessions:
             rewards = session.run()
             rewards_by_session.append(rewards)
-
+        
         rewards_by_session = self.modify_rewards(rewards_by_session)
         self.plot_rewards(rewards_by_session)
 
-    def run_meaningful_session(session):
-        self.set_random_seeds()
-        for session in self.sessions:
-            session.set_seed()
-        pass
+    def run_meaningful_session(self):
+        # create the list of random seeds
+        seeds = []
+        rewards_by_session = []
+        for i in range(0,5):
+            n = random.randint(1,30)
+            seeds.append(n)
+        seeds = [1]
+        for session_param in self.sessions:
+            for seed in seeds:
+                #set_random_seed(seed)
+                session_param["seed"] = seed
+                print(session_param)
+                #session.set_seed(seed)
+                session = Session(session_param)
+                rewards = session.run()
+                rewards_by_session.append(rewards)
+        
+        rewards_by_session = self.modify_rewards(rewards_by_session)
+        self.plot_rewards(rewards_by_session)
 
     # === plotting functions ===========================================
 
@@ -146,28 +176,27 @@ class Experiment:
 
         return rewards_to_return
 
-    def generate_legend_text(self, varying_param, session):
+    def generate_legend_text(self, varying_param, id):
         varying_param_name = varying_param["param"]
         param_level = varying_param["level"]
-        legend = ''
-        if param_level == "agent":
-            legend = f'{varying_param_name}: {getattr(session.agent,varying_param_name)}'
-        elif param_level == "function_approximator":
-            legend = f'{varying_param_name}: {getattr(session.agent.function_approximator,varying_param_name)}'
-        elif param_level  == "policy_estimator":
-            legend = f'{varying_param_name}: {getattr(session.agent.policy_estimator,varying_param_name)}'
+        value = varying_param["values"][id]
+        legend = f'{varying_param_name}: {value}'
         return legend
 
     def plot_rewards(self, rewards_by_session):
 
         plt.plot(np.array(rewards_by_session).T)
-        plt.title(f'Models comparison in {self.environment_name}')
+        if self.experiment_type == "parameters testing":
+            plt.title(f'Testing {self.sessions[0]["session_type"]} in {self.environment_name}')
+        else:
+            plt.title(f'Models comparison')
         plt.xlabel("Episode")
         plt.ylabel("Reward")
         plt.yscale("linear")
         if self.experiment_type == "parameters testing":
-            plt.legend([[self.generate_legend_text(varying_param, session) for varying_param in self.varying_params] for
-                    session in self.sessions])
+            print(len(self.varying_params[0]["values"]))
+            legend = [self.generate_legend_text(self.varying_params[0], id) for id in range(len(self.varying_params[0]["values"]))]
+            plt.legend(legend)
         elif self.experiment_type == "models comparison":
             plt.legend([session.session_type for session in self.sessions])
         plt.show()
@@ -175,8 +204,8 @@ class Experiment:
 
 
 if __name__ == "__main__":
-    exp_param = get_params('experiments/experiment_different_models_params')
+    exp_param = get_params('experiments/experiment_same_model_params')
     exp_param = load_exp_param(exp_param)
     print(exp_param)
     experiment = Experiment(exp_param)
-    experiment.run()
+    experiment.run_meaningful_session()

@@ -1,8 +1,8 @@
 {
   "session_info":{
-    "session_type ": "REINFORCE",
-    "num_episodes": 2001,
-    "plot": true,
+    "session_type": "REINFORCE",
+    "num_episodes": 101,
+    "plot": false,
     "show": false,
     "show_every": 500,
     "environment_name": "CartPole-v0",
@@ -17,7 +17,7 @@
       ],
       "optimizer_info": {
         "type": "adam",
-        "learning_rate": 0.0001
+        "learning_rate": 0.1
       }
     }
   }
