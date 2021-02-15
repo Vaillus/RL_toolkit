@@ -1,4 +1,6 @@
 from DQN.DQN import *
+from utils import set_random_seed
+import numpy as np
 
 class DQNAgent:
     def __init__(self, params={}):
@@ -11,6 +13,7 @@ class DQNAgent:
         # parameters not set at initilization
         self.previous_action = None
         self.previous_state = None
+        self.seed = None
 
         self.set_params_from_dict(params)
 
@@ -20,11 +23,23 @@ class DQNAgent:
         self.epsilon = params.get("epsilon", 0.9)
         self.num_actions = params.get("num_actions", 0)
         self.is_greedy = params.get("is_greedy", False)
+        self.init_seed(params.get("seed", None))
         params["function_approximator_info"]["action_dim"] = self.num_actions
         self.initialize_dqn(params.get("function_approximator_info"))
 
     def initialize_dqn(self, params):
         self.function_approximator = DQN(params)
+
+    def init_seed(self, seed):
+        if seed:
+            self.seed = seed
+            set_random_seed(self.seed)
+
+    def set_seed(self, seed):
+        if seed:
+            self.seed = seed
+            set_random_seed(self.seed)
+            self.function_approximator.set_seed(seed)
 
     # ====== Action choice related functions =======================================================
 

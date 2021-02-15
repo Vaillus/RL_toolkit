@@ -1,6 +1,7 @@
-from CustomNeuralNetwork import *
+from CustomNeuralNetwork import CustomNeuralNetwork
 import numpy as np
 import torch
+import torch.nn
 
 class DQN:
     def __init__(self, params={}):
@@ -10,7 +11,7 @@ class DQN:
         self.target_net = None
         self.update_target_rate = None
         self.update_target_counter = 0
-        self.loss_func = nn.MSELoss()
+        self.loss_func = torch.nn.MSELoss()
         # NN dimension parameters
         self.state_dim = None
         self.action_dim = None
@@ -23,6 +24,8 @@ class DQN:
         self.memory_counter = 0
         self.batch_size = None
 
+        self.seed = None
+
         self.set_params_from_dict(params)
 
         self.set_other_params()
@@ -34,7 +37,7 @@ class DQN:
         self.update_target_rate = params.get("update_target_rate", 50)
         self.batch_size = params.get("batch_size", 128)
         self.discount_factor = params.get("discount_factor", 0.995)
-
+        self.init_seed(params.get("seed", None))
         self.initialize_neural_networks(params.get("neural_nets_info"))
 
     def set_other_params(self):
@@ -45,7 +48,18 @@ class DQN:
     def initialize_neural_networks(self, nn_params):
         self.target_net, self.eval_net = (CustomNeuralNetwork(nn_params), 
         CustomNeuralNetwork(nn_params))
-
+    
+    def init_seed(self, seed):
+        if seed:
+            self.seed = seed
+            set_random_seed(self.seed)
+    
+    def set_seed(self, seed):
+        if seed:
+            self.seed = seed
+            set_random_seed(seed)
+            self.target_net.set_seed(seed)
+            self.eval_net.set_seed(seed)
     # === functional functions =========================================
 
     def get_action_value(self, state, action=None):

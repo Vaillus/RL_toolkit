@@ -3,6 +3,7 @@ from DQN.DQNAgent import *
 from GradientPolicyMethods.REINFORCEAgent import *
 from GradientPolicyMethods.REINFORCEAgentWithBaseline import *
 from GradientPolicyMethods.ActorCriticAgent import *
+from AbaddonAgent import *
 import gym
 import matplotlib.pyplot as plt
 import json
@@ -11,7 +12,7 @@ import os
 import pathlib
 import sys
 
-import godot_interface.GodotEnvironment as godot
+import GodotEnvironment as godot
 
 from utils import *
 
@@ -75,7 +76,6 @@ class Session:
         agent_params = params.get("agent_info", {})
         agent_params["seed"] = self.seed
         self.init_agent(agent_params)
-        self.agent.set_seed(self.seed)
     
     def init_env(self, env_params):
         """the environment is set differently if it's a gym environment 
@@ -108,6 +108,7 @@ class Session:
         for agent_name in self.agents_names:
             self.agent[agent_name] = self.init_single_agent(agent_params)
 
+
     def init_single_agent(self, agent_params):
         """Create and return an agent. The type of agent depends on the 
         self.session_type parameter
@@ -128,6 +129,8 @@ class Session:
             agent = REINFORCEAgentWithBaseline(agent_params)
         elif self.session_type == "actor-critic":
             agent = ActorCriticAgent(agent_params)
+        elif self.session_type == "Abaddon test":
+            agent = AbaddonAgent(agent_params)
         else:
             print("agent not initialized")
         return agent
@@ -163,8 +166,11 @@ class Session:
                 self.environment.seed(seed)
             else:
                 self.environment.set_seed(seed)
-            self.agent.set_seed(seed)
-
+            if self.multiagent:
+                for agent_name in self.agents_names:
+                    self.agent[agent_name].set_seed(seed)
+            else:
+                self.agent.set_seed(seed)
 
 
     # ====== Agent execution functions =================================
@@ -175,10 +181,24 @@ class Session:
                                                     reward_data=reward_data,
                                                     start=start)
         else:
-            action_data = self.get_single_agent_action(agent=self.agent, 
+            # in case it is a godot env
+            if self.environment_type == "godot":
+                agent_name = state_data[0]["name"]
+                state_data = state_data[0]["state"]
+                if not start:
+                    reward_data = reward_data[0]['reward']
+            action = self.get_single_agent_action(agent=self.agent, 
                                         state_data=state_data, 
                                         reward_data=reward_data, 
                                         start=start)
+            if self.environment_type == "godot":
+                if self.environment_name == "Abaddon-Test-v0":
+                    action = {
+                        "sensor_name": "radar",
+                        "action_name": "dwell",
+                        "angle": int(action)
+                    }
+                action_data = [{"agent_name": agent_name, "action": action}]
         return action_data
     
     def get_multiagent_action(self, state_data, reward_data=None, start=False):
@@ -198,9 +218,12 @@ class Session:
         for n_agent in range(len(state_data)):
             agent_name = state_data[n_agent]["name"]
             agent_state = state_data[n_agent]["state"]
+            agent_reward = None
+            if not start:
+                agent_reward = reward_data[n_agent]['reward']
             action = self.get_single_agent_action(agent=self.agent[agent_name], 
                                         state_data=agent_state, 
-                                        reward_data=reward_data, 
+                                        reward_data=agent_reward, 
                                         start=start)
             action_data.append({"name": agent_name, "action": action})
         return action_data
@@ -272,7 +295,7 @@ class Session:
             # and info about whether the episode is over.
             new_state_data, reward_data, done, _ = self.environment.step(action_data)
              # self.environment.step([float(action)]) | if continuous 
-             # mountian car
+             # mountain car
             reward_data = self.shape_reward(state_data, reward_data)
             # save the reward
             episode_reward = self.save_reward(episode_reward, reward_data)
@@ -319,7 +342,6 @@ class Session:
             state_data = self.godot_env_reset(episode_id)
         else:
             state_data = self.environment.reset()
-            print(state_data)
         return state_data
 
     def godot_env_reset(self, episode_id):
@@ -347,7 +369,7 @@ class Session:
     def save_reward(self, episode_reward, reward_data):
         """ add the reward to the reward history
         """
-        if self.session_type == "godot":
+        if self.environment_type == "godot":
             episode_reward += reward_data[0]["reward"]
         else:
             episode_reward += reward_data
@@ -387,14 +409,16 @@ class Session:
 if __name__ == "__main__":
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
-    data = get_params("reinforce_params")
+    data = get_params("abaddon_params")
     session_parameters = data["session_info"]
     session_parameters["agent_info"] = data["agent_info"]
-    set_random_seed(1)
+    session_parameters["environment_info"] = data["environment_info"]
+
+    #set_random_seed(1)
     sess = Session(session_parameters)
-    sess.set_seed(1)
+    #sess.set_seed(1)
     
-    input = [1,0,0,0]
+    """input = [1,0,0,0]
     out = sess.agent.start(input)
     #print(out)
     state = sess.environment.reset()
@@ -408,6 +432,7 @@ if __name__ == "__main__":
         state = (0.1,0.1,0.1,0.1)
         action = sess.agent.step(state, rew)
         print(f'action: {action}')
+    """
     
     #print(sess.agent.policy_estimator.layers[0].weight)
-    #sess.run()
+    sess.run()

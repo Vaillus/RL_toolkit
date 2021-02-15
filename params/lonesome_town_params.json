@@ -40,13 +40,12 @@
   "environment_info": {
     "agent names": ["Player", "Player2"],
     "host": "127.0.0.1",
-    "port": 4243,
-    "godot path": "mnt/c/Users/Hugo/Desktop/Godot_v3.2.3-stable_win64.exe",
-    "environment path": "C:/Users/Hugo/Documents/work/projects/godot/godot_projects/lonesome_town_game/lonesome_town_v0.pck",
+    "port": 4246,
+    "godot path": "mnt/c/Users/vaill/Desktop/Godot_v3.2.3-stable_win64.exe",
+    "environment path": "C:/Users/vaill/Documents/work/projects/godot/godot_projects/LonesomeTown/lonesome_town_game/lonesome_town_v0.pck",
     "state min": [-431, -546], 
     "state max": [524, 427],
     "display actions": false,
-    "display states": false,
-    "seed":4
+    "display states": false
   }
 }
