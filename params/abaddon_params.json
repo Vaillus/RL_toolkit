@@ -20,8 +20,6 @@
       "port": 4243,
       "godot path": "mnt/c/Users/vaill/Desktop/Godot_v3.2.3-stable_win64.exe",
       "environment path": "C:/Users/vaill/Documents/work/projects/flight_simulator/flight_simulator.pck",
-      "state min": [-431, -546], 
-      "state max": [524, 427],
       "display actions": false,
       "display states": false
     }
