@@ -187,18 +187,21 @@ class Session:
                 state_data = state_data[0]["state"]
                 if not start:
                     reward_data = reward_data[0]['reward']
-            action = self.get_single_agent_action(agent=self.agent, 
+            # in every case
+            action_data = self.get_single_agent_action(agent=self.agent, 
                                         state_data=state_data, 
                                         reward_data=reward_data, 
                                         start=start)
+            # if env is abaddon, format further
             if self.environment_type == "godot":
                 if self.environment_name == "Abaddon-Test-v0":
-                    action = {
+                    action_data = {
                         "sensor_name": "radar",
                         "action_name": "dwell",
-                        "angle": int(action)
+                        "angle": int(action_data)
                     }
-                action_data = [{"agent_name": agent_name, "action": action}]
+                    action_data = [{"agent_name": agent_name, "action": action}]
+            
         return action_data
     
     def get_multiagent_action(self, state_data, reward_data=None, start=False):
