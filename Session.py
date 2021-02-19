@@ -273,7 +273,7 @@ class Session:
 
                 self.agent[agent_name].end(agent_state, agent_reward)
 
-    # ==== Name to be defined =================================================================
+    # ==== Name to be defined ==========================================
 
     def episode(self, episode_id):
         """[summary]

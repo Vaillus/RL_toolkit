@@ -1,7 +1,7 @@
 {
   "session_info":{
     "session_type": "REINFORCE",
-    "num_episodes": 101,
+    "num_episodes": 1000,
     "plot": false,
     "show": false,
     "show_every": 500,
@@ -17,9 +17,8 @@
       ],
       "optimizer_info": {
         "type": "adam",
-        "learning_rate": 0.1
+        "learning_rate": 0.001
       }
     }
   }
-
 }

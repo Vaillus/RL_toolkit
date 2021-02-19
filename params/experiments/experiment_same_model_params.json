@@ -4,9 +4,10 @@
   "session_variants": [
     {"level": "policy_estimator",
       "param": "learning_rate",
-      "values": [0.001, 0.0001]
+      "values": [0.001, 0.0005]
     }
   ],
   "avg_results": true,
+  "avg_length": 10,
   "session_params_name": "reinforce_params"
 }
