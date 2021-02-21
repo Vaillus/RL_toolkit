@@ -32,7 +32,6 @@ def reward_func(env, x, x_dot, theta, theta_dot):
     reward = r1 + r2
     return reward
 
-
 class Session:
     def __init__(self, params={}):
         self.agent = None
@@ -53,7 +52,7 @@ class Session:
         self.seed = None
 
         self.set_params_from_dict(params=params)
-        self.set_env_and_agent(params)
+        self._set_env_and_agent(params)
 
     # ====== Initialization functions ==================================
 
@@ -67,17 +66,17 @@ class Session:
         self.return_results = params.get("return_results", False)
         self.session_type = params.get("session_type", "REINFORCE")
         self.is_multiagent = params.get("is_multiagent", False)
-        self.init_seed(params.get("seed", None))
+        self._init_seed(params.get("seed", None))
  
-    def set_env_and_agent(self, params):
+    def _set_env_and_agent(self, params):
         env_params = params.get("environment_info", {})
-        self.init_env(env_params)
+        self._init_env(env_params)
 
         agent_params = params.get("agent_info", {})
         agent_params["seed"] = self.seed
-        self.init_agent(agent_params)
+        self._init_agent(agent_params)
     
-    def init_env(self, env_params):
+    def _init_env(self, env_params):
         """the environment is set differently if it's a gym environment 
         or a godot environment.
 
@@ -91,25 +90,26 @@ class Session:
             self.environment = godot.GodotEnvironment(env_params)
             self.environment.set_seed(self.seed)
     
-    def init_agent(self, agent_params):
+    def _init_agent(self, agent_params):
         """initialize one or several agents
 
         Args:
             agent_params (dict)
         """
         if self.is_multiagent:
+            # TODO: the following line only works with godot
             self.agents_names = self.environment.agent_names
-            self.init_multiagent(agent_params)
+            self._init_multiagent(agent_params)
         else:
-            self.agent = self.init_single_agent(agent_params)
+            self.agent = self._init_single_agent(agent_params)
 
-    def init_multiagent(self, agent_params):
+    def _init_multiagent(self, agent_params):
         self.agent = {}
         for agent_name in self.agents_names:
-            self.agent[agent_name] = self.init_single_agent(agent_params)
+            self.agent[agent_name] = self._init_single_agent(agent_params)
 
 
-    def init_single_agent(self, agent_params):
+    def _init_single_agent(self, agent_params):
         """Create and return an agent. The type of agent depends on the 
         self.session_type parameter
         Args:
@@ -122,7 +122,7 @@ class Session:
         if self.session_type == "DQN test":
             agent = DQNAgent(agent_params)
         elif self.session_type == "tile coder test":
-            agent = self.init_tc_agent(agent_params)
+            agent = self._init_tc_agent(agent_params)
         elif self.session_type == "REINFORCE":
             agent = REINFORCEAgent(agent_params)
         elif self.session_type == "REINFORCE with baseline":
@@ -135,7 +135,7 @@ class Session:
             print("agent not initialized")
         return agent
     
-    def init_tc_agent(self, agent_params):
+    def _init_tc_agent(self, agent_params):
         """initialization of a tile coder agent, which depends on the 
         gym environment
 
@@ -155,10 +155,16 @@ class Session:
          
         return agent
 
-    def init_seed(self, seed):
+    def _init_seed(self, seed):
         self.seed = seed
 
     def set_seed(self, seed):
+        """ Set the Session seed with the param. The set the seed of the
+        environment and the agent(s)
+
+        Args:
+            seed (int)
+        """
         if seed:
             self.seed = seed
             set_random_seed(seed)
@@ -166,7 +172,7 @@ class Session:
                 self.environment.seed(seed)
             else:
                 self.environment.set_seed(seed)
-            if self.multiagent:
+            if self.is_multiagent:
                 for agent_name in self.agents_names:
                     self.agent[agent_name].set_seed(seed)
             else:
@@ -176,8 +182,19 @@ class Session:
     # ====== Agent execution functions =================================
 
     def get_agent_action(self, state_data, reward_data=None, start=False):
+        """ Get the agent(s) action in response to the state and reward data.
+
+        Args:
+            state_data (dict)
+            reward_data (dict, optional): Defaults to None.
+            start (bool, optional): indocate if it's the first transition
+                                    Defaults to False.
+
+        Returns:
+            dict: contains action(s) data
+        """
         if self.is_multiagent:
-            action_data = self.get_multiagent_action(state_data=state_data,
+            action_data = self._get_multiagent_action(state_data=state_data,
                                                     reward_data=reward_data,
                                                     start=start)
         else:
@@ -188,11 +205,12 @@ class Session:
                 if not start:
                     reward_data = reward_data[0]['reward']
             # in every case
-            action_data = self.get_single_agent_action(agent=self.agent, 
+            action_data = self._get_single_agent_action(agent=self.agent, 
                                         state_data=state_data, 
                                         reward_data=reward_data, 
                                         start=start)
             # if env is abaddon, format further
+            # TODO: about to change
             if self.environment_type == "godot":
                 if self.environment_name == "Abaddon-Test-v0":
                     action_data = {
@@ -200,18 +218,18 @@ class Session:
                         "action_name": "dwell",
                         "angle": int(action_data)
                     }
-                    action_data = [{"agent_name": agent_name, "action": action}]
+                    action_data = [{"agent_name": agent_name, "action": action_data}]
             
         return action_data
     
-    def get_multiagent_action(self, state_data, reward_data=None, start=False):
+    def _get_multiagent_action(self, state_data, reward_data=None, start=False):
         """ distribute states to all agents and get their actions back.
 
         Args:
             state_data (dict)
             reward_data (dict, optional): Defaults to None.
             start (bool, optional): indicates whether it is the first 
-            step of the agent. Defaults to False.
+                step of the agent. Defaults to False.
 
         Returns:
             dict
@@ -224,14 +242,14 @@ class Session:
             agent_reward = None
             if not start:
                 agent_reward = reward_data[n_agent]['reward']
-            action = self.get_single_agent_action(agent=self.agent[agent_name], 
-                                        state_data=agent_state, 
-                                        reward_data=agent_reward, 
-                                        start=start)
+            action = self._get_single_agent_action(agent=self.agent[agent_name], 
+                                                    state_data=agent_state, 
+                                                    reward_data=agent_reward, 
+                                                    start=start)
             action_data.append({"name": agent_name, "action": action})
         return action_data
     
-    def get_single_agent_action(self, agent, state_data, reward_data=None, start=False):
+    def _get_single_agent_action(self, agent, state_data, reward_data=None, start=False):
         """if this is the first state of the episode, get the first 
         action of the agent else, also give reward of the previous 
         action to complete the previous transition.
@@ -263,8 +281,8 @@ class Session:
         so they can complete their last transitions
 
         Args:
-            state_data (dict): [description]
-            reward_data (dict): [description]
+            state_data (dict)
+            reward_data (dict)
         """
         for n_agent in range(len(state_data)):
                 agent_name = state_data[n_agent]["name"]
@@ -274,20 +292,52 @@ class Session:
                 self.agent[agent_name].end(agent_state, agent_reward)
 
     # ==== Name to be defined ==========================================
-
-    def episode(self, episode_id):
+    
+    def run(self):
         """[summary]
 
+        Returns:
+            list: [description]
+        """
+        episode_reward = 0
+        success = False
+        rewards = np.array([])
+        # run the episodes and store the rewards
+        for id_episode in range(self.num_episodes):
+            episode_reward, success = self.episode(id_episode)
+            self.environment.close()
+            if self.show:
+                print(f'EPISODE: {id_episode}')
+                print(f'reward: {episode_reward}')
+                print(f'success: {success}')
+            rewards = np.append(rewards, episode_reward)
+        # plot the rewards
+        if self.plot is True:
+            plt.plot(Session._average_rewards(rewards))
+            plt.show()
+            #print(episode_reward)
+        # return the rewards
+        
+        if self.return_results:
+            return rewards
+
+    def episode(self, episode_id):
+        """ Run the environment and the agent until the last state is 
+        reached.
+
         Args:
-            episode_id ([type]): [description]
+            episode_id (int)
 
         Returns:
-            [type]: [description]
+            list, bool: list of the rewards obtained by the agent at 
+                        each timestep, a boolean indicating whether the
+                        episode was a success.
         """
+        # get the first env state and the action that takes the agent
         self.print_episode_count(episode_id=episode_id)
         state_data = self.env_reset(episode_id=episode_id)
         action_data = self.get_agent_action(state_data, start=True)
-
+        # declaration of variables useful in the loop
         episode_reward = 0
         done = False
         success = False
@@ -297,11 +347,11 @@ class Session:
             # run a step in the environment and get the new state, reward 
             # and info about whether the episode is over.
             new_state_data, reward_data, done, _ = self.environment.step(action_data)
-             # self.environment.step([float(action)]) | if continuous 
-             # mountain car
+            # self.environment.step([float(action)]) | if continuous 
+            # mountain car
             reward_data = self.shape_reward(state_data, reward_data)
             # save the reward
-            episode_reward = self.save_reward(episode_reward, reward_data)
+            episode_reward = self._save_reward(episode_reward, reward_data)
             # render environment (gym environments only)
             self.render_gym_env(episode_id)
 
@@ -309,34 +359,14 @@ class Session:
                 # get the action if it's not the last step
                 action_data = self.get_agent_action(new_state_data, reward_data)
             else:
+                # actions made when the last state is reached
                 # get the final reward and success in the mountaincar env
                 reward_data, success = self.assess_mc_success(new_state_data)
+                # send parts of the last transition to the agent.
                 self.end_agent(new_state_data, reward_data)
                 if self.session_type == "REINFORCE" or self.session_type == "REINFORCE with baseline":
                     self.agent.learn_from_experience()
                 return episode_reward, success
-
-    def run(self):
-        episode_reward = 0
-        success = False
-        rewards = np.array([])
-        # run the episodes and store the rewards
-        for id_episode in range(self.num_episodes):
-            episode_reward, success = self.episode(id_episode)
-            self.environment.close()
-            print(f'EPISODE: {id_episode}')
-            print(f'reward: {episode_reward}')
-            print(f'success: {success}')
-            rewards = np.append(rewards, episode_reward)
-        # plot the rewards
-        if self.plot is True:
-            plt.plot(self.average_rewards(rewards))
-            plt.show()
-            #print(episode_reward)
-        # return the rewards
-        
-        if self.return_results:
-            return rewards
 
     def env_reset(self, episode_id):
         """ Reset the environment, in both godot and gym case
@@ -369,8 +399,16 @@ class Session:
 
         return reward_data
     
-    def save_reward(self, episode_reward, reward_data):
-        """ add the reward to the reward history
+    def _save_reward(self, episode_reward, reward_data):
+        """add the reward earned at the last step to the reward 
+        accumulated until here
+
+        Args:
+            episode_reward (int): reward accumulated until here
+            reward_data (int): reward earned at the last step
+
+        Returns:
+            int: updated reward
         """
         if self.environment_type == "godot":
             episode_reward += reward_data[0]["reward"]
@@ -396,7 +434,8 @@ class Session:
 
         return reward_data, success 
 
-    def average_rewards(self, rewards):
+    @staticmethod
+    def _average_rewards(rewards):
         avg_rewards = []
         # transform the rewards to their avergage on the last n episodes 
         # (n being specified in the class parameters)
@@ -417,25 +456,7 @@ if __name__ == "__main__":
     session_parameters["agent_info"] = data["agent_info"]
     session_parameters["environment_info"] = data["environment_info"]
 
-    #set_random_seed(1)
     sess = Session(session_parameters)
     #sess.set_seed(1)
-    
-    """input = [1,0,0,0]
-    out = sess.agent.start(input)
-    #print(out)
-    state = sess.environment.reset()
-    print(f'state: {state}')
-    action = sess.agent.start(state)
-    action = 0
-    print(f'action: {action}')
-    for i in range(100):
-        state, rew, done, _ = sess.environment.step(action)
-        print(f'state: {state}')
-        state = (0.1,0.1,0.1,0.1)
-        action = sess.agent.step(state, rew)
-        print(f'action: {action}')
-    """
-    
     #print(sess.agent.policy_estimator.layers[0].weight)
     sess.run()

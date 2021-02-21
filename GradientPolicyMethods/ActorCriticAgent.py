@@ -1,4 +1,4 @@
-from CustomNeuralNetwork import *
+from CustomNeuralNetwork import CustomNeuralNetwork
 import numpy as np
 import torch
 from torch.distributions import Categorical

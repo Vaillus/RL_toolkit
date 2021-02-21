@@ -1,8 +1,8 @@
 {
   "session_info":{
     "session_type": "REINFORCE with baseline",
-    "num_episodes": 1501,
-    "plot": true,
+    "num_episodes": 1000,
+    "plot": false,
     "show": false,
     "show_every": 500,
     "environment_name": "CartPole-v0",
@@ -17,7 +17,7 @@
       ],
       "optimizer_info": {
         "type": "adam",
-        "learning_rate": 0.0001
+        "learning_rate": 0.001
       }
     },
 
