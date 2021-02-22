@@ -1,27 +1,27 @@
 {
-    "session_info":{
-      "session_type": "Abaddon test",
-      "num_episodes": 500,
-      "plot": true,
-      "show": true,
-      "show_every": 1,
-      "environment_type": "godot",
-      "environment_name": "Abaddon-Test-v0",
-      "return_results": true,
-      "is_multiagent": false
-    },
-  
-    "agent_info" : {
-      "seed": 0
-    },
-    "environment_info": {
-      "agent names": ["Plane"],
-      "host": "127.0.0.1",
-      "port": 4244,
-      "godot path": "mnt/c/Users/vaill/Desktop/Godot_v3.2.3-stable_win64.exe",
-      "environment path": "C:/Users/vaill/Documents/work/projects/flight_simulator/flight_simulator.pck",
-      "display actions": false,
-      "display states": false
-    }
+  "session_info":{
+    "session_type": "Abaddon test",
+    "num_episodes": 1,
+    "plot": true,
+    "show": true,
+    "show_every": 1,
+    "environment_type": "godot",
+    "environment_name": "Abaddon-Test-v0",
+    "return_results": true,
+    "is_multiagent": false
+  },
+
+  "agent_info" : {
+    "seed": 0
+  },
+
+  "environment_info": {
+    "agent names": ["Plane"],
+    "host": "127.0.0.1",
+    "port": 4245,
+    "godot path": "mnt/c/Users/vaill/Desktop/Godot_v3.2.3-stable_win64.exe",
+    "environment path": "C:/Users/vaill/Documents/work/projects/flight_simulator/flight_simulator.pck",
+    "display actions": false,
+    "display states": false
   }
-  
+}

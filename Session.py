@@ -291,13 +291,13 @@ class Session:
 
                 self.agent[agent_name].end(agent_state, agent_reward)
 
-    # ==== Name to be defined ==========================================
+    # ==== Main loop functions =========================================
     
     def run(self):
-        """[summary]
+        """Run all the episodes then plot the rewards
 
         Returns:
-            list: [description]
+            list: the cumulative rewards of the episodes
         """
         episode_reward = 0
         success = False
@@ -313,7 +313,8 @@ class Session:
             rewards = np.append(rewards, episode_reward)
         # plot the rewards
         if self.plot is True:
-            plt.plot(Session._average_rewards(rewards))
+            #plt.plot(Session._average_rewards(rewards))
+            plt.plot(self.environment.metrics["regions"])
             plt.show()
             #print(episode_reward)
         # return the rewards
@@ -367,6 +368,9 @@ class Session:
                 if self.session_type == "REINFORCE" or self.session_type == "REINFORCE with baseline":
                     self.agent.learn_from_experience()
                 return episode_reward, success
+
+
+    # === other functions ==============================================
 
     def env_reset(self, episode_id):
         """ Reset the environment, in both godot and gym case

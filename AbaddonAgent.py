@@ -1,4 +1,6 @@
 import numpy as np
+from utils import set_random_seed
+import math
 
 class AbaddonAgent:
     def __init__(self, params={}):
@@ -24,6 +26,7 @@ class AbaddonAgent:
     # ====== Action choice related functions =================================================
     
     def choose_greedy_act(self, state):
+        #print(state)
         regions = state['regions']
         ang_scores = np.zeros(360)
         for i in range(int(len(regions) / 3)):
@@ -32,8 +35,12 @@ class AbaddonAgent:
             reg_detec = regions[3 * i + 2]
             if not((reg_dist == 0) and (reg_ang == 0) and (reg_detec == 0)):
                 if reg_detec == 0:
-                    ang_scores[round(reg_ang)] +=1
+                    ang_scores[math.floor(reg_ang)] += (150000 - reg_dist) / 150000
+                    ang_scores[math.ceil(reg_ang)] += (150000 - reg_dist) / 150000
         action_ang = ang_scores.argmax()
+        #if action_angle == state["plane"]["sensors"]["radar"]["angle"]:
+        #    ang_scores[ang_scores.max()] = 0
+        #    action_ang = ang_scores.argmax()
         if action_ang > 180:
             action_ang = action_ang - 360
         return action_ang
@@ -49,6 +56,8 @@ class AbaddonAgent:
 
     def step(self, state, reward):
         current_action = self.choose_greedy_act(state)
+        print(state["plane"])
+        print(reward)
 
         return current_action
 

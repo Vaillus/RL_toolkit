@@ -57,6 +57,8 @@ class GodotEnvironment:
 
         self.max_rec_bits = None
 
+        self.metrics = {}
+
         self.set_params_from_dict(params)
 
         self.set_other_params()
@@ -78,6 +80,7 @@ class GodotEnvironment:
 
     def set_other_params(self):
         self.random_generator = np.random.RandomState(seed=self.seed)
+        self.metrics["regions"] = []
 
     def set_seed(self, seed):
         self.seed = seed
@@ -125,10 +128,11 @@ class GodotEnvironment:
 
     def step(self, actions_data):
         """
-        sending an action to the godot agent and returns the reward it earned, the new state of the environment and a
-        boolean indicating whether the game is done.
+        sending an action to the godot agent and returns the reward it 
+        earned, the new state of the environment and a boolean indicating 
+        whether the game is done.
         :param action_data: dictionary
-        :return:states_data (dic), rewards_data (dic), done (boolean), n_frames (int)
+        :return: states_data (dic), rewards_data (dic), done (boolean), n_frames (int)
         """
         # prepare and send data to simulation
         request = self._create_request(actions_data=actions_data)
@@ -140,10 +144,17 @@ class GodotEnvironment:
         env_data = self._get_environment_state()
         if self.display_states:
             print(env_data)
-
+        
         # splitting data
         states_data, rewards_data = self._split_env_data(env_data["states_data"])
         #print(rewards_data)
+
+        # Test to plot a metric
+        # TODO: refactor that
+        region_metric = env_data["states_data"][0]["metrics"]["region"]
+        self.metrics["regions"].append(region_metric)
+
+
         n_frames = env_data["n_frames"]
         # scaling reward
         for n_agent in range(len(rewards_data)):
