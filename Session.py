@@ -314,6 +314,7 @@ class Session:
         # plot the rewards
         if self.plot is True:
             #plt.plot(Session._average_rewards(rewards))
+            #print(self.environment.metrics["regions"])
             plt.plot(self.environment.metrics["regions"])
             plt.show()
             #print(episode_reward)
