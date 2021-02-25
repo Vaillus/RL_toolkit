@@ -1,7 +1,7 @@
 {
   "session_info":{
     "session_type": "actor-critic",
-    "num_episodes": 15001,
+    "num_episodes": 150,
     "plot": true,
     "show": true,
     "show_every": 1000,

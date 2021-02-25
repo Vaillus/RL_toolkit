@@ -9,6 +9,7 @@ class DQNAgent:
         self.num_actions = None
         self.is_greedy = None
         self.function_approximator = None
+        self.is_vanilla = None
 
         # parameters not set at initilization
         self.previous_action = None
@@ -23,6 +24,7 @@ class DQNAgent:
         self.epsilon = params.get("epsilon", 0.9)
         self.num_actions = params.get("num_actions", 0)
         self.is_greedy = params.get("is_greedy", False)
+        self.is_vanilla = params.get("is_vanilla", False)
         self.init_seed(params.get("seed", None))
         params["function_approximator_info"]["action_dim"] = self.num_actions
         self.initialize_dqn(params.get("function_approximator_info"))
@@ -84,7 +86,11 @@ class DQNAgent:
 
     def step(self, state, reward):
         # storing the transition in the function approximator memory for further use
-        self.function_approximator.store_transition(self.previous_state, self.previous_action, reward, state)
+        if not self.is_vanilla:
+            self.function_approximator.store_transition(self.previous_state,
+                                                        self.previous_action, 
+                                                        reward, 
+                                                        state)
 
         # getting the action values from the function approximator
         action_values = self.function_approximator.get_action_value(state)

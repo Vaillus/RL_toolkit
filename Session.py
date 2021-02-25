@@ -313,13 +313,17 @@ class Session:
             rewards = np.append(rewards, episode_reward)
         # plot the rewards
         if self.plot is True:
-            #plt.plot(Session._average_rewards(rewards))
-            #print(self.environment.metrics["regions"])
-            plt.plot(self.environment.metrics["regions"])
+
+            # TODO: change that, it is temporary. We plot the evolution
+            # region lighting rate
+            if self.session_type == "Abaddon test":
+                plt.plot(self.environment.metrics["regions"])
+            else:
+                plt.plot(Session._average_rewards(rewards))
             plt.show()
             #print(episode_reward)
+
         # return the rewards
-        
         if self.return_results:
             return rewards
 
