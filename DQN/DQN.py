@@ -49,6 +49,7 @@ class DQN:
     def initialize_neural_networks(self, nn_params):
         self.target_net, self.eval_net = (CustomNeuralNetwork(nn_params), 
         CustomNeuralNetwork(nn_params))
+        self.target_net.to()
     
     def init_seed(self, seed):
         if seed:

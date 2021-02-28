@@ -30,7 +30,7 @@ class vanilla_DQN:
         self.update_target_rate = params.get("update_target_rate", 50)
         self.discount_factor = params.get("discount_factor", 0.995)
         self.init_seed(params.get("seed", None))
-        self.initialize_neural_networks(params.get("neural_nets_info"))
+        self.initialize_neural_networks(params.get("function_approximator_info"))
 
     def initialize_neural_networks(self, nn_params):
         self.target_net, self.eval_net = (CustomNeuralNetwork(nn_params), 
@@ -47,6 +47,7 @@ class vanilla_DQN:
             set_random_seed(seed)
             self.target_net.set_seed(seed)
             self.eval_net.set_seed(seed)
+            
     # === functional functions =========================================
 
     def get_action_value(self, state, action=None):

@@ -7,6 +7,8 @@ from AbaddonAgent import *
 import gym
 import matplotlib.pyplot as plt
 import json
+from torch.utils.tensorboard import SummaryWriter
+import torchvision
 
 import os
 import pathlib
@@ -14,7 +16,11 @@ import sys
 
 import GodotEnvironment as godot
 
+import stable_baselines3
+
 from utils import *
+
+
 
 
 def reward_func(env, x, x_dot, theta, theta_dot):
@@ -51,6 +57,8 @@ class Session:
 
         self.seed = None
 
+        self.writer = None
+
         self.set_params_from_dict(params=params)
         self._set_env_and_agent(params)
 
@@ -67,6 +75,9 @@ class Session:
         self.session_type = params.get("session_type", "REINFORCE")
         self.is_multiagent = params.get("is_multiagent", False)
         self._init_seed(params.get("seed", None))
+
+        if params.get("use_tensorboard", False):
+            self.writer = create_writer(self.session_type)
  
     def _set_env_and_agent(self, params):
         env_params = params.get("environment_info", {})
@@ -102,6 +113,9 @@ class Session:
             self._init_multiagent(agent_params)
         else:
             self.agent = self._init_single_agent(agent_params)
+            self.agent.writer = self.writer
+            self.writer.add_graph(self.agent.eval_net, torch.tensor([0, 0, 0, 0]))
+            self.writer.close()
 
     def _init_multiagent(self, agent_params):
         self.agent = {}
@@ -119,7 +133,7 @@ class Session:
             Agent: the agent initialized
         """
         agent = None
-        if self.session_type == "DQN test":
+        if self.session_type == "DQN":
             agent = DQNAgent(agent_params)
         elif self.session_type == "tile coder test":
             agent = self._init_tc_agent(agent_params)
@@ -179,7 +193,10 @@ class Session:
                 self.agent.set_seed(seed)
 
 
+
     # ====== Agent execution functions =================================
+
+
 
     def get_agent_action(self, state_data, reward_data=None, start=False):
         """ Get the agent(s) action in response to the state and reward data.
@@ -291,8 +308,11 @@ class Session:
 
                 self.agent[agent_name].end(agent_state, agent_reward)
 
+
+
     # ==== Main loop functions =========================================
     
+
     def run(self):
         """Run all the episodes then plot the rewards
 
@@ -311,6 +331,7 @@ class Session:
                 print(f'reward: {episode_reward}')
                 print(f'success: {success}')
             rewards = np.append(rewards, episode_reward)
+            self.writer.add_scalar("rewards", episode_reward, id_episode)
         # plot the rewards
         if self.plot is True:
 
@@ -319,8 +340,17 @@ class Session:
             if self.session_type == "Abaddon test":
                 plt.plot(self.environment.metrics["regions"])
             else:
-                plt.plot(Session._average_rewards(rewards))
+                avg_reward = Session._average_rewards(rewards)
+                avg_reward = np.array(avg_reward)
+                plt.plot(avg_reward)
+                #avg_reward = torch.Tensor(avg_reward)
+                #img_grid = torchvision.utils.make_grid(avg_reward.T)
+                
+                #writer.add_image(img_grid)
+                #writer.close()
             plt.show()
+            
+            
             #print(episode_reward)
 
         # return the rewards
@@ -375,7 +405,10 @@ class Session:
                 return episode_reward, success
 
 
+
     # === other functions ==============================================
+
+
 
     def env_reset(self, episode_id):
         """ Reset the environment, in both godot and gym case
@@ -405,7 +438,10 @@ class Session:
         if self.environment_name == "CartPole-v0":  
             x, x_dot, theta, theta_dot = state_data
             reward_data = reward_func(self.environment, x, x_dot, theta, theta_dot)
-
+        if self.environment_name == "MountainCar-v0":
+            position = state_data[0]
+            if position > 0.5:
+                reward_data += 0.1
         return reward_data
     
     def _save_reward(self, episode_reward, reward_data):
@@ -460,10 +496,10 @@ class Session:
 if __name__ == "__main__":
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
-    data = get_params("abaddon_params")
+    data = get_params("vanilla_dqn_params")
     session_parameters = data["session_info"]
     session_parameters["agent_info"] = data["agent_info"]
-    session_parameters["environment_info"] = data["environment_info"]
+    #session_parameters["environment_info"] = data["environment_info"]
 
     sess = Session(session_parameters)
     #sess.set_seed(1)

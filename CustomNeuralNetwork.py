@@ -5,6 +5,9 @@ import torch.optim as optim
 import numpy as np
 from utils import set_random_seed
 
+from torch.utils.tensorboard import SummaryWriter
+#import torchvision
+
 
 class CustomNeuralNetwork(nn.Module):
     """ Attempt to make an easy-to-use neural net class
@@ -48,12 +51,12 @@ class CustomNeuralNetwork(nn.Module):
     def forward(self, x):
         # format the input data
         if isinstance(x, np.ndarray):
-            x = torch.from_numpy(x).float()
+            x = torch.from_numpy(x)
         elif isinstance(x, list):
-            x = torch.Tensor(x).float()
+            x = torch.Tensor(x)
         elif isinstance(x, tuple):
-            x = torch.Tensor(x).float()
-
+            x = torch.Tensor(x)
+        x = x.float()
         num_layers = len(self.layers)
         for i in range(num_layers):
             if self.activations[i] == "relu":
@@ -61,7 +64,7 @@ class CustomNeuralNetwork(nn.Module):
             elif self.activations[i] == "tanh":
                 x = F.tanh(self.layers[i](x))
             elif self.activations[i] == "softmax":
-                x = F.softmax(self.layers[i](x))
+                x = F.softmax(self.layers[i](x), dim=-1)
             else:
                 x = self.layers[i](x)
 
@@ -86,7 +89,9 @@ if __name__=="__main__":
     set_random_seed(1)
     nn = CustomNeuralNetwork(params)
     #nn.set_seed(1)
-    
+    writer = SummaryWriter("/home/vaillus/projects/RL_toolkit/logs/actor_critic")
     input = torch.randn(4)
     
+    writer.add_graph(nn, input)
+    writer.close()
     print(nn(input))
