@@ -114,8 +114,8 @@ class Session:
         else:
             self.agent = self._init_single_agent(agent_params)
             self.agent.writer = self.writer
-            self.writer.add_graph(self.agent.eval_net, torch.tensor([0, 0, 0, 0]))
-            self.writer.close()
+            #self.writer.add_graph(self.agent.eval_net, torch.tensor([0, 0, 0, 0]))
+            #self.writer.close()
 
     def _init_multiagent(self, agent_params):
         self.agent = {}
@@ -331,7 +331,7 @@ class Session:
                 print(f'reward: {episode_reward}')
                 print(f'success: {success}')
             rewards = np.append(rewards, episode_reward)
-            self.writer.add_scalar("rewards", episode_reward, id_episode)
+            #self.writer.add_scalar("rewards", episode_reward, id_episode)
         # plot the rewards
         if self.plot is True:
 
@@ -496,10 +496,10 @@ class Session:
 if __name__ == "__main__":
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
-    data = get_params("vanilla_dqn_params")
+    data = get_params("abaddon_params")
     session_parameters = data["session_info"]
     session_parameters["agent_info"] = data["agent_info"]
-    #session_parameters["environment_info"] = data["environment_info"]
+    session_parameters["environment_info"] = data["environment_info"]
 
     sess = Session(session_parameters)
     #sess.set_seed(1)

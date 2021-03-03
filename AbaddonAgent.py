@@ -56,8 +56,8 @@ class AbaddonAgent:
 
     def step(self, state, reward):
         current_action = self.choose_greedy_act(state)
-        print(state["plane"])
-        print(reward)
+        #print(state["plane"])
+        #print(reward)
 
         return current_action
 
