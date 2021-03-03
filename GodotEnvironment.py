@@ -263,6 +263,7 @@ class GodotEnvironment:
         if initialization == False and termination == False:
             request["actions_data"] = self._format_actions_data(actions_data)
         request = json.dumps(request).encode()
+
         return request
 
     def _format_actions_data(self, actions_data):
@@ -275,6 +276,7 @@ class GodotEnvironment:
             # convert the actions to the correct type
             if isinstance(actions_data[n_agent]["action"], np.integer):
                 actions_data[n_agent]["action"] = int(actions_data[n_agent]["action"])
+        
         return actions_data
 
     def _format_states_data(self, state_data):
@@ -305,7 +307,11 @@ class GodotEnvironment:
             rewards_data.append(reward_data)
         return states_data, rewards_data
 
+
+
     # simulation functions =============================================
+
+
 
     def _launch_simulation_if_needed(self):
         """If the simulation is not already running, run it with the local godot executable

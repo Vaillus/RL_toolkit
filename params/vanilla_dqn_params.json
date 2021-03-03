@@ -17,7 +17,7 @@
         "update_target_rate": 500,
         "is_vanilla": false,
         "batch_size": 32,
-        "memory_size": 100000,
+        "memory_size": 1000,
 
         "function_approximator_info": {
             "layers_info": [

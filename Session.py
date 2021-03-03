@@ -410,7 +410,7 @@ class Session:
 
 
 
-    def env_reset(self, episode_id):
+    def env_reset(self, episode_id):               
         """ Reset the environment, in both godot and gym case
         """
         if self.environment_type == "godot":
