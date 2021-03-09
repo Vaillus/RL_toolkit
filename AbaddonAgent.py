@@ -35,8 +35,8 @@ class AbaddonAgent:
             reg_detec = regions[3 * i + 2]
             if not((reg_dist == 0) and (reg_ang == 0) and (reg_detec == 0)):
                 if reg_detec == 0:
-                    ang_scores[math.floor(reg_ang)] += (150000 - reg_dist) / 150000
-                    ang_scores[math.ceil(reg_ang)] += (150000 - reg_dist) / 150000
+                    ang_scores[math.floor(reg_ang)] += 1 #(220000 - reg_dist) / 220000
+                    ang_scores[math.ceil(reg_ang)] += 1 #(220000 - reg_dist) / 220000
         action_ang = ang_scores.argmax()
         #if action_angle == state["plane"]["sensors"]["radar"]["angle"]:
         #    ang_scores[ang_scores.max()] = 0
