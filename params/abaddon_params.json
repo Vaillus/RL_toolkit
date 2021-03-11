@@ -18,7 +18,7 @@
   "environment_info": {
     "agent names": ["Plane"],
     "host": "127.0.0.1",
-    "port": 4243,
+    "port": 4247,
     "godot path": "mnt/c/Users/vaill/Desktop/Godot_v3.2.3-stable_win64.exe",
     "environment path": "C:/Users/vaill/Documents/work/projects/flight_simulator/flight_simulator.pck",
     "display actions": false,

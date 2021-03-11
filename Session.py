@@ -21,7 +21,7 @@ import GodotEnvironment as godot
 from utils import *
 
 
-
+ 
 
 def reward_func(env, x, x_dot, theta, theta_dot):
     """
