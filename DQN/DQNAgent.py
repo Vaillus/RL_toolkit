@@ -225,6 +225,7 @@ class DQNAgent:
         q_target = batch_reward + self.discount_factor * q_next.max(1)[0].view(
             self.batch_size, 1)
         loss = self.loss_func(q_eval, q_target)
+        # plot values
         res_var = torch.var(q_target - q_eval) / torch.var(q_target)
         self.writer.add_scalar("residual variance", res_var)
         self.writer.add_scalar("action value", q_eval.mean())
