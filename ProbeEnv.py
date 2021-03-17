@@ -4,9 +4,10 @@ class ProbeEnv:
     def __init__(self, name: str):
         self.name = name
 
-    def set_seed(self, seed):
+    def set_seed(self, seed, writer):
         self.seed = seed
         self.random_generator = np.random.RandomState(seed=seed)
+        self.witer = writer
     
     def reset(self):
         if self.name == "one":

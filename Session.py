@@ -102,7 +102,7 @@ class Session:
             self.environment = godot.GodotEnvironment(env_params)
             self.environment.set_seed(self.seed)
         elif self.environment_type == "probe":
-            self.environment = ProbeEnv.ProbeEnv(self.environment_name)
+            self.environment = ProbeEnv.ProbeEnv(self.environment_name, self.writer)
     
     def _init_agent(self, agent_params):
         """initialize one or several agents
