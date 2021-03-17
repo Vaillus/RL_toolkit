@@ -352,6 +352,16 @@ class Session:
                 #writer.add_image(img_grid)
                 #writer.close()
             plt.show()
+
+            if self.environment_type == "probe":
+                if self.environment_name == "two":
+                    state_pos = torch.tensor([1])
+                    state_neg = torch.tensor([-1])
+                    state_value_pos = self.agent.eval_net(state_pos).data
+                    state_value_neg = self.agent.eval_net(state_neg).data
+                    print(self.agent.memory)
+                    print(f'value of state {state_pos.data}: {state_value_pos}')
+                    print(f'value of state {state_neg.data}: {state_value_neg}')
             
             
             #print(episode_reward)
@@ -401,7 +411,7 @@ class Session:
             else:
                 # actions made when the last state is reached
                 # get the final reward and success in the mountaincar env
-                reward_data, success = self.assess_mc_success(new_state_data)
+                #reward_data, success = self.assess_mc_success(new_state_data)
                 # send parts of the last transition to the agent.
                 self.end_agent(new_state_data, reward_data)
                 if self.session_type == "REINFORCE" or self.session_type == "REINFORCE with baseline":

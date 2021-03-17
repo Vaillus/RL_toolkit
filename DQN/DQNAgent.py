@@ -30,7 +30,6 @@ class DQNAgent:
         # NN dimension parameters
         self.state_dim = None
         # learning parameters
-        self.learning_rate = None
         self.discount_factor = None
         # memory parameters
         self.memory_size = None
@@ -236,7 +235,7 @@ class DQNAgent:
         Updates target net, sample a batch of transitions and compute 
         loss from it
         :return: None
-        """""
+        """
         # every n learning cycle, the target network will be replaced 
         # with the eval network
         self.update_target_net()

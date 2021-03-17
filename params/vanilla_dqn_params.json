@@ -1,7 +1,7 @@
 {
     "session_info":{
         "session_type": "DQN",
-        "num_episodes": 100001,
+        "num_episodes": 1001,
         "plot": true,
         "show": false,
         "show_every": 10,
@@ -11,13 +11,13 @@
         "use_tensorboard": true
     },
     "agent_info":{
-        "discount_factor": 0.999,
+        "discount_factor": 1,
         "num_actions": 1,
         "state_dim": 1,
-        "update_target_rate": 500,
+        "update_target_rate": 100,
         "is_vanilla": false,
         "batch_size": 32,
-        "memory_size": 10000,
+        "memory_size": 100,
 
         "function_approximator_info": {
             "layers_info": [
