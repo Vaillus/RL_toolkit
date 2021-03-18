@@ -19,9 +19,9 @@
     "agent names": ["Plane"],
     "host": "127.0.0.1",
     "port": 4247,
-    "godot path": "mnt/c/Users/vaill/Desktop/Godot_v3.2.3-stable_win64.exe",
-    "environment path": "C:/Users/vaill/Documents/work/projects/flight_simulator/flight_simulator.pck",
+    "godot path": "mnt/c/Users/Hugo/Desktop/Godot_v3.2.3-stable_win64.exe",
+    "environment path": "C:/Users/Hugo/Documents/work/projects/flight_simulator/flight_simulator.pck",
     "display actions": false,
-    "display states": true
+    "display states": false
   }
 }
