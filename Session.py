@@ -15,6 +15,7 @@ import pathlib
 import sys
 
 import GodotEnvironment as godot
+import ProbeEnv
 
 #import stable_baselines3
 
@@ -100,6 +101,8 @@ class Session:
         elif self.environment_type == "godot":
             self.environment = godot.GodotEnvironment(env_params)
             self.environment.set_seed(self.seed)
+        elif self.environment_type == "probe":
+            self.environment = ProbeEnv.ProbeEnv(self.environment_name, self.writer)
     
     def _init_agent(self, agent_params):
         """initialize one or several agents
@@ -331,7 +334,7 @@ class Session:
                 print(f'reward: {episode_reward}')
                 print(f'success: {success}')
             rewards = np.append(rewards, episode_reward)
-            #self.writer.add_scalar("rewards", episode_reward, id_episode)
+            self.writer.add_scalar("rewards", episode_reward, id_episode)
         # plot the rewards
         if self.plot is True:
 
@@ -349,6 +352,16 @@ class Session:
                 #writer.add_image(img_grid)
                 #writer.close()
             plt.show()
+
+            if self.environment_type == "probe":
+                if self.environment_name == "two":
+                    state_pos = torch.tensor([1])
+                    state_neg = torch.tensor([-1])
+                    state_value_pos = self.agent.eval_net(state_pos).data
+                    state_value_neg = self.agent.eval_net(state_neg).data
+                    print(self.agent.memory)
+                    print(f'value of state {state_pos.data}: {state_value_pos}')
+                    print(f'value of state {state_neg.data}: {state_value_neg}')
             
             
             #print(episode_reward)
@@ -377,9 +390,10 @@ class Session:
         episode_reward = 0
         done = False
         success = False
-
+        ep_len = 0
         # Main loop
         while not done:
+            ep_len += 1
             # run a step in the environment and get the new state, reward 
             # and info about whether the episode is over.
             new_state_data, reward_data, done, _ = self.environment.step(action_data)
@@ -397,7 +411,7 @@ class Session:
             else:
                 # actions made when the last state is reached
                 # get the final reward and success in the mountaincar env
-                reward_data, success = self.assess_mc_success(new_state_data)
+                #reward_data, success = self.assess_mc_success(new_state_data)
                 # send parts of the last transition to the agent.
                 self.end_agent(new_state_data, reward_data)
                 if self.session_type == "REINFORCE" or self.session_type == "REINFORCE with baseline":
@@ -435,7 +449,7 @@ class Session:
     def shape_reward(self, state_data, reward_data):
         """ shaping reward for cartpole environment
         """
-        if self.environment_name == "CartPole-v0":  
+        if self.environment_name == "CartPole-v0" or self.environment_name == "CartPole-v1":  
             x, x_dot, theta, theta_dot = state_data
             reward_data = reward_func(self.environment, x, x_dot, theta, theta_dot)
         if self.environment_name == "MountainCar-v0":
@@ -496,10 +510,10 @@ class Session:
 if __name__ == "__main__":
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
-    data = get_params("abaddon_params")
+    data = get_params("vanilla_dqn_params")
     session_parameters = data["session_info"]
     session_parameters["agent_info"] = data["agent_info"]
-    session_parameters["environment_info"] = data["environment_info"]
+    #session_parameters["environment_info"] = data["environment_info"]
 
     sess = Session(session_parameters)
     #sess.set_seed(1)

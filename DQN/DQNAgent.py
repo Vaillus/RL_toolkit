@@ -30,7 +30,6 @@ class DQNAgent:
         # NN dimension parameters
         self.state_dim = None
         # learning parameters
-        self.learning_rate = None
         self.discount_factor = None
         # memory parameters
         self.memory_size = None
@@ -228,6 +227,7 @@ class DQNAgent:
         q_target = batch_reward + self.discount_factor * nu_q_next.max(1)[0].view(
             self.batch_size, 1)
         loss = self.loss_func(q_eval, q_target)
+        # plot values
         res_var = torch.var(q_target - q_eval) / torch.var(q_target)
         self.writer.add_scalar("residual variance", res_var)
         self.writer.add_scalar("action value", q_eval.mean())
@@ -238,7 +238,7 @@ class DQNAgent:
         Updates target net, sample a batch of transitions and compute 
         loss from it
         :return: None
-        """""
+        """
         # every n learning cycle, the target network will be replaced 
         # with the eval network
         self.update_target_net()
