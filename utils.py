@@ -45,7 +45,7 @@ def get_path(string_path, add_absolute=False):
         modified_string_path = os.path.join(*string_path.split("/"))
     return modified_string_path
 
-def set_random_seed(seed):
+def set_random_seed(seed, has_cuda=False):
     """set all the seeds of the libraries that are susceptible of doing
     random stuff
 
@@ -55,7 +55,8 @@ def set_random_seed(seed):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
+    if has_cuda:
+        torch.cuda.manual_seed(seed)
 
 def get_from_dict(d, map_tuple):
     """get the value of a specific key in a dictionary

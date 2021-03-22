@@ -85,7 +85,7 @@ class REINFORCEAgent:
         reversed_episode = zip(self.rewards[::-1], self.states[::-1], self.actions[::-1])
         for reward, state, action in reversed_episode:
             self.policy_estimator.optimizer.zero_grad()
-            discounted_reward = reward + self.γ * discounted_reward
+            discounted_reward = self.γ (reward + self.γ * discounted_reward)
             # on prend le contraire de l'expression pour que notre loss 
             # pénalise au bon moment.
             loss = - torch.log(self.policy_estimator(state)[action]) * discounted_reward

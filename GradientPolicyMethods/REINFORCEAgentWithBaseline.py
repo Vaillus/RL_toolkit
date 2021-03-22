@@ -16,6 +16,9 @@ class REINFORCEAgentWithBaseline:
         self.actions = []
         self.rewards = []
 
+        self.writer = None
+        self.tot_timestep = 0
+
         self.set_params_from_dict(params)
 
     # ====== Initialization functions ==================================
@@ -78,20 +81,24 @@ class REINFORCEAgentWithBaseline:
         discounted_reward = 0
         reversed_episode = zip(self.rewards[::-1], self.states[::-1], self.actions[::-1])
         for reward, state, action in reversed_episode:
-            self.function_approximator.optimizer.zero_grad()
             state_value = self.function_approximator(state)
-
-            self.policy_estimator.optimizer.zero_grad()
             discounted_reward = reward + self.γ * discounted_reward
-            δ = discounted_reward - state_value.detach()
+            δ = self.γ * (discounted_reward - state_value.detach())
+            
             value_loss = - state_value * δ
+            #value_loss = discounted_reward - state_value
+            self.function_approximator.optimizer.zero_grad()
             value_loss.backward()
             self.function_approximator.optimizer.step()
+            self.writer.add_scalar("Agent info/critic loss", value_loss, self.tot_timestep)
+            
             # on prend le contraire de l'expression pour que notre loss 
             # pénalise au bon moment.
             loss = - torch.log(self.policy_estimator(state)[action]) * δ
+            self.policy_estimator.optimizer.zero_grad()
             loss.backward()
             self.policy_estimator.optimizer.step()
+            self.writer.add_scalar("Agent info/actor loss", loss, self.tot_timestep)
             
 
 

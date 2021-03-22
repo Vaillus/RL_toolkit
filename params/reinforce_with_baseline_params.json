@@ -1,34 +1,36 @@
 {
   "session_info":{
     "session_type": "REINFORCE with baseline",
-    "num_episodes": 1000,
+    "num_episodes": 3000,
     "plot": false,
-    "show": false,
-    "show_every": 500,
-    "environment_name": "CartPole-v0",
-    "return_results": true
+    "show": true,
+    "show_every": 200,
+    "environment_type": "gym",
+    "environment_name": "CartPole-v1",
+    "return_results": true,
+    "use_tensorboard": true
   },
   "agent_info":{
     "discount_factor": 0.99,
     "policy_estimator_info": {
       "layers_info": [
-        {"type": "linear", "input_size": 4, "output_size": 16, "activation": "relu"},
-        {"type": "linear", "input_size": 16, "output_size": 2, "activation": "softmax"}
+        {"type": "linear", "input_size": 4, "output_size": 64, "activation": "relu"},
+        {"type": "linear", "input_size": 64, "output_size": 2, "activation": "softmax"}
       ],
       "optimizer_info": {
         "type": "adam",
-        "learning_rate": 0.001
+        "learning_rate": 0.0005
       }
     },
 
     "function_approximator_info": {
       "layers_info": [
-        {"type": "linear", "input_size": 4, "output_size": 16, "activation": "relu"},
-        {"type": "linear", "input_size": 16, "output_size": 1, "activation": "none"}
+        {"type": "linear", "input_size": 4, "output_size": 64, "activation": "relu"},
+        {"type": "linear", "input_size": 64, "output_size": 1, "activation": "none"}
       ],
       "optimizer_info": {
         "type": "adam",
-        "learning_rate": 0.001
+        "learning_rate": 0.0005
       }
     }
   }

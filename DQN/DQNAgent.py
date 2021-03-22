@@ -38,6 +38,7 @@ class DQNAgent:
         self.batch_size = None
 
         self.writer = None
+        self.tot_timestep = 0
 
         self.set_params_from_dict(params)
 
@@ -64,7 +65,7 @@ class DQNAgent:
     def set_other_params(self):
         # two slots for the states, + 1 for the reward an the last for 
         # the action (per memory slot)
-        self.memory = np.zeros((self.memory_size, 2 * self.state_dim + 2))
+        self.memory = np.zeros((self.memory_size, 2 * self.state_dim + 3))
     
     def initialize_neural_networks(self, nn_params):
         self.target_net, self.eval_net = (CustomNeuralNetwork(nn_params), 
@@ -170,6 +171,8 @@ class DQNAgent:
 
     def store_transition(self, state, action, reward, next_state, is_terminal):
         # store a transition (SARS' + is_terminal) in the memory
+        #is_terminal
+        is_terminal = [is_terminal]
         transition = np.hstack((state, [action, reward], next_state, is_terminal))
         self.memory[self.memory_counter % self.memory_size, :] = transition
         self.incr_mem_cnt()
@@ -193,7 +196,7 @@ class DQNAgent:
         batch_reward = torch.tensor(batch_memory[:, 
             self.state_dim + 1:self.state_dim + 2]).float()
         batch_next_state = torch.tensor(batch_memory[:, -self.state_dim-1:-1]).float()
-        batch_is_terminal = torch.tensor(batch_memory[:, -1]).bool()
+        batch_is_terminal = torch.tensor(batch_memory[:, -1:]).bool()
 
         return batch_state, batch_action, batch_reward, batch_next_state, batch_is_terminal
 
@@ -223,14 +226,14 @@ class DQNAgent:
         #q_eval = self.eval_net(batch_state.item())[action.item()]
         q_next = self.target_net(batch_next_state).detach()
         nu_q_next = torch.zeros(q_next.shape)
-        nu_q_next = torch.masked_scatter(q_next, batch_ter_state)
+        nu_q_next = torch.masked_fill(q_next, batch_ter_state, 0.0)
         q_target = batch_reward + self.discount_factor * nu_q_next.max(1)[0].view(
             self.batch_size, 1)
         loss = self.loss_func(q_eval, q_target)
         # plot values
-        res_var = torch.var(q_target - q_eval) / torch.var(q_target)
-        self.writer.add_scalar("residual variance", res_var)
-        self.writer.add_scalar("action value", q_eval.mean())
+        #res_var = torch.var(q_target - q_eval) / torch.var(q_target)
+        #self.writer.add_scalar("residual variance", res_var)
+        #self.writer.add_scalar("action value", q_eval.mean())
         return loss
 
     def update_weights(self):
@@ -251,7 +254,7 @@ class DQNAgent:
             # Compute and backpropagate loss
             loss = self.compute_loss(batch_state, batch_action, batch_reward, 
                                         batch_next_state, batch_ter_state)
-            self.writer.add_scalar("loss", loss)
+            self.writer.add_scalar("Agent info/loss", loss, self.tot_timestep)
             self.eval_net.backpropagate(loss)
 
 if __name__ == "__main__":
