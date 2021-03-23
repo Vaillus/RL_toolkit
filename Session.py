@@ -411,7 +411,7 @@ class Session:
                 self.end_agent(new_state_data, reward_data)
                 if self.session_type == "REINFORCE" or self.session_type == "REINFORCE with baseline":
                     self.agent.learn_from_experience()
-                    self.plot_probe_envs(episode_id)
+                self.plot_probe_envs(episode_id)
                 return episode_reward, success, ep_len
 
 
@@ -573,6 +573,8 @@ class Session:
             state_value = self.agent.eval_net(state).data
         elif self.session_type == "REINFORCE with baseline":
             state_value = self.agent.function_approximator(state).data
+        elif self.session_type == "actor-critic":
+            state_value = self.agent.function_approximator_eval(state).data
         else:
             print("state prediction is not handled for this agent (in Session")
         return state_value
@@ -587,10 +589,10 @@ class Session:
 if __name__ == "__main__":
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
-    data = get_params("abaddon_params")
+    data = get_params("vanilla_dqn_params")
     session_parameters = data["session_info"]
     session_parameters["agent_info"] = data["agent_info"]
-    session_parameters["environment_info"] = data["environment_info"]
+    #session_parameters["environment_info"] = data["environment_info"]
 
     sess = Session(session_parameters)
     #sess.set_seed(1)

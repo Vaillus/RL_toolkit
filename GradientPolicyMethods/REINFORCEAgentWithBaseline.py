@@ -92,6 +92,11 @@ class REINFORCEAgentWithBaseline:
             self.function_approximator.optimizer.step()
             self.writer.add_scalar("Agent info/critic loss", value_loss, self.tot_timestep)
             
+            # plot the policy entropy
+            probs = self.policy_estimator(state).detach().numpy()
+            entropy = -(np.sum(probs * np.log(probs)))
+            self.writer.add_scalar("Agent info/policy entropy", entropy, self.tot_timestep)
+            
             # on prend le contraire de l'expression pour que notre loss 
             # pénalise au bon moment.
             loss = - torch.log(self.policy_estimator(state)[action]) * δ
