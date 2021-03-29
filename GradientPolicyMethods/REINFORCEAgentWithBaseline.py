@@ -104,6 +104,10 @@ class REINFORCEAgentWithBaseline:
             loss.backward()
             self.policy_estimator.optimizer.step()
             self.writer.add_scalar("Agent info/actor loss", loss, self.tot_timestep)
+    
+    def get_state_value_eval(self, state):
+        state_value = self.function_approximator(state).data
+        return state_value
             
 
 

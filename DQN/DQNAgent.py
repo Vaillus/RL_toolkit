@@ -128,8 +128,7 @@ class DQNAgent:
     def step(self, state, reward):
         # storing the transition in the function approximator memory for further use
         if not self.is_vanilla:
-            self.store_transition(self.previous_state,
-                                                        self.previous_action, 
+            self.store_transition(self.previous_state, self.previous_action, 
                                                         reward, 
                                                         state, False)
 
@@ -231,8 +230,10 @@ class DQNAgent:
             self.batch_size, 1)
         loss = self.loss_func(q_eval, q_target)
         # plot values
-        #res_var = torch.var(q_target - q_eval) / torch.var(q_target)
-        #self.writer.add_scalar("residual variance", res_var)
+        q_res = self.target_net(batch_state).gather(1, batch_action.long())
+        res_var = torch.var(q_res - q_eval) / torch.var(q_res)
+        self.writer.add_scalar("Agent info/residual variance", res_var, self.tot_timestep)
+        #self.writer.add_scalar("Agent info/learning rate", self.eval_net.optimizer.param_groups[0]['lr'], self.tot_timestep)
         #self.writer.add_scalar("action value", q_eval.mean())
         return loss
 
@@ -256,6 +257,10 @@ class DQNAgent:
                                         batch_next_state, batch_ter_state)
             self.writer.add_scalar("Agent info/loss", loss, self.tot_timestep)
             self.eval_net.backpropagate(loss)
+    
+    def get_state_value_eval(self, state):
+        state_value = self.eval_net(state).data
+        return state_value
 
 if __name__ == "__main__":
     agent = DQNAgent()

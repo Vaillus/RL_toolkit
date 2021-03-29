@@ -46,7 +46,6 @@ class Session:
         self.environment_name = None
         self.environment = None
 
-        self.num_episodes = None
         self.session_type = None
         self.is_multiagent = None
 
@@ -60,6 +59,7 @@ class Session:
 
         self.writer = None
         self.tot_timestep = 0
+        self.max_timestep = None
 
         self.set_params_from_dict(params=params)
         self._set_env_and_agent(params)
@@ -67,7 +67,6 @@ class Session:
     # ====== Initialization functions ==================================
 
     def set_params_from_dict(self, params={}):
-        self.num_episodes = params.get("num_episodes", 100)
         self.show = params.get("show", False)
         self.show_every = params.get("show_every", 10)
         self.environment_type = params.get("environment_type", "gym")
@@ -76,6 +75,7 @@ class Session:
         self.return_results = params.get("return_results", False)
         self.session_type = params.get("session_type", "REINFORCE")
         self.is_multiagent = params.get("is_multiagent", False)
+        self.max_timestep = params.get("num_timesteps", 1000)
         self._init_seed(params.get("seed", None))
 
         if params.get("use_tensorboard", False):
@@ -326,9 +326,10 @@ class Session:
         episode_reward = 0
         success = False
         rewards = np.array([])
+        id_episode = 0
         
         # run the episodes and store the rewards
-        for id_episode in range(self.num_episodes):
+        while self.tot_timestep < self.max_timestep:
             episode_reward, success, ep_len = self.episode(id_episode)
             self.environment.close()
             if self.show:
@@ -338,6 +339,8 @@ class Session:
             rewards = np.append(rewards, episode_reward)
             self.writer.add_scalar("General episode info/rewards", episode_reward, id_episode)
             self.writer.add_scalar("General episode info/episode length", ep_len, id_episode)
+            id_episode += 1
+        
         # plot the rewards
         if self.plot and not self.writer:
             # TODO: change that, it is temporary. We plot the evolution
@@ -355,7 +358,8 @@ class Session:
                 #writer.close()
             plt.show()
 
-        self.show_probe_env_result()
+        if self.environment_type == "probe":
+            self.environment.show_probe_env_result(self.agent)
             
             
             #print(episode_reward)
@@ -411,7 +415,10 @@ class Session:
                 self.end_agent(new_state_data, reward_data)
                 if self.session_type == "REINFORCE" or self.session_type == "REINFORCE with baseline":
                     self.agent.learn_from_experience()
-                self.plot_probe_envs(episode_id)
+                
+                if self.environment_type == "probe":
+                    self.environment.plot_probe_envs(episode_id, self.agent)
+                
                 return episode_reward, success, ep_len
 
 
@@ -474,7 +481,7 @@ class Session:
     def render_gym_env(self, episode_id):
         """ render environment (gym environments only) if specified so
         """
-        if (self.show is True) and (episode_id % self.show_every == 0) and (self.environment_type != "godot"):
+        if (self.show is True) and (episode_id % self.show_every == 0) and (self.environment_type == "gym"):
             self.environment.render()
     
     def assess_mc_success(self, new_state_data):
@@ -503,84 +510,6 @@ class Session:
 
         return avg_rewards
 
-    def show_probe_env_result(self):
-        if self.environment_type == "probe":
-            if self.environment_name == "one":
-                state = torch.tensor([0])
-                state_value = self.get_state_value(state)
-                print(f'value of state {state.data}: {state_value}')
-            elif self.environment_name == "two":
-                state_pos = torch.tensor([1])
-                state_neg = torch.tensor([-1])
-                state_value_pos = self.get_state_value(state_pos)
-                state_value_neg = self.get_state_value(state_neg)
-                print(f'value of state {state_pos.data}: {state_value_pos}')
-                print(f'value of state {state_neg.data}: {state_value_neg}')
-            elif self.environment_name == "three":
-                first_state = torch.tensor([0])
-                second_state = torch.tensor([1])
-                first_state_value = self.get_state_value(first_state)
-                second_state_value = self.get_state_value(second_state)
-                print(f'value of state {first_state.data}: {first_state_value}')
-                print(f'value of state {second_state.data}: {second_state_value}')
-            elif self.environment_name == "four":
-                state = torch.tensor([0])
-                state_value = self.get_state_value(state)
-                print(f'value of state {state.data}: {state_value}')
-            elif self.environment_name == "five":
-                first_state = torch.tensor([-1])
-                second_state = torch.tensor([1])
-                first_state_value = self.get_state_value(first_state)
-                second_state_value = self.get_state_value(second_state)
-                print(f'value of state {first_state.data}: {first_state_value}')
-                print(f'value of state {second_state.data}: {second_state_value}')
-    
-    def plot_probe_envs(self, episode_id):
-        if self.environment_type == "probe":
-            if self.environment_name == "one":
-                state = torch.tensor([0])
-                state_value = self.get_state_value(state)
-                self.writer.add_scalar("Probe/Value of state 0", state_value, episode_id)
-            elif self.environment_name == "two":
-                state_pos = torch.tensor([1])
-                state_neg = torch.tensor([-1])
-                state_value_pos = self.get_state_value(state_pos)
-                state_value_neg = self.get_state_value(state_neg)
-                self.writer.add_scalar("Probe/Value of state -1", state_neg, episode_id)
-                self.writer.add_scalar("Probe/Value of state 1", state_pos, episode_id)
-            elif self.environment_name == "three":
-                first_state = torch.tensor([0])
-                second_state = torch.tensor([1])
-                first_state_value = self.get_state_value(first_state)
-                second_state_value = self.get_state_value(second_state)
-                self.writer.add_scalar("Probe/Value of state 0", first_state_value, episode_id)
-                self.writer.add_scalar("Probe/Value of state 1", second_state_value, episode_id)
-            elif self.environment_name == "four":
-                state = torch.tensor([0])
-                state_value = self.get_state_value(state)
-                self.writer.add_scalar("Probe/Value of state 0", state_value, episode_id)
-            elif self.environment_name == "five":
-                first_state = torch.tensor([-1])
-                second_state = torch.tensor([1])
-                first_state_value = self.get_state_value(first_state)
-                second_state_value = self.get_state_value(second_state)
-                self.writer.add_scalar("Probe/Value of state -1", first_state_value, episode_id)
-                self.writer.add_scalar("Probe/Value of state 1", second_state_value, episode_id)
-
-    
-    def get_state_value(self, state):
-        if self.session_type == "DQN":
-            state_value = self.agent.eval_net(state).data
-        elif self.session_type == "REINFORCE with baseline":
-            state_value = self.agent.function_approximator(state).data
-        elif self.session_type == "actor-critic":
-            state_value = self.agent.function_approximator_eval(state).data
-        else:
-            print("state prediction is not handled for this agent (in Session")
-        return state_value
-
-
-
 
     def increment_timestep(self):
         self.tot_timestep += 1
@@ -589,7 +518,7 @@ class Session:
 if __name__ == "__main__":
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
-    data = get_params("vanilla_dqn_params")
+    data = get_params("actor_critic_params")
     session_parameters = data["session_info"]
     session_parameters["agent_info"] = data["agent_info"]
     #session_parameters["environment_info"] = data["environment_info"]

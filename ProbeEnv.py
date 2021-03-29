@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 
 class ProbeEnv:
     def __init__(self, name: str, writer):
@@ -79,3 +80,68 @@ class ProbeEnv:
 
     def close(self):
         pass
+    
+    def plot_probe_envs(self, episode_id, agent):
+        if self.name == "one":
+            state = torch.tensor([0])
+            state_value = agent.get_state_value_eval(state)
+            self.writer.add_scalar("Probe/Value of state 0", state_value, episode_id)
+        elif self.name == "two":
+            state_pos = torch.tensor([1])
+            state_neg = torch.tensor([-1])
+            state_value_pos = agent.get_state_value_eval(state_pos)
+            state_value_neg = agent.get_state_value_eval(state_neg)
+            self.writer.add_scalar("Probe/Value of state -1", state_value_neg, episode_id)
+            self.writer.add_scalar("Probe/Value of state 1", state_value_pos, episode_id)
+        elif self.name == "three":
+            first_state = torch.tensor([0])
+            second_state = torch.tensor([1])
+            first_state_value = agent.get_state_value_eval(first_state)
+            second_state_value = agent.get_state_value_eval(second_state)
+            self.writer.add_scalar("Probe/Value of state 0", first_state_value, episode_id)
+            self.writer.add_scalar("Probe/Value of state 1", second_state_value, episode_id)
+        elif self.name == "four":
+            state = torch.tensor([0])
+            actions_values = agent.get_state_value_eval(state)
+            self.writer.add_scalar("Probe/state 0 action 0", actions_values[0], episode_id)
+            self.writer.add_scalar("Probe/state 0 action 1", actions_values[1], episode_id)
+        elif self.name == "five":
+            first_state = torch.tensor([-1])
+            second_state = torch.tensor([1])
+            first_state_value = agent.get_state_value_eval(first_state)
+            second_state_value = agent.get_state_value_eval(second_state)
+            self.writer.add_scalar("Probe/state -1 action 0", first_state_value[0], episode_id)
+            self.writer.add_scalar("Probe/state -1 action 1", first_state_value[1], episode_id)
+            self.writer.add_scalar("Probe/state 1 action 0", second_state_value[0], episode_id)
+            self.writer.add_scalar("Probe/state 1 action 1", second_state_value[1], episode_id)
+
+    def show_probe_env_result(self, agent):
+        if self.name == "one":
+            state = torch.tensor([0])
+            state_value = agent.get_state_value_eval(state)
+            print(f'value of state {state.data}: {state_value}')
+        elif self.name == "two":
+            state_pos = torch.tensor([1])
+            state_neg = torch.tensor([-1])
+            state_value_pos = agent.get_state_value_eval(state_pos)
+            state_value_neg = agent.get_state_value_eval(state_neg)
+            print(f'value of state {state_pos.data}: {state_value_pos}')
+            print(f'value of state {state_neg.data}: {state_value_neg}')
+        elif self.name == "three":
+            first_state = torch.tensor([0])
+            second_state = torch.tensor([1])
+            first_state_value = agent.get_state_value_eval(first_state)
+            second_state_value = agent.get_state_value_eval(second_state)
+            print(f'value of state {first_state.data}: {first_state_value}')
+            print(f'value of state {second_state.data}: {second_state_value}')
+        elif self.name == "four":
+            state = torch.tensor([0])
+            actions_values = agent.get_state_value_eval(state)
+            print(f'value of actions in state {state.data}: {actions_values}')
+        elif self.name == "five":
+            first_state = torch.tensor([-1])
+            second_state = torch.tensor([1])
+            first_state_actions_values = agent.get_state_value_eval(first_state)
+            second_state_actions_values = agent.get_state_value_eval(second_state)
+            print(f'value of state {first_state.data}: {first_state_actions_values}')
+            print(f'value of state {second_state.data}: {second_state_actions_values}')

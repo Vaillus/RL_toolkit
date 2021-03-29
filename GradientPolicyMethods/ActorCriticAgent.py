@@ -142,20 +142,45 @@ class ActorCriticAgent:
             probs = self.policy_estimator(state).detach().numpy()
             entropy = -(np.sum(probs * np.log(probs)))
             self.writer.add_scalar("Agent info/policy entropy", entropy, self.tot_timestep)
-
-            loss = - torch.log(self.policy_estimator(
-                self.previous_state)[self.previous_action]) * δ 
+            logprob = - torch.log(self.policy_estimator(
+                batch_state).gather(1, batch_action.long()))
+            loss = logprob * δ 
             loss = loss.mean()
             self.policy_estimator.optimizer.zero_grad()
             loss.backward()
             self.policy_estimator.optimizer.step()
             self.writer.add_scalar("Agent info/actor loss", loss, self.tot_timestep)
 
+    def vanilla_control(self, state, reward, is_terminal_state):
+        prev_state_value = self.function_approximator_eval(self.previous_state)
+        if is_terminal_state:
+            cur_state_value = [0]
+        else:
+            cur_state_value = self.function_approximator_eval(state)
+        δ = reward + self.γ * cur_state_value.detach() - prev_state_value.detach()
+
+        value_loss = - prev_state_value * δ 
+        value_loss = value_loss.mean()
+        self.function_approximator_eval.optimizer.step()
+        self.writer.add_scalar("Agent info/critic loss", value_loss, self.tot_timestep)
+
+        # plot the policy entropy
+        probs = self.policy_estimator(state).detach().numpy()
+        entropy = -(np.sum(probs * np.log(probs)))
+        self.writer.add_scalar("Agent info/policy entropy", entropy, self.tot_timestep)
+
+        logprob = - torch.log(self.policy_estimator(state)[action])
+        loss = logprob * δ 
+        self.policy_estimator.optimizer.zero_grad()
+        loss.backward()
+        self.policy_estimator.optimizer.step()
+        self.writer.add_scalar("Agent info/actor loss", loss, self.tot_timestep)
+
 
     # ====== Action choice related functions ===========================
 
     def choose_action(self, state): # TODO fix first if
-        if self.is_continuous:
+        if self.is_continuous:  
             action_chosen = self.policy_estimator(state).detach().numpy()
             return action_chosen
         else:
@@ -182,7 +207,8 @@ class ActorCriticAgent:
         # getting the action values from the function approximator
         current_action = self.choose_action(state)
 
-        self.control(state, reward)
+        #self.control(state, reward)
+        self.vanilla_control(state, reward, False)
 
         self.previous_action = current_action
         self.previous_state = state
@@ -192,4 +218,12 @@ class ActorCriticAgent:
     def end(self, state, reward):
         # storing the transition in the function approximator memory for further use
         self.store_transition(self.previous_state, self.previous_action, reward, state, True)
-        self.control(state, reward)
+        #self.control(state, reward)
+        self.vanilla_control(state, reward, True)
+
+    def get_state_value_eval(self, state):
+        if self.num_actions > 1:
+            state_value = self.policy_estimator(state).data
+        else: 
+            state_value = self.function_approximator_eval(state).data
+        return state_value
