@@ -1,7 +1,7 @@
 {
   "session_info":{
     "session_type": "actor-critic",
-    "num_episodes": 3000,
+    "num_episodes": 10000,
     "plot": false,
     "show": false,
     "show_every": 1000,
@@ -28,7 +28,7 @@
         ],
         "optimizer_info": {
             "type": "adam",
-            "learning_rate": 0.01
+            "learning_rate": 0.1
             
         }
     },
@@ -42,7 +42,7 @@
         ],
         "optimizer_info": {
             "type": "adam",
-            "learning_rate": 0.001
+            "learning_rate": 0.1
         }
     }
   }

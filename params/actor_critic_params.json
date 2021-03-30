@@ -3,7 +3,7 @@
     "session_type": "actor-critic",
     "num_timesteps": 1500000,
     "plot": false,
-    "show": false,
+    "show": true,
     "show_every": 1000,
     "environment_type": "gym",
     "environment_name": "CartPole-v1",
@@ -28,7 +28,7 @@
         ],
         "optimizer_info": {
             "type": "adam",
-            "learning_rate": 0.00001
+            "learning_rate": 0.0001
             
         }
     },

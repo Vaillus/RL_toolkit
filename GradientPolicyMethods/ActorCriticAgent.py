@@ -154,13 +154,14 @@ class ActorCriticAgent:
     def vanilla_control(self, state, reward, is_terminal_state):
         prev_state_value = self.function_approximator_eval(self.previous_state)
         if is_terminal_state:
-            cur_state_value = [0]
+            cur_state_value = torch.tensor([0])
         else:
             cur_state_value = self.function_approximator_eval(state)
         δ = reward + self.γ * cur_state_value.detach() - prev_state_value.detach()
 
         value_loss = - prev_state_value * δ 
-        value_loss = value_loss.mean()
+        self.function_approximator_eval.optimizer.zero_grad()
+        value_loss.backward()
         self.function_approximator_eval.optimizer.step()
         self.writer.add_scalar("Agent info/critic loss", value_loss, self.tot_timestep)
 
@@ -169,7 +170,7 @@ class ActorCriticAgent:
         entropy = -(np.sum(probs * np.log(probs)))
         self.writer.add_scalar("Agent info/policy entropy", entropy, self.tot_timestep)
 
-        logprob = - torch.log(self.policy_estimator(state)[action])
+        logprob = - torch.log(self.policy_estimator(self.previous_state)[self.previous_action])
         loss = logprob * δ 
         self.policy_estimator.optimizer.zero_grad()
         loss.backward()
