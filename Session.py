@@ -518,11 +518,8 @@ class Session:
 if __name__ == "__main__":
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
-<<<<<<< HEAD
-    data = get_params("abaddon_params")
-=======
+
     data = get_params("actor_critic_params")
->>>>>>> df22ba97b9bfd14b1bd47444731bb2fd5f482862
     session_parameters = data["session_info"]
     session_parameters["agent_info"] = data["agent_info"]
     #session_parameters["environment_info"] = data["environment_info"]

@@ -9,7 +9,7 @@ class ActorCriticAgent:
         self.γ = None
         self.num_actions = None
 
-        self.policy_estimator_eval = None
+        self.policy_estimator = None
 
         self.function_approximator_eval = None
         self.function_approximator_target = None
