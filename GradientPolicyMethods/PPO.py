@@ -18,7 +18,7 @@ class PPOAgent:
 
         self.memory_size = None
         self.memory = []
-        self.memory_counter = 0
+        self.mem_cnt = 0
 
         self.seed = None
 
@@ -55,6 +55,13 @@ class PPOAgent:
         self.function_approximator = CustomNeuralNetwork(params)
         #self.function_approximator_eval = CustomNeuralNetwork(params)
         #self.function_approximator_target = CustomNeuralNetwork(params)
+    
+    def init_memory(self):
+         self.memory = np.zeros((self.memory_size, 2 * self.state_dim + 3))
+        
+    def reset_memory(self):
+        self.init_memory()
+        self.mem_cnt = 0
 
     # ====== Memory functions ==========================================
 
@@ -62,15 +69,13 @@ class PPOAgent:
         # store a transition (SARS') in the memory
         is_terminal = [is_terminal]
         transition = np.hstack((state, [action, reward], next_state, is_terminal))
-        self.memory[self.memory_counter % self.memory_size, :] = transition
+        self.memory[self.mem_cnt % self.memory_size, :] = transition
         self.incr_mem_cnt()
         
     def incr_mem_cnt(self):
         # increment the memory counter and resets it to 0 when reached 
         # the memory size value to avoid a too large value
-        self.memory_counter += 1
-        #if self.memory_counter == self.memory_size:
-        #    self.memory_counter = 0
+        self.mem_cnt += 1
 
     def sample_memory(self):
         # Getting the batch of samples corresponding to those indices 
@@ -86,8 +91,8 @@ class PPOAgent:
         return batch_state, batch_action, batch_reward, batch_next_state, batch_is_terminal
 
     def control(self):
-        if self.memory_counter == self.memory_size:
-            self.memory_counter = 0
+        if (self.mem_cnt == self.memory_size) and self.can_learn():
+            self.mem_cnt = 0
             batch_state, batch_action, batch_reward, batch_next_state, batch_is_terminal = self.sample_memory()
             prev_state_value = self.function_approximator_eval(batch_state)
             state_value = self.function_approximator_target(batch_next_state)
@@ -114,6 +119,16 @@ class PPOAgent:
             loss.backward()
             self.policy_estimator.optimizer.step()
             self.writer.add_scalar("Agent info/actor loss", loss, self.tot_timestep)
+            self.empty_memory()
+    
+    def can_learn(self):
+        if self.mem_cnt == self.memory_size:
+            return True
+        else:
+            return False
+
+    
+
 
  # ====== Action choice related functions ===========================
 
@@ -137,7 +152,6 @@ class PPOAgent:
 
         # storing the transition in the function approximator memory for further use
         self.store_transition(self.previous_state, self.previous_action, reward, state, False)
-
         # getting the action values from the function approximator
         current_action = self.choose_action(state)
         self.control()
@@ -151,6 +165,5 @@ class PPOAgent:
     def end(self, state, reward):
         # storing the transition in the function approximator memory for further use
         self.store_transition(self.previous_state, self.previous_action, reward, state, True)
-        #self.control(state, reward)
         self.control()
     
