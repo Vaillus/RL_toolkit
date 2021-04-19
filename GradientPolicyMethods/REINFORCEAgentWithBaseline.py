@@ -77,7 +77,7 @@ class REINFORCEAgentWithBaseline:
 
     def learn_from_experience(self):
         # TODO: probleme: comme j'ai pas ajouté le dernier état à la listes des états, on ne prend pas en compte la
-        # dernière transition dans la partie DQN.
+        # dernière transition dans la partie DQN. DQN?
         discounted_reward = 0
         reversed_episode = zip(self.rewards[::-1], self.states[::-1], self.actions[::-1])
         for reward, state, action in reversed_episode:

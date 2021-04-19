@@ -1,0 +1,50 @@
+{
+    "session_info":{
+      "session_type": "PPO",
+      "num_episodes": 10000,
+      "plot": false,
+      "show": false,
+      "show_every": 1000,
+      "environment_type": "probe",
+      "environment_name": "one",
+      "return_results": true,
+      "use_tensorboard": true
+    },
+    "agent_info":{
+      "discount_factor": 0.99,
+      "num_actions": 1,
+      "state_dim": 1,
+      "clipping": 0.2,
+      "n_epochs": 7,
+  
+      "memory_size": 100,
+      "batch_size": 32,
+  
+      "policy_estimator_info": {
+        "layers_info": [
+              {"type": "linear", "input_size": 1, "output_size": 5, 
+                "activation": "relu"},
+              {"type": "linear", "input_size": 5, "output_size": 1, 
+                "activation": "softmax"}
+          ],
+          "optimizer_info": {
+              "type": "adam",
+              "learning_rate": 0.1
+              
+          }
+      },
+  
+      "function_approximator_info": {
+        "layers_info": [
+              {"type": "linear", "input_size": 1, "output_size": 5, 
+                "activation": "relu"},
+              {"type": "linear", "input_size": 5, "output_size": 1, 
+                "activation": "none"}
+          ],
+          "optimizer_info": {
+              "type": "adam",
+              "learning_rate": 0.1
+          }
+      }
+    }
+  } 

@@ -3,6 +3,7 @@ from DQN.DQNAgent import *
 from GradientPolicyMethods.REINFORCEAgent import *
 from GradientPolicyMethods.REINFORCEAgentWithBaseline import *
 from GradientPolicyMethods.ActorCriticAgent import *
+from GradientPolicyMethods.PPOAgent import *
 from AbaddonAgent import *
 import gym
 import matplotlib.pyplot as plt
@@ -149,6 +150,8 @@ class Session:
             agent = ActorCriticAgent(agent_params)
         elif self.session_type == "Abaddon test":
             agent = AbaddonAgent(agent_params)
+        elif self.session_type == "PPO":
+            agent = PPOAgent(agent_params)
         else:
             print("agent not initialized")
         return agent
@@ -519,7 +522,7 @@ if __name__ == "__main__":
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
-    data = get_params("actor_critic_params")
+    data = get_params("ppo_params")
     session_parameters = data["session_info"]
     session_parameters["agent_info"] = data["agent_info"]
     #session_parameters["environment_info"] = data["environment_info"]
@@ -527,4 +530,4 @@ if __name__ == "__main__":
     sess = Session(session_parameters)
     #sess.set_seed(1)
     #print(sess.agent.policy_estimator.layers[0].weight)
-    sess.run()
+    sess.run()  
