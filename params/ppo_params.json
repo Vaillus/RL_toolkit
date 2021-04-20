@@ -1,7 +1,7 @@
 {
     "session_info":{
       "session_type": "PPO",
-      "num_episodes": 10000,
+      "num_episodes": 100000,
       "plot": false,
       "show": false,
       "show_every": 1000,

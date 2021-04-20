@@ -119,7 +119,7 @@ class PPOAgent:
                 probs_new = self.policy_estimator(batch_state)
                 ratio = probs_new / probs_old
                 clipped_ratio = torch.clamp(ratio, min = 1 - self.clipping, max = 1 + self.clipping)
-                policy_loss = torch.min(advantage * ratio, advantage * clipped_ratio)
+                policy_loss = torch.min(advantage.detach() * ratio, advantage.detach() * clipped_ratio)
                 #policy_loss = ratio * advantage
                 policy_loss = policy_loss.mean()
                 self.policy_estimator.optimizer.zero_grad()
@@ -131,10 +131,13 @@ class PPOAgent:
                 #delta_state_value = self.function_approximator_eval(batch_state) - prev_state_value
                 #new_prev_state_value = prev_state_value + delta_state_value
                 #state_value_error = 
-                value_loss = torch.nn.MSELoss(batch_discounted_reward, prev_state_value)
-                self.function_approximator_eval.optimizer.zero_grad()
+                prev_state_value = self.function_approximator(batch_state)
+                value_loss = (batch_discounted_reward - prev_state_value) ** 2
+                value_loss = value_loss.mean()
+                #value_loss = torch.nn.MSELoss(batch_discounted_reward, prev_state_value)
+                self.function_approximator.optimizer.zero_grad()
                 value_loss.backward()
-                self.function_approximator_eval.optimizer.step()
+                self.function_approximator.optimizer.step()
                 self.writer.add_scalar("Agent info/critic loss", value_loss, self.tot_timestep)
 
                 # plot the policy entropy
