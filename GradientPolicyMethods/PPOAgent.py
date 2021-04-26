@@ -105,8 +105,10 @@ class PPOAgent:
             disc_reward = 0.0
             for i, reward_i in enumerate(torch.flip(batch_reward, (0,1))):
                 # not entirely sure about the -1
+                if batch_is_terminal[self.memory_size - 1 - i, 0]:
+                    disc_reward = 0.0
                 disc_reward = reward_i + self.γ * disc_reward
-                batch_discounted_reward[self.memory_size - 1 - i, 0] = reward_i + self.γ * disc_reward
+                batch_discounted_reward[self.memory_size - 1 - i, 0] = disc_reward
             
             next_state_value = self.function_approximator(batch_next_state)
             prev_state_value = self.function_approximator(batch_state)
@@ -120,7 +122,7 @@ class PPOAgent:
                 ratio = probs_new / probs_old
                 clipped_ratio = torch.clamp(ratio, min = 1 - self.clipping, max = 1 + self.clipping)
                 policy_loss = torch.min(advantage.detach() * ratio, advantage.detach() * clipped_ratio)
-                #policy_loss = ratio * advantage
+                # policy_loss = ratio * advantage
                 policy_loss = policy_loss.mean()
                 self.policy_estimator.optimizer.zero_grad()
                 policy_loss.backward()
@@ -128,13 +130,13 @@ class PPOAgent:
                 self.writer.add_scalar("Agent info/actor loss", policy_loss, self.tot_timestep)
                 
                 # TODO: clip the state value variation. nb: only openai does that.
-                #delta_state_value = self.function_approximator_eval(batch_state) - prev_state_value
-                #new_prev_state_value = prev_state_value + delta_state_value
-                #state_value_error = 
+                # delta_state_value = self.function_approximator_eval(batch_state) - prev_state_value
+                # new_prev_state_value = prev_state_value + delta_state_value
+                # state_value_error = 
                 prev_state_value = self.function_approximator(batch_state)
                 value_loss = (batch_discounted_reward - prev_state_value) ** 2
                 value_loss = value_loss.mean()
-                #value_loss = torch.nn.MSELoss(batch_discounted_reward, prev_state_value)
+                # value_loss = torch.nn.MSELoss(batch_discounted_reward, prev_state_value)
                 self.function_approximator.optimizer.zero_grad()
                 value_loss.backward()
                 self.function_approximator.optimizer.step()
@@ -153,7 +155,7 @@ class PPOAgent:
 
     # ====== Action choice related functions ===========================
 
-    def choose_action(self, state): # TODO fix first if
+    def choose_action(self, state):
         action_probs = Categorical(self.policy_estimator(state))
         action_chosen = action_probs.sample()
         return action_chosen.item()

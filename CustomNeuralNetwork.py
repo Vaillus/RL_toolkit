@@ -41,7 +41,10 @@ class CustomNeuralNetwork(nn.Module):
             if layer_info["type"] == "linear":
                 layer = nn.Linear(layer_info["input_size"], layer_info["output_size"])
                 layer.weight.data.normal_(0, 0.1)  
+            
             self.layers.append(layer)
+            # next line could work. It is useful mainly on a policy network, apparently.
+            #self.layers[-1].weight.data *= 0.01
             self.activations.append(layer_info["activation"])
 
     def init_optimizer(self, optimizer_info):
