@@ -65,6 +65,8 @@ class Session:
         self.set_params_from_dict(params=params)
         self._set_env_and_agent(params)
 
+        self.agent.log_model(self.writer)
+
     # ====== Initialization functions ==================================
 
     def set_params_from_dict(self, params={}):

@@ -117,7 +117,6 @@ class PPOAgent:
             probs_old = self.policy_estimator(batch_state).detach()
 
             for epoch in range(self.n_epochs):
-                
                 probs_new = self.policy_estimator(batch_state)
                 ratio = probs_new / probs_old
                 clipped_ratio = torch.clamp(ratio, min = 1 - self.clipping, max = 1 + self.clipping)
@@ -146,7 +145,7 @@ class PPOAgent:
                 batch_probs = self.policy_estimator(batch_state).detach().numpy()
                 entropy = -(np.sum(batch_probs * np.log(batch_probs)))
                 self.writer.add_scalar("Agent info/policy entropy", entropy, self.tot_timestep)
-
+                
                 self.reset_memory()
                 
     def normalize(self,tensor):
@@ -188,7 +187,6 @@ class PPOAgent:
         # storing the transition in the function approximator memory for further use
         self.store_transition(self.previous_state, self.previous_action, reward, state, True)
         self.control()
-    
 
     def can_learn(self):
         if self.mem_cnt == self.memory_size:
@@ -202,3 +200,6 @@ class PPOAgent:
         else: 
             state_value = self.function_approximator(state).data
         return state_value
+
+    def log_model(self, writer):
+        writer.add_graph(self.function_approximator)

@@ -1,50 +1,50 @@
 {
-    "session_info":{
-      "session_type": "PPO",
-      "num_timesteps": 100000,
-      "plot": false,
-      "show": false,
-      "show_every": 1000,
-      "environment_type": "gym",
-      "environment_name": "CartPole-v1",
-      "return_results": true,
-      "use_tensorboard": true
+  "session_info":{
+    "session_type": "PPO",
+    "num_timesteps": 100000,
+    "plot": false,
+    "show": false,
+    "show_every": 1000,
+    "environment_type": "gym",
+    "environment_name": "CartPole-v1",
+    "return_results": true,
+    "use_tensorboard": true
+  },
+  "agent_info":{
+    "discount_factor": 0.99,
+    "num_actions": 2,
+    "state_dim": 4,
+    "clipping": 0.2,
+    "n_epochs": 7,
+
+    "memory_size": 100,
+    "batch_size": 32,
+
+    "policy_estimator_info": {
+      "layers_info": [
+            {"type": "linear", "input_size": 4, "output_size": 64, 
+              "activation": "relu"},
+            {"type": "linear", "input_size": 64, "output_size": 2, 
+              "activation": "softmax"}
+        ],
+        "optimizer_info": {
+            "type": "adam",
+            "learning_rate": 0.0005
+            
+        }
     },
-    "agent_info":{
-      "discount_factor": 0.99,
-      "num_actions": 2,
-      "state_dim": 4,
-      "clipping": 0.2,
-      "n_epochs": 7,
-  
-      "memory_size": 100,
-      "batch_size": 32,
-  
-      "policy_estimator_info": {
-        "layers_info": [
-              {"type": "linear", "input_size": 4, "output_size": 64, 
-                "activation": "relu"},
-              {"type": "linear", "input_size": 64, "output_size": 2, 
-                "activation": "softmax"}
-          ],
-          "optimizer_info": {
-              "type": "adam",
-              "learning_rate": 0.0005
-              
-          }
-      },
-  
-      "function_approximator_info": {
-        "layers_info": [
-              {"type": "linear", "input_size": 4, "output_size": 5, 
-                "activation": "relu"},
-              {"type": "linear", "input_size": 5, "output_size": 1, 
-                "activation": "none"}
-          ],
-          "optimizer_info": {
-              "type": "adam",
-              "learning_rate": 0.0005
-          }
-      }
+
+    "function_approximator_info": {
+      "layers_info": [
+            {"type": "linear", "input_size": 4, "output_size": 5, 
+              "activation": "relu"},
+            {"type": "linear", "input_size": 5, "output_size": 1, 
+              "activation": "none"}
+        ],
+        "optimizer_info": {
+            "type": "adam",
+            "learning_rate": 0.0005
+        }
     }
-  } 
+  }
+} 
