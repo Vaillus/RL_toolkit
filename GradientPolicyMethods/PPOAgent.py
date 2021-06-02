@@ -101,7 +101,7 @@ class PPOAgent:
         if self.can_learn():
             # initializing the memory related variables
             self.mem_cnt = 0
-            batch_state, batch_action, batch_reward, batch_next_state, batch_is_terminal = self.sample_memory()
+            batch_state, _, batch_reward, batch_next_state, batch_is_terminal = self.sample_memory()
             # get discounted rewards
             batch_discounted_reward = torch.tensor(np.zeros((self.memory_size, 1))).float()
             disc_reward = 0.0
@@ -123,8 +123,8 @@ class PPOAgent:
             for epoch in range(self.n_epochs):
                 # 
                 probs_new = self.policy_estimator(batch_state)
-                ratio = probs_new / probs_old # shouldn't it be for the action chosen only?
-                clipped_ratio = torch.clamp(ratio, min = 1 - self.clipping, max = 1 + self.clipping)
+                ratio = probs_new / probs_old 
+                clipped_ratio = torch.clamp(ratio, min = 1 - self.clipping, max = 1 + self.clipping) # OK
                 policy_loss = torch.min(advantage.detach() * ratio, advantage.detach() * clipped_ratio)
                 # policy_loss = ratio * advantage
                 policy_loss = policy_loss.mean()
