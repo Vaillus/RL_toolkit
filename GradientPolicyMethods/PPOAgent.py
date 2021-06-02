@@ -99,8 +99,10 @@ class PPOAgent:
 
     def control(self):  
         if self.can_learn():
+            # initializing the memory related variables
             self.mem_cnt = 0
             batch_state, batch_action, batch_reward, batch_next_state, batch_is_terminal = self.sample_memory()
+            # get discounted rewards
             batch_discounted_reward = torch.tensor(np.zeros((self.memory_size, 1))).float()
             disc_reward = 0.0
             for i, reward_i in enumerate(torch.flip(batch_reward, (0,1))):
@@ -110,15 +112,18 @@ class PPOAgent:
                 disc_reward = reward_i + self.γ * disc_reward
                 batch_discounted_reward[self.memory_size - 1 - i, 0] = disc_reward
             
+            # computing state values, advantage
             next_state_value = self.function_approximator(batch_next_state)
             prev_state_value = self.function_approximator(batch_state)
             advantage = batch_discounted_reward - prev_state_value.detach()
             self.normalize(advantage)
+            # get probabilities of actions from policy estimator
             probs_old = self.policy_estimator(batch_state).detach()
 
             for epoch in range(self.n_epochs):
+                # 
                 probs_new = self.policy_estimator(batch_state)
-                ratio = probs_new / probs_old
+                ratio = probs_new / probs_old # shouldn't it be for the action chosen only?
                 clipped_ratio = torch.clamp(ratio, min = 1 - self.clipping, max = 1 + self.clipping)
                 policy_loss = torch.min(advantage.detach() * ratio, advantage.detach() * clipped_ratio)
                 # policy_loss = ratio * advantage
@@ -127,6 +132,7 @@ class PPOAgent:
                 policy_loss.backward()
                 self.policy_estimator.optimizer.step()
                 self.writer.add_scalar("Agent info/actor loss", policy_loss, self.tot_timestep)
+                self.policy_estimator.add_state_to_history()
                 self.write_layers_info(self.policy_estimator)
                 
                 # TODO: clip the state value variation. nb: only openai does that.
@@ -141,6 +147,8 @@ class PPOAgent:
                 value_loss.backward()
                 self.function_approximator.optimizer.step()
                 self.writer.add_scalar("Agent info/critic loss", value_loss, self.tot_timestep)
+                # save the state of the nn for plotting purposes
+                self.function_approximator.add_state_to_history()
                 self.write_layers_info(self.function_approximator)
 
                 # plot the policy entropy
@@ -208,9 +216,13 @@ class PPOAgent:
         writer.add_graph(self.function_approximator, data)
 
     def write_layers_info(self, model: CustomNeuralNetwork):
+        weight_mean = model.history[:,0,0,0]
+        for state in model.history:
+            pass
         for layer in model.layers:
-            weight = layer.weight.data
-            grad = layer.weight.grad
+            pass
+            #under_line = weight.mean() - weight_std_error
+            #over_line = weight.mean() + weight_std_error
 
             # make a matplotlib plot containing layer info
             """ found in Experiment l116

@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
+import math
+import matplotlib.pyplot as plt
 from utils import set_random_seed
 
 from torch.utils.tensorboard import SummaryWriter
@@ -19,8 +21,10 @@ class CustomNeuralNetwork(nn.Module):
         self.activations = []
         self.optimizer = None
         self.seed = None
+        self.history = np.array([])
 
         self.set_params_from_dict(params=params)
+
     
     def set_params_from_dict(self, params):
         self.init_layers(params["layers_info"])
@@ -79,6 +83,92 @@ class CustomNeuralNetwork(nn.Module):
         self.optimizer.zero_grad()
         loss.backward()  # il faut que la loss ait une seule valeur.
         self.optimizer.step()
+
+    # === functions related to gradient logging and plotting ===========
+    # === === logging ==================================================
+    def add_state_to_history(self):
+        z_value = 1.96
+        nn_state = np.array([])
+        for layer in self.layers:
+            layer_state = self.create_layer_state(layer)
+            nn_state = self.add_lay2nn_state(nn_state, layer_state)
+        self.add_state2history(nn_state)
+        
+
+    def create_layer_state(self, layer):
+        z_value = 1.96
+        weight = layer.weight.data
+        grad = layer.weight.grad
+        layer_size = self.get_layer_size(layer)
+        weight_std_error = z_value * weight.std() / math.sqrt(layer_size)
+        grad_std_error = z_value * grad.std() / math.sqrt(layer_size)
+        layer_state = [ (weight.mean(), weight_std_error),
+                        (grad.mean(), grad_std_error)
+                        ]
+        return layer_state
+
+    def add_lay2nn_state(self,  nn_state: np.ndarray, 
+                                layer_state: np.ndarray) -> np.ndarray:
+        """add the layer state to the neural net state 
+        """
+        layer_state = np.expand_dims(layer_state, 0)
+        if nn_state.size == 0:
+            nn_state = layer_state
+        else:
+            nn_state = np.append(nn_state, layer_state, axis=0)
+        return nn_state
+    
+    def add_state2history(self, nn_state):
+        nn_state = np.expand_dims(nn_state, 0)
+        if self.history.size == 0:
+            self.history = nn_state
+        else:
+            self.history = np.append(self.history, nn_state, axis=0)
+
+    def get_layer_size(self, layer):
+        size = layer.in_features * layer.out_features
+        return size
+
+    # === === plotting =================================================
+    
+    def plot_weights(self, layer_n: int):
+        mean = self.history[:, layer_n, 0, 0]
+        std_err = self.history[:, layer_n, 0, 1]
+        smooth_mean = self._smooth_curve(mean)
+        under_line = smooth_mean - std_err
+        over_line = smooth_mean + std_err
+        x_axis = np.arange(mean.shape[0])
+        plt.fill_between(x_axis, under_line, over_line, alpha=.1)
+        plt.plot(mean.T, linewidth=2)
+        plt.show()
+
+    def plot_gradients(self, layer_n: int):
+        mean = self.history[:, layer_n, 1, 0]
+        std_err = self.history[:, layer_n, 1, 1]
+        smooth_mean = self._smooth_curve(mean)
+        under_line = smooth_mean - std_err
+        over_line = smooth_mean + std_err
+        x_axis = np.arange(mean.shape[0])
+        plt.fill_between(x_axis, under_line, over_line, alpha=.1)
+        plt.plot(mean.T, linewidth=2)
+        plt.show()
+
+    def _smooth_curve(self, data):
+        # smooth the a curve taking the average of the n last samples if
+        # required
+        avg_len = 100 # arbitrary
+        avg_data = []
+        for i in range(len(data)):  # iterate through rewards
+            # get the previous rewards and the current one
+            curr_data = data[i]
+            last_n_data = [data[j] for j in range(i - avg_len - 1, i) 
+                            if j >= 0]
+            last_n_data.append(curr_data)
+            # average the last n rewards
+            avg_datum = np.average(last_n_data)
+            avg_data += [avg_datum]
+        return np.array(avg_data)
+
 
 if __name__=="__main__":
     params = {
