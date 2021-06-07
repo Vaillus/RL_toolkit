@@ -129,9 +129,9 @@ class PPOAgent:
                 ratio = torch.exp(torch.log(probs_new) - torch.log(probs_old))
                 ratio = torch.gather(ratio, 1, batch_action.long())
                 clipped_ratio = torch.clamp(ratio, min = 1 - self.clipping, max = 1 + self.clipping) # OK
-                policy_loss = - torch.min(advantage.detach() * ratio, advantage.detach() * clipped_ratio) # why?
+                policy_loss = torch.min(advantage.detach() * ratio, advantage.detach() * clipped_ratio) # OK
                 # policy_loss = ratio * advantage
-                policy_loss = policy_loss.mean() # OK
+                policy_loss = - policy_loss.mean() # OK
 
                 self.policy_estimator.backpropagate(policy_loss)
                 self.writer.add_scalar("Agent info/actor loss", policy_loss, self.tot_timestep)
