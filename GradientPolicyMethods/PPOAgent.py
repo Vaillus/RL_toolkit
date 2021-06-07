@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from torch.distributions import Categorical
 
+MSELoss = torch.nn.MSELoss()
 
 class PPOAgent:
     def __init__(self, params):
@@ -10,8 +11,8 @@ class PPOAgent:
         self.state_dim = None
         self.num_actions = None
 
-        self.policy_estimator = None
-        self.function_approximator = None
+        self.policy_estimator: CustomNeuralNetwork = None
+        self.function_approximator: CustomNeuralNetwork = None
 
         self.previous_state = None
         self.previous_action = None
@@ -101,7 +102,7 @@ class PPOAgent:
         if self.can_learn():
             # initializing the memory related variables
             self.mem_cnt = 0
-            batch_state, _, batch_reward, batch_next_state, batch_is_terminal = self.sample_memory()
+            batch_state, batch_action, batch_reward, batch_next_state, batch_is_terminal = self.sample_memory()
             # get discounted rewards
             batch_discounted_reward = torch.tensor(np.zeros((self.memory_size, 1))).float()
             disc_reward = 0.0
@@ -121,16 +122,18 @@ class PPOAgent:
             probs_old = self.policy_estimator(batch_state).detach()
 
             for epoch in range(self.n_epochs):
-                # 
                 probs_new = self.policy_estimator(batch_state)
-                ratio = probs_new / probs_old 
+                #ratio = probs_new / probs_old
+                # in stable baselines 3, they write it this way but I 
+                # don't know why.
+                ratio = torch.exp(torch.log(probs_new) - torch.log(probs_old))
+                ratio = torch.gather(ratio, 1, batch_action.long())
                 clipped_ratio = torch.clamp(ratio, min = 1 - self.clipping, max = 1 + self.clipping) # OK
-                policy_loss = torch.min(advantage.detach() * ratio, advantage.detach() * clipped_ratio)
+                policy_loss = - torch.min(advantage.detach() * ratio, advantage.detach() * clipped_ratio) # why?
                 # policy_loss = ratio * advantage
-                policy_loss = policy_loss.mean()
-                self.policy_estimator.optimizer.zero_grad()
-                policy_loss.backward()
-                self.policy_estimator.optimizer.step()
+                policy_loss = policy_loss.mean() # OK
+
+                self.policy_estimator.backpropagate(policy_loss)
                 self.writer.add_scalar("Agent info/actor loss", policy_loss, self.tot_timestep)
                 self.policy_estimator.add_state_to_history()
                 self.write_layers_info(self.policy_estimator)
@@ -140,27 +143,25 @@ class PPOAgent:
                 # new_prev_state_value = prev_state_value + delta_state_value
                 # state_value_error = 
                 prev_state_value = self.function_approximator(batch_state)
-                value_loss = (batch_discounted_reward - prev_state_value) ** 2
-                value_loss = value_loss.mean()
-                # value_loss = torch.nn.MSELoss(batch_discounted_reward, prev_state_value)
-                self.function_approximator.optimizer.zero_grad()
-                value_loss.backward()
-                self.function_approximator.optimizer.step()
+                value_loss = MSELoss(prev_state_value, batch_discounted_reward)
+                
+                self.function_approximator.backpropagate(value_loss)
+                
                 self.writer.add_scalar("Agent info/critic loss", value_loss, self.tot_timestep)
                 # save the state of the nn for plotting purposes
                 self.function_approximator.add_state_to_history()
                 self.write_layers_info(self.function_approximator)
 
                 # plot the policy entropy
-                batch_probs = self.policy_estimator(batch_state).detach().numpy()
-                entropy = -(np.sum(batch_probs * np.log(batch_probs)))
+                batch_probs = self.policy_estimator(batch_state).detach()
+                entropy = -(torch.sum(batch_probs * torch.log(batch_probs)))
                 self.writer.add_scalar("Agent info/policy entropy", entropy, self.tot_timestep)
                 
                 self.reset_memory()
                 
     def normalize(self, tensor):
-        # TODO: complete function
-        pass
+        tensor = (tensor - tensor.mean()) / (tensor.std() + 1e-8)
+        return tensor
 
     # ====== Action choice related functions ===========================
 
