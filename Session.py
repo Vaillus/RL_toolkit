@@ -525,7 +525,7 @@ if __name__ == "__main__":
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
-    data = get_params("ppo_params")
+    data = get_params("probe/ppo_params")
     session_parameters = data["session_info"]
     session_parameters["agent_info"] = data["agent_info"]
     #session_parameters["environment_info"] = data["environment_info"]
