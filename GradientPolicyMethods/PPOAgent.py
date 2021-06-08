@@ -106,7 +106,6 @@ class PPOAgent:
             batch_discounted_reward = torch.tensor(np.zeros((self.memory_size, 1))).float()
             disc_reward = 0.0
             for i, reward_i in enumerate(torch.flip(batch_reward, (0,1))):
-                # not entirely sure about the -1
                 if batch_is_terminal[self.memory_size - 1 - i, 0]:
                     disc_reward = 0.0
                 disc_reward = reward_i + self.γ * disc_reward
@@ -116,12 +115,11 @@ class PPOAgent:
             next_state_value = self.function_approximator(batch_next_state)
             prev_state_value = self.function_approximator(batch_state)
             advantage = batch_discounted_reward - prev_state_value.detach()
-            self.normalize(advantage)
+            self.normalize(advantage) # is it really a good idea?
             # get probabilities of actions from policy estimator
             probs_old = self.policy_estimator(batch_state).detach()
 
             for epoch in range(self.n_epochs):
-                # 
                 probs_new = self.policy_estimator(batch_state)
                 ratio = probs_new / probs_old 
                 clipped_ratio = torch.clamp(ratio, min = 1 - self.clipping, max = 1 + self.clipping) # OK
