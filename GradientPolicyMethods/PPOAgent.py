@@ -130,7 +130,6 @@ class PPOAgent:
                 ratio = torch.gather(ratio, 1, batch_action.long())
                 clipped_ratio = torch.clamp(ratio, min = 1 - self.clipping, max = 1 + self.clipping) # OK
                 policy_loss = torch.min(advantage.detach() * ratio, advantage.detach() * clipped_ratio) # OK
-                # policy_loss = ratio * advantage
                 policy_loss = - policy_loss.mean() # OK
 
                 self.policy_estimator.backpropagate(policy_loss)
@@ -154,7 +153,8 @@ class PPOAgent:
 
                 # plot the policy entropy
                 batch_probs = self.policy_estimator(batch_state).detach()
-                entropy = -(torch.sum(batch_probs * torch.log(batch_probs)))
+
+                entropy = -(torch.sum(batch_probs * torch.log(batch_probs), dim=1, keepdim=True).mean())
                 self.writer.add_scalar("Agent info/policy entropy", entropy, self.tot_timestep)
                 
                 self.reset_memory()
