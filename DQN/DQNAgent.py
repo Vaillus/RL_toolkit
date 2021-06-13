@@ -1,6 +1,4 @@
 from CustomNeuralNetwork import CustomNeuralNetwork
-from DQN.DQN import *
-from DQN.vanilla_DQN import *
 from utils import set_random_seed
 import numpy as np
 import torch

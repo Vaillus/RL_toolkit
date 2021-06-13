@@ -16,6 +16,8 @@
       "state_dim": 1,
       "clipping": 0.2,
       "n_epochs": 7,
+      "value_coeff": 1.0,
+      "entropy_coeff": 0.01
   
       "memory_size": 100,
       "batch_size": 32,

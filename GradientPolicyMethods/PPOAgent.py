@@ -27,6 +27,8 @@ class PPOAgent:
         self.tot_timestep = 0
 
         self.clipping = None
+        self.value_coeff = None
+        self.entropy_coeff = None
         self.n_epochs = None
 
         self.set_params_from_dict(params)
@@ -48,6 +50,8 @@ class PPOAgent:
         self.seed = params.get("seed", None)
 
         self.clipping = params.get("clipping", 0.2)
+        self.value_coeff = params.get("value_coeff", 1.0)
+        self.entropy_coeff = params.get("entropy_coeff", 0.01)
         self.n_epochs = params.get("n_epochs", 8)
 
     def set_other_params(self):
@@ -130,8 +134,12 @@ class PPOAgent:
                 clipped_ratio = torch.clamp(ratio, min = 1 - self.clipping, max = 1 + self.clipping) # OK
                 policy_loss = torch.min(advantage.detach() * ratio, advantage.detach() * clipped_ratio) # OK
                 policy_loss = - policy_loss.mean() # OK
+                
+                entropy = -(torch.sum(probs_new * torch.log(probs_new), dim=1, keepdim=True).mean())
+                self.writer.add_scalar("Agent info/policy entropy", entropy, self.tot_timestep)
+                entropy_loss = entropy * self.entropy_coeff
+                self.policy_estimator.backpropagate(policy_loss + entropy_loss)
 
-                self.policy_estimator.backpropagate(policy_loss)
                 self.writer.add_scalar("Agent info/actor loss", policy_loss, self.tot_timestep)
                 self.policy_estimator.add_state_to_history()
                 self.write_layers_info(self.policy_estimator)
@@ -142,7 +150,7 @@ class PPOAgent:
                 # state_value_error = 
                 prev_state_value = self.function_approximator(batch_state)
                 value_loss = MSELoss(prev_state_value, batch_discounted_reward)
-                
+                value_loss *= self.value_coeff
                 self.function_approximator.backpropagate(value_loss)
                 
                 self.writer.add_scalar("Agent info/critic loss", value_loss, self.tot_timestep)
@@ -150,12 +158,6 @@ class PPOAgent:
                 self.function_approximator.add_state_to_history()
                 self.write_layers_info(self.function_approximator)
 
-                # plot the policy entropy
-                batch_probs = self.policy_estimator(batch_state).detach()
-
-                entropy = -(torch.sum(batch_probs * torch.log(batch_probs), dim=1, keepdim=True).mean())
-                self.writer.add_scalar("Agent info/policy entropy", entropy, self.tot_timestep)
-                
                 self.reset_memory()
                 
     def normalize(self, tensor):
