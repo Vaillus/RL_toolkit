@@ -4,6 +4,7 @@ from GradientPolicyMethods.REINFORCEAgent import *
 from GradientPolicyMethods.REINFORCEAgentWithBaseline import *
 from GradientPolicyMethods.ActorCriticAgent import *
 from GradientPolicyMethods.PPOAgent import *
+from GradientPolicyMethods.DDPGAgent import *
 from AbaddonAgent import *
 import gym
 import matplotlib.pyplot as plt
@@ -155,6 +156,8 @@ class Session:
             agent = AbaddonAgent(agent_params)
         elif self.session_type == "PPO":
             agent = PPOAgent(agent_params)
+        elif self.session_type == "DDPG":
+            agent = DDPGAgent(agent_params)
         else:
             print("agent not initialized")
         return agent
@@ -274,8 +277,8 @@ class Session:
                                                     reward_data=agent_reward, 
                                                     start=start)
             action_data.append({"name": agent_name, "action": action})
-        return action_data
-    
+        return action_data0
+      
     def _get_single_agent_action(self, agent, state_data, reward_data=None, start=False):
         """if this is the first state of the episode, get the first 
         action of the agent else, also give reward of the previous 
@@ -416,7 +419,7 @@ class Session:
             else:
                 # actions made when the last state is reached
                 # get the final reward and success in the mountaincar env
-                #reward_data, success = self.assess_mc_success(new_state_data)
+                #reward_data, success = self.assess_mountain_car_success(new_state_data)
                 # send parts of the last transition to the agent.
                 self.end_agent(new_state_data, reward_data)
                 if self.session_type == "REINFORCE" or self.session_type == "REINFORCE with baseline":
@@ -490,7 +493,7 @@ class Session:
         if (self.show is True) and (episode_id % self.show_every == 0) and (self.environment_type == "gym"):
             self.environment.render()
     
-    def assess_mc_success(self, new_state_data):
+    def assess_mountain_car_success(self, new_state_data):
         """ if the environment is mountaincar, assess whether the agent succeeded
         """
         success = False
