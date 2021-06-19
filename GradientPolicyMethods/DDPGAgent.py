@@ -33,12 +33,14 @@ class DDPGAgent:
         # learning parameters
         self.discount_factor = None
         # memory parameters
+        self.replay_buffer = None
+        # TODO : I'll delete those
         self.memory_size = None
         self.memory = None
         self.memory_counter = 0
         self.batch_size = None
 
-        self.min_action = None # will probably get rid of these two.
+        self.min_action = None # TODO : will probably get rid of these two.
         self.max_action = None
         self.target_policy_noise = None
         self.target_noise_clip = None
@@ -84,7 +86,6 @@ class DDPGAgent:
         self.actor_target = CustomNeuralNetwork(nn_params)
     
     def init_critic(self, params):
-        #self.function_approximator = DQN(params)
         self.critic = CustomNeuralNetwork(params)
         self.critic_target = CustomNeuralNetwork(params)
 
@@ -102,14 +103,17 @@ class DDPGAgent:
     # ====== Action choice related functions ===========================
 
     def choose_action(self, action_values):
-        # choosing the action according to the strategy of the agent
+        """ choosing the action according to the strategy of the agent.
+        Since the action is continuous and single, there is no set of actions
+        to choose from. The function therefore just returns the action value.
+        """
         if self.is_greedy:
             pass # where does it choose action?
             #action_chosen = np.argmax(action_values)
         else:
             pass # may find an alternative to egreedy
         # returning the chosen action and its value
-        return action_chosen
+        return action_values
 
     # ====== Control related functions =================================
 
@@ -177,7 +181,6 @@ class DDPGAgent:
 
     def store_transition(self, state, action, reward, next_state, is_terminal):
         # store a transition (SARS' + is_terminal) in the memory
-        #is_terminal
         is_terminal = [is_terminal]
         transition = np.hstack((state, [action, reward], next_state, is_terminal))
         self.memory[self.memory_counter % self.memory_size, :] = transition
@@ -221,8 +224,8 @@ class DDPGAgent:
         q_eval = self.critic(batch_state).gather(1, batch_action.long())
         # values of the actions at the next step
         q_next = self.critic_target(batch_next_state).detach()
-        q_next = self.zero_terminal_states(q_next, batch_ter_state)
-        noise = self.create_noise_tensor(batch_action)
+        q_next = self._zero_terminal_states(q_next, batch_ter_state)
+        noise = self._create_noise_tensor(batch_action)
         q_next += noise
         # Q containing only the max value of q in next step
         q_target = batch_reward + self.discount_factor * q_next
@@ -260,16 +263,17 @@ class DDPGAgent:
         state_value = self.eval_net(state).data
         return state_value
     
-    def zero_terminal_states(self,  q_values: torch.Tensor,
+    def _zero_terminal_states(self,  q_values: torch.Tensor,
                                      dones:torch.Tensor) -> torch.Tensor:
-        """zeroes the q values at terminal states
+        """ Zeroes the q values at terminal states
         """
         nu_q_values = torch.zeros(q_values.shape)
         nu_q_values = torch.masked_fill(q_values, dones, 0.0)
         return nu_q_values
     
-    def create_noise_tensor(self, tensor):
+    def _create_noise_tensor(self, tensor):
         # create the nois tensor filled with normal distribution
         noise = tensor.clone().data.normal_(0, self.target_policy_noise)
         # clip the normal distribution
         noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
+        return noise

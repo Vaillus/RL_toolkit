@@ -117,7 +117,6 @@ class PPOAgent:
                 batch_discounted_reward[self.memory_size - 1 - i, 0] = disc_reward
             
             # computing state values, advantage
-            next_state_value = self.function_approximator(batch_next_state)
             prev_state_value = self.function_approximator(batch_state)
             advantage = batch_discounted_reward - prev_state_value.detach()
             self.normalize(advantage) # is it really a good idea?
