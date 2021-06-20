@@ -42,7 +42,12 @@ class ReplayBuffer:
         self.dones = np.zeros((self.size), dtype=np.bool)
 
     def sample(self) -> ReplayBufferSamples:
-        # Sampling some indices from memory
+        """Sample a batch of transitions.
+
+        Returns:
+            ReplayBufferSamples: observations, actions, rewards, 
+            next_observations, dones
+        """
         sample_index = np.random.choice(self.size, self.batch_size)
 
         sample = ReplayBufferSample
@@ -64,8 +69,9 @@ class ReplayBuffer:
         self._incr_mem_cnt()
         
     def _incr_mem_cnt(self) -> None:
-        # increment the memory counter and resets it to 0 when reached 
-        # the memory size value to avoid a too large value
+        """ Increment the memory counter and resets it to 0 when reached 
+        the memory size value to avoid a too large value
+        """
         self.pos += 1
         if self.pos == self.size:
             self.full = True

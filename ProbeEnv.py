@@ -7,6 +7,7 @@ class ProbeEnv:
         self.writer = writer
         self.init_obs = None
         self.is_first_step = True
+        self.action_type = "continuous" # discrete / continuous
 
     def set_seed(self, seed):
         self.seed = seed

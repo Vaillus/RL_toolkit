@@ -3,6 +3,7 @@ import numpy as np
 import torch
 from torch.distributions import Categorical
 
+
 MSELoss = torch.nn.MSELoss()
 
 class PPOAgent:
@@ -165,7 +166,7 @@ class PPOAgent:
 
     # ====== Action choice related functions ===========================
 
-    def choose_action(self, state):
+    def choose_action(self, state) -> Number:
         action_probs = Categorical(self.policy_estimator(state))
         action_chosen = action_probs.sample()
         return action_chosen.item()
@@ -199,7 +200,7 @@ class PPOAgent:
         self.store_transition(self.previous_state, self.previous_action, reward, state, True)
         self.control()
 
-    def can_learn(self):
+    def can_learn(self) -> bool:
         if self.mem_cnt == self.memory_size:
             return True
         else:
