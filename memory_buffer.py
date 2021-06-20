@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 from collections import namedtuple
 
 from torch._C import float32
@@ -24,17 +24,17 @@ ReplayBufferSample = namedtuple('ReplayBufferSample', [
 class ReplayBuffer:
     def __init__(
         self,
-        size:int,
-        batch_size:int,
         obs_dim:int,
-        action_dim:int
+        action_dim:int,
+        size:Optional[int] = 10000,
+        batch_size:Optional[int] = 32
     ):
-        self.size = size
-        self.pos = 0
-        self.full = False
-        self.batch_size = batch_size
         self.obs_dim = obs_dim
         self.action_dim = action_dim
+        self.size = size
+        self.batch_size = batch_size
+        self.pos = 0
+        self.full = False
         self.observations = np.zeros((self.size, self.obs_dim), dtype=np.float32)
         self.actions = np.zeros((self.size, self.action_dim)) # TODO: add type later
         self.rewards = np.zeros((self.size), dtype=np.float32)

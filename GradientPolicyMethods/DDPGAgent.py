@@ -2,6 +2,7 @@ from CustomNeuralNetwork import CustomNeuralNetwork
 from utils import set_random_seed
 import numpy as np
 import torch
+from memory_buffer import ReplayBuffer, ReplayBufferSamples
 
 #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -68,6 +69,9 @@ class DDPGAgent:
         self.init_actor(params.get("policy_estimator_info"))
         self.init_critic(params.get("function_approximator_info"))
 
+        replay_buffer_params = params.get("memory_info", {})
+        self.init_memory_buffer(replay_buffer_params)
+
         self.memory_size = params.get("memory_size", 200)
         self.batch_size = params.get("batch_size", 64)
 
@@ -88,6 +92,11 @@ class DDPGAgent:
     def init_critic(self, params):
         self.critic = CustomNeuralNetwork(params)
         self.critic_target = CustomNeuralNetwork(params)
+    
+    def init_memory_buffer(self, params):
+        params["obs_dim"] = self.state_dim
+        params["action_dim"] = self.num_actions
+        self.replay_buffer = ReplayBuffer(params)
 
     def init_seed(self, seed):
         if seed:
@@ -138,22 +147,15 @@ class DDPGAgent:
 
     def step(self, state, reward):
         # storing the transition in the function approximator memory for further use
-        if not self.is_vanilla:
-            self.store_transition(self.previous_state, self.previous_action, 
-                                                        reward, 
-                                                        state, False)
-
+        self.replay_buffer.store_transition(self.previous_state, self.previous_action, 
+                                            reward, state, False)
         # getting the action values from the function approximator
         action_values = self.get_action_value(state)
-
         # choosing an action
         numpy_action_values = action_values.clone().detach().numpy() # TODO : check if still relevant
         current_action = self.choose_action(numpy_action_values)
 
-        if self.is_vanilla:
-            self.vanilla_control()
-        else:
-            self.control()
+        self.control()
 
         self.previous_action = current_action
         self.previous_state = state
@@ -161,11 +163,9 @@ class DDPGAgent:
         return current_action
 
     def end(self, state, reward):
-        self.store_transition(self.previous_state, self.previous_action, reward, state, True)
-        if self.is_vanilla:
-            self.vanilla_control()
-        else:
-            self.control()
+        self.replay_buffer.store_transition(self.previous_state, 
+                                    self.previous_action, reward, state, True)
+        self.control()
 
     # === functional functions =========================================
 
@@ -177,38 +177,6 @@ class DDPGAgent:
         action_value = torch.clamp(action_value, self.min_action, self.max_action)
         return action_value
 
-    # === memory related functions =====================================
-
-    def store_transition(self, state, action, reward, next_state, is_terminal):
-        # store a transition (SARS' + is_terminal) in the memory
-        is_terminal = [is_terminal]
-        transition = np.hstack((state, [action, reward], next_state, is_terminal))
-        self.memory[self.memory_counter % self.memory_size, :] = transition
-        self.incr_mem_cnt()
-        
-    def incr_mem_cnt(self):
-        # increment the memory counter and resets it to 0 when reached 
-        # the memory size value to avoid a too large value
-        self.memory_counter += 1
-        #if self.memory_counter == self.memory_size:
-        #    self.memory_counter = 0
-
-    def sample_memory(self):
-        # Sampling some indices from memory
-        sample_index = np.random.choice(self.memory_size, self.batch_size)
-        # Getting the batch of samples corresponding to those indices 
-        # and dividing it into state, action, reward and next state
-        batch_memory = self.memory[sample_index, :]
-        batch_state = torch.tensor(batch_memory[:, :self.state_dim]).float()
-        batch_action = torch.tensor(batch_memory[:, 
-            self.state_dim:self.state_dim + 1].astype(int)).float()
-        batch_reward = torch.tensor(batch_memory[:, 
-            self.state_dim + 1:self.state_dim + 2]).float()
-        batch_next_state = torch.tensor(batch_memory[:, -self.state_dim-1:-1]).float()
-        batch_is_terminal = torch.tensor(batch_memory[:, -1:]).bool()
-
-        return batch_state, batch_action, batch_reward, batch_next_state, batch_is_terminal
-
     # === parameters update functions ==================================
 
     def update_target_net(self):
@@ -218,21 +186,22 @@ class DDPGAgent:
             self.target_net.load_state_dict(self.eval_net.state_dict())
         self.update_target_counter += 1
 
-    def compute_loss(self, batch_state, batch_action, batch_reward, 
-                        batch_next_state, batch_ter_state):
+    def compute_loss(self, batch:ReplayBufferSamples):
         # value of the action being taken at the current timestep
-        q_eval = self.critic(batch_state).gather(1, batch_action.long())
+        q_eval = self.critic(batch.observations).gather(1, batch.actions.long())
         # values of the actions at the next step
-        q_next = self.critic_target(batch_next_state).detach()
-        q_next = self._zero_terminal_states(q_next, batch_ter_state)
-        noise = self._create_noise_tensor(batch_action)
+        q_next = self.critic_target(batch.next_observations).detach()
+        q_next = self._zero_terminal_states(q_next, batch.next_observations)
+        noise = self._create_noise_tensor(batch.actions)
         q_next += noise
         # Q containing only the max value of q in next step
-        q_target = batch_reward + self.discount_factor * q_next
+        q_target = batch.rewards + self.discount_factor * q_next
         # computing the loss
         loss = self.loss_func(q_eval, q_target)
+
+        
         # residual variance for plotting purposes (not sure if it is correct)
-        q_res = self.target_net(batch_state).gather(1, batch_action.long())
+        q_res = self.target_net(batch.observations).gather(1, batch.actions.long())
         res_var = torch.var(q_res - q_eval) / torch.var(q_res)
         self.writer.add_scalar("Agent info/residual variance", res_var, self.tot_timestep)
         
@@ -250,12 +219,9 @@ class DDPGAgent:
         # we can start learning when the memory is full
         if (self.memory_counter > self.memory_size):
             # getting batch data
-            batch_state, batch_action, batch_reward, batch_next_state, batch_ter_state = \
-                self.sample_memory()
-
+            sample = self.replay_buffer.sample()
             # Compute and backpropagate loss
-            loss = self.compute_loss(batch_state, batch_action, batch_reward, 
-                                        batch_next_state, batch_ter_state)
+            loss = self.compute_loss(sample)
             self.writer.add_scalar("Agent info/loss", loss, self.tot_timestep)
             self.eval_net.backpropagate(loss)
     
