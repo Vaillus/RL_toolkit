@@ -12,13 +12,17 @@ class DDPGAgent:
         self.epsilon = None
         self.num_actions = None
         self.is_greedy = None
+        self.function_approximator = None
+        self.is_vanilla = None
 
         # parameters not set at initilization
         self.previous_action = None
-        self.previous_obs = None
+        self.previous_state = None
         self.seed = None
 
         # neural network parameters
+        self.eval_net = None # to be deleted
+        self.target_net = None # to be deleted
         self.actor = None
         self.actor_target = None
         self.critic = None
@@ -28,10 +32,17 @@ class DDPGAgent:
         self.update_target_counter = 0
         self.loss_func = torch.nn.MSELoss()
         # learning parameters
-        self.γ = None
+        self.discount_factor = None
         # memory parameters
         self.replay_buffer = None
+        # TODO : I'll delete those
+        self.memory_size = None
+        self.memory = None
+        self.memory_counter = 0
+        self.batch_size = None
 
+        self.min_action = None # TODO : will probably get rid of these two.
+        self.max_action = None
         self.target_policy_noise = None
         self.target_noise_clip = None
 
@@ -97,55 +108,106 @@ class DDPGAgent:
             self.seed = seed
             set_random_seed(self.seed)
             self.function_approximator.set_seed(seed)
+
+    # ====== Action choice related functions ===========================
+
+    def choose_action(self, action_values):
+        """ choosing the action according to the strategy of the agent.
+        Since the action is continuous and single, there is no set of actions
+        to choose from. The function therefore just returns the action value.
+        """
+        if self.is_greedy:
+            pass # where does it choose action?
+            #action_chosen = np.argmax(action_values)
+        else:
+            pass # may find an alternative to egreedy
+        # returning the chosen action and its value
+        return action_values
+
+    # ====== Control related functions =================================
+
+    def control(self):
+        self.update_weights()
     
 
     # ====== Agent core functions ======================================
 
-
-
-    def start(self, obs):
+    def start(self, state):
         # getting actions
-        current_action = self.get_action_value(obs)
+        action_values = self.get_action_value(state)
+        # choosing the action to take
+        numpy_action_values = action_values.clone().detach().numpy() # TODO : check if still relevant
+        current_action = self.choose_action(numpy_action_values)
 
         # saving the action and the tiles activated
         self.previous_action = current_action
-        self.previous_obs = obs
+        self.previous_state = state
 
         return current_action
 
-    def step(self, obs, reward):
+    def step(self, state, reward):
         # storing the transition in the function approximator memory for further use
-        self.replay_buffer.store_transition(self.previous_obs, self.previous_action, 
-                                            reward, obs, False)
+        self.replay_buffer.store_transition(self.previous_state, self.previous_action, 
+                                            reward, state, False)
+        # getting the action values from the function approximator
+        action_values = self.get_action_value(state)
+        # choosing an action
+        numpy_action_values = action_values.clone().detach().numpy() # TODO : check if still relevant
+        current_action = self.choose_action(numpy_action_values)
+
         self.control()
 
-        # getting the action value
-        current_action = self.actor(obs) # I may need to convert that to numpy.
-        # choosing an action
         self.previous_action = current_action
-        self.previous_obs = obs
+        self.previous_state = state
         
         return current_action
 
     def end(self, state, reward):
-        self.replay_buffer.store_transition(self.previous_obs, 
+        self.replay_buffer.store_transition(self.previous_state, 
                                     self.previous_action, reward, state, True)
         self.control()
 
     # === functional functions =========================================
 
-    def get_action_value(self, obs, action):
+    def get_action_value(self, state, action=None):
         # Compute action values from the eval net
-        noise = 0 # necessary, here. Don't think so.
-        action_value = self.critic(obs, action) + noise
-        #action_value = torch.clamp(action_value)
+        action_value = self.eval_net(state)
+        noise = 0 # normal distrib, for exploration
+        action_value = self.eval_net(state) + noise
+        action_value = torch.clamp(action_value, self.min_action, self.max_action)
         return action_value
 
+    # === parameters update functions ==================================
 
+    def update_target_net(self):
+        # every n learning cycle, the target network will be replaced 
+        # with the eval network
+        if self.update_target_counter % self.update_target_rate == 0:
+            self.target_net.load_state_dict(self.eval_net.state_dict())
+        self.update_target_counter += 1
 
-    # ====== Control related functions =================================
+    def compute_loss(self, batch:ReplayBufferSamples):
+        # value of the action being taken at the current timestep
+        q_eval = self.critic(batch.observations).gather(1, batch.actions.long())
+        # values of the actions at the next step
+        q_next = self.critic_target(batch.next_observations).detach()
+        q_next = self._zero_terminal_states(q_next, batch.next_observations)
+        noise = self._create_noise_tensor(batch.actions)
+        q_next += noise
+        # Q containing only the max value of q in next step
+        q_target = batch.rewards + self.discount_factor * q_next
+        # computing the loss
+        loss = self.loss_func(q_eval, q_target)
 
-    def control(self):
+        
+        # residual variance for plotting purposes (not sure if it is correct)
+        q_res = self.target_net(batch.observations).gather(1, batch.actions.long())
+        res_var = torch.var(q_res - q_eval) / torch.var(q_res)
+        self.writer.add_scalar("Agent info/residual variance", res_var, self.tot_timestep)
+        
+        return loss
+
+    def update_weights(self):
         """
         Updates target net, sample a batch of transitions and compute 
         loss from it
@@ -155,59 +217,32 @@ class DDPGAgent:
         # with the eval network
         self.update_target_net()
         # we can start learning when the memory is full
-        if self.replay_buffer.full:
-            # get a batch of experience
-            batch = self.replay_buffer.sample()
-            noise = self._create_noise_tensor(batch.actions)
-            next_actions = self.actor_target(batch.next_observations).detach()
-            next_actions = (next_actions + noise).clamp(-1, 1)
-
-            q_next = self.critic_target(batch.next_observations, next_actions)
-            q_next = self._zero_terminal_states(q_next, batch.dones)
-            q_target = batch.rewards + self.γ * q_next
-            q_current = self.critic(batch.observations, batch.actions)
-            # computing the critic loss
-            critic_loss = self.loss_func(q_current, q_target)
-            self.critic.backpropagate(critic_loss)
-            self.writer.add_scalar("Agent info/critic loss", critic_loss, self.tot_timestep)
-
-            # Actor loss:
-            actions = self.actor(batch.observation)
-            actor_loss = - self.critic(batch.observations, actions)
-            self.actor.backpropagate(actor_loss) # are the gradients of the critic
-            # used here? I hope not. If there is problem, put a function with 
-            # torch.no_grad() in it.
-            self.writer.add_scalar("Agent info/actor loss", actor_loss, self.tot_timestep)
-
-            # residual variance for plotting purposes (not sure if it is correct)
-            q_res = self.target_net(batch.observations).gather(1, batch.actions.long())
-            res_var = torch.var(q_res - q_eval) / torch.var(q_res)
-            self.writer.add_scalar("Agent info/residual variance", res_var, self.tot_timestep)
-
-    
-    def update_target_net(self):
-        # every n learning cycle, the target network will be replaced 
-        # with the eval network
-        if self.update_target_counter % self.update_target_rate == 0:
-            self.target_net.load_state_dict(self.eval_net.state_dict())
-        self.update_target_counter += 1
-
+        if (self.memory_counter > self.memory_size):
+            # getting batch data
+            sample = self.replay_buffer.sample()
+            # Compute and backpropagate loss
+            loss = self.compute_loss(sample)
+            self.writer.add_scalar("Agent info/loss", loss, self.tot_timestep)
+            self.eval_net.backpropagate(loss)
     
     def get_state_value_eval(self, state):
-        state_value = self.critic(state).data
-        return state_value
+        """for plotting purposes only?
+        """
+        first_action_value = self.critic(state, 0.25).data
+        sec_action_value = self.critic(state, 0.75).data
+        return [first_action_value, sec_action_value]
     
-    def _zero_terminal_states(  self, q_values: torch.FloatTensor,
-                                dones:torch.BoolTensor) -> torch.FloatTensor:
+    def _zero_terminal_states(self,  q_values: torch.Tensor,
+                                     dones:torch.Tensor) -> torch.Tensor:
         """ Zeroes the q values at terminal states
         """
         nu_q_values = torch.zeros(q_values.shape)
         nu_q_values = torch.masked_fill(q_values, dones, 0.0)
         return nu_q_values
     
-    def _create_noise_tensor(self, batch_actions:torch.FloatTensor) -> torch.FloatTensor:
+    def _create_noise_tensor(self, tensor):
         # create the nois tensor filled with normal distribution
-        noise = batch_actions.clone().data.normal_(0, self.target_policy_noise)
+        noise = tensor.clone().data.normal_(0, self.target_policy_noise)
         # clip the normal distribution
         noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
         return noise
