@@ -16,7 +16,6 @@ class ProbeEnv:
         self.random_generator = np.random.RandomState(seed=seed)
     
     
-    
     def reset(self):
         if self.action_type == "discrete":
             self.reset_discrete()
