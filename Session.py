@@ -19,6 +19,8 @@ import sys
 import GodotEnvironment as godot
 import ProbeEnv
 
+from typing import Dict, Any
+
 #import stable_baselines3
 
 from utils import *
@@ -88,13 +90,14 @@ class Session:
  
     def _set_env_and_agent(self, params):
         env_params = params.get("environment_info", {})
-        self._init_env(env_params)
+        action_type = params.get("action_type", "discrete")
+        self._init_env(env_params, action_type)
 
         agent_params = params.get("agent_info", {})
         agent_params["seed"] = self.seed
         self._init_agent(agent_params)
     
-    def _init_env(self, env_params):
+    def _init_env(self, env_params:Dict[str, Any], action_type: str):
         """the environment is set differently if it's a gym environment 
         or a godot environment.
 
@@ -108,7 +111,7 @@ class Session:
             self.environment = godot.GodotEnvironment(env_params)
             self.environment.set_seed(self.seed)
         elif self.environment_type == "probe":
-            self.environment = ProbeEnv.ProbeEnv(self.environment_name, self.writer)
+            self.environment = ProbeEnv.ProbeEnv(action_type, self.environment_name, self.writer)
     
     def _init_agent(self, agent_params):
         """initialize one or several agents

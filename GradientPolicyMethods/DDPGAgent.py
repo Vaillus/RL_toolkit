@@ -35,11 +35,6 @@ class DDPGAgent:
         self.discount_factor = None
         # memory parameters
         self.replay_buffer = None
-        # TODO : I'll delete those
-        self.memory_size = None
-        self.memory = None
-        self.memory_counter = 0
-        self.batch_size = None
 
         self.min_action = None # TODO : will probably get rid of these two.
         self.max_action = None
@@ -188,7 +183,8 @@ class DDPGAgent:
 
     def compute_loss(self, batch:ReplayBufferSamples):
         # value of the action being taken at the current timestep
-        q_eval = self.critic(batch.observations).gather(1, batch.actions.long())
+        test = batch.observations, batch.actions
+        q_eval = self.critic(batch.observations, batch.actions)
         # values of the actions at the next step
         q_next = self.critic_target(batch.next_observations).detach()
         q_next = self._zero_terminal_states(q_next, batch.next_observations)
@@ -225,12 +221,24 @@ class DDPGAgent:
             self.writer.add_scalar("Agent info/loss", loss, self.tot_timestep)
             self.eval_net.backpropagate(loss)
     
-    def get_state_value_eval(self, state):
+    def get_state_value_eval(self, state:torch.Tensor):
         """for plotting purposes only?
         """
-        first_action_value = self.critic(state, 0.25).data
-        sec_action_value = self.critic(state, 0.75).data
+        first_action = torch.tensor([0.25])
+        sec_action = torch.tensor([0.75])
+        first_stt_act = torch.cat(state, first_action)
+        sec_stt_act = torch.cat(state, sec_action)
+        first_action_value = self.critic(first_stt_act).data
+        sec_action_value = self.critic(sec_stt_act).data
         return [first_action_value, sec_action_value]
+    
+    def get_action_values_eval(self, state:torch.Tensor, actions:torch.Tensor):
+        """for plotting purposes only?
+        """
+        state = torch.cat((first_state, first_state)).unsqueeze(1)
+        state_action = torch.cat((state, actions.unsqueeze(1)),1)
+        action_values = self.critic(state_action).data
+        return action_values
     
     def _zero_terminal_states(self,  q_values: torch.Tensor,
                                      dones:torch.Tensor) -> torch.Tensor:
@@ -246,3 +254,26 @@ class DDPGAgent:
         # clip the normal distribution
         noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
         return noise
+
+#%%
+import torch
+act = torch.ones(3)
+state = torch.zeros((3,2))
+print(act)
+print(state)
+torch.cat((state,act.unsqueeze(1)), 1)
+# %%
+import numpy as np
+action = np.ones(3)
+np.unsqueeze(action,1)
+# %%
+first_state = torch.tensor([-1])
+actions = torch.tensor([0.25, 0.75])
+a = torch.cat((first_state, first_state)).unsqueeze(1)
+print(a)
+print(actions.unsqueeze(1))
+a = torch.cat((a, actions.unsqueeze(1)),1)
+a
+# %%
+(first_state, actions.unsqueeze(1))
+# %%
