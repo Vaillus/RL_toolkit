@@ -111,19 +111,9 @@ class DDPGAgent:
         Since the action is continuous and single, there is no set of actions
         to choose from. The function therefore just returns the action value.
         """
-        if self.is_greedy:
-            pass # where does it choose action?
-            #action_chosen = np.argmax(action_values)
-        else:
-            pass # may find an alternative to egreedy
-        # returning the chosen action and its value
+        action_values = None
         return action_values
 
-    # ====== Control related functions =================================
-
-    def control(self):
-        self.update_weights()
-    
 
     # ====== Agent core functions ======================================
 
@@ -180,30 +170,13 @@ class DDPGAgent:
         if self.update_target_counter % self.update_target_rate == 0:
             self.target_net.load_state_dict(self.eval_net.state_dict())
         self.update_target_counter += 1
+    
+    # ====== Control related functions =================================
 
-    def compute_loss(self, batch:ReplayBufferSamples):
-        # value of the action being taken at the current timestep
-        test = batch.observations, batch.actions
-        q_eval = self.critic(batch.observations, batch.actions)
-        # values of the actions at the next step
-        q_next = self.critic_target(batch.next_observations).detach()
-        q_next = self._zero_terminal_states(q_next, batch.next_observations)
-        noise = self._create_noise_tensor(batch.actions)
-        q_next += noise
-        # Q containing only the max value of q in next step
-        q_target = batch.rewards + self.discount_factor * q_next
-        # computing the loss
-        loss = self.loss_func(q_eval, q_target)
+    def control(self):
+        self._learn()
 
-        
-        # residual variance for plotting purposes (not sure if it is correct)
-        q_res = self.target_net(batch.observations).gather(1, batch.actions.long())
-        res_var = torch.var(q_res - q_eval) / torch.var(q_res)
-        self.writer.add_scalar("Agent info/residual variance", res_var, self.tot_timestep)
-        
-        return loss
-
-    def update_weights(self):
+    def _learn(self):
         """
         Updates target net, sample a batch of transitions and compute 
         loss from it
@@ -215,11 +188,42 @@ class DDPGAgent:
         # we can start learning when the memory is full
         if (self.memory_counter > self.memory_size):
             # getting batch data
-            sample = self.replay_buffer.sample()
-            # Compute and backpropagate loss
-            loss = self.compute_loss(sample)
+            batch = self.replay_buffer.sample()
+
+            # value of the action being taken at the current timestep
+            batch_oa = self._concat_obs_action(batch.observations, batch.actions)
+            q_eval = self.critic(batch_oa)
+            # values of the actions at the next step
+            q_next = self.critic_target(batch.next_observations).detach()
+            q_next = self._zero_terminal_states(q_next, batch.next_observations)
+            noise = self._create_noise_tensor(batch.actions)
+            q_next += noise
+            # Q containing only the max value of q in next step
+            q_target = batch.rewards + self.discount_factor * q_next
+            # computing the loss
+            critic_loss = self.loss_func(q_eval, q_target)
+
+            self.critic.backpropagate(critic_loss)
+            self.writer.add_scalar("Agent info/critic loss", critic_loss, self.tot_timestep)
+            
+
+            actions = self.actor(batch.observations)
+            actor_loss = - self.critic(batch.observations, actions).mean()
+            self.actor.backpropagate(actor_loss)
+            self.writer.add_scalar("Agent info/actor loss", act, self.tot_timestep)
+
+            # residual variance for plotting purposes (not sure if it is correct)
+            q_res = self.target_net(batch.observations).gather(1, batch.actions.long())
+            res_var = torch.var(q_res - q_eval) / torch.var(q_res)
+            self.writer.add_scalar("Agent info/residual variance", res_var, self.tot_timestep)
+        
             self.writer.add_scalar("Agent info/loss", loss, self.tot_timestep)
-            self.eval_net.backpropagate(loss)
+            self.critic.backpropagate(critic_loss)
+
+
+    def _concat_obs_action(self, obs:torch.Tensor, action:torch.Tensor) -> torch.Tensor:
+        obs_action = torch.cat((obs, action.unsqueeze(1)),1)
+        return obs_action
     
     def get_state_value_eval(self, state:torch.Tensor):
         """for plotting purposes only?
