@@ -17,7 +17,7 @@ class DDPGAgent:
 
         # parameters not set at initilization
         self.previous_action = None
-        self.previous_state = None
+        self.previous_obs = None
         self.seed = None
 
         # neural network parameters
@@ -106,70 +106,59 @@ class DDPGAgent:
 
     # ====== Action choice related functions ===========================
 
-    def choose_action(self, action_values):
-        """ choosing the action according to the strategy of the agent.
-        Since the action is continuous and single, there is no set of actions
-        to choose from. The function therefore just returns the action value.
-        """
-        action_values = None
-        return action_values
+    def choose_action(self, obs:torch.Tensor):
+        action = self.actor(obs)
+        action = torch.clamp(action, -1, 1)
+        return action
 
 
     # ====== Agent core functions ======================================
 
-    def start(self, state):
-        # getting actions
-        action_values = self.get_action_value(state)
-        # choosing the action to take
-        numpy_action_values = action_values.clone().detach().numpy() # TODO : check if still relevant
-        current_action = self.choose_action(numpy_action_values)
-
-        # saving the action and the tiles activated
+    def start(self, obs):
+        current_action = self.actor(obs)
         self.previous_action = current_action
-        self.previous_state = state
+        self.previous_obs = obs
 
         return current_action
 
-    def step(self, state, reward):
+    def step(self, obs, reward):
         # storing the transition in the function approximator memory for further use
-        self.replay_buffer.store_transition(self.previous_state, self.previous_action, 
-                                            reward, state, False)
+        self.replay_buffer.store_transition(self.previous_obs, self.previous_action, 
+                                            reward, obs, False)
         # getting the action values from the function approximator
-        action_values = self.get_action_value(state)
-        # choosing an action
-        numpy_action_values = action_values.clone().detach().numpy() # TODO : check if still relevant
-        current_action = self.choose_action(numpy_action_values)
-
+        current_action = self.actor(obs)
         self.control()
-
         self.previous_action = current_action
-        self.previous_state = state
+        self.previous_obs = obs
         
         return current_action
 
-    def end(self, state, reward):
-        self.replay_buffer.store_transition(self.previous_state, 
-                                    self.previous_action, reward, state, True)
+    def end(self, obs, reward):
+        self.replay_buffer.store_transition(self.previous_obs, 
+                                    self.previous_action, reward, obs, True)
         self.control()
 
     # === functional functions =========================================
 
     def get_action_value(self, state, action=None):
         # Compute action values from the eval net
-        action_value = self.eval_net(state)
+        action_value = self.critic(state)
         noise = 0 # normal distrib, for exploration
-        action_value = self.eval_net(state) + noise
+        action_value = self.critic(state) + noise
         action_value = torch.clamp(action_value, self.min_action, self.max_action)
         return action_value
 
     # === parameters update functions ==================================
 
-    def update_target_net(self):
+    def _update_target_net(self):
         # every n learning cycle, the target network will be replaced 
         # with the eval network
-        if self.update_target_counter % self.update_target_rate == 0:
-            self.target_net.load_state_dict(self.eval_net.state_dict())
         self.update_target_counter += 1
+        if self.update_target_counter == self.update_target_rate:
+            self.critic_target.load_state_dict(self.critic.state_dict())
+            self.actor_target.load_state_dict(self.actor.state_dict())
+            self.update_target_counter = 0
+        
     
     # ====== Control related functions =================================
 
@@ -184,7 +173,7 @@ class DDPGAgent:
         """
         # every n learning cycle, the target network will be replaced 
         # with the eval network
-        self.update_target_net()
+        self._update_target_net()
         # we can start learning when the memory is full
         if (self.memory_counter > self.memory_size):
             # getting batch data

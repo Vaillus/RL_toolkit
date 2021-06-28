@@ -17,7 +17,7 @@ import pathlib
 import sys
 
 import GodotEnvironment as godot
-import ProbeEnv
+from probe_env import ProbeEnv
 
 from typing import Dict, Any
 
@@ -111,7 +111,8 @@ class Session:
             self.environment = godot.GodotEnvironment(env_params)
             self.environment.set_seed(self.seed)
         elif self.environment_type == "probe":
-            self.environment = ProbeEnv.ProbeEnv(action_type, self.environment_name, self.writer)
+            if action_type == "continuous":
+            self.environment = ProbeEnv(action_type, self.environment_name, self.writer)
     
     def _init_agent(self, agent_params):
         """initialize one or several agents
@@ -280,7 +281,7 @@ class Session:
                                                     reward_data=agent_reward, 
                                                     start=start)
             action_data.append({"name": agent_name, "action": action})
-        return action_data0
+        return action_data
       
     def _get_single_agent_action(self, agent, state_data, reward_data=None, start=False):
         """if this is the first state of the episode, get the first 
@@ -511,7 +512,7 @@ class Session:
     @staticmethod
     def _average_rewards(rewards):
         avg_rewards = []
-        # transform the rewards to their avergage on the last n episodes 
+        # transform the rewards to their avergage on the last n episodes  
         # (n being specified in the class parameters)
         for i in range(len(rewards)):  # iterate through rewards
             curr_reward = rewards[i]
@@ -531,7 +532,7 @@ if __name__ == "__main__":
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
-    data = get_params("ppo_params")
+    data = get_params("ddpg_params")
     session_parameters = data["session_info"]
     session_parameters["agent_info"] = data["agent_info"]
     #session_parameters["environment_info"] = data["environment_info"]
