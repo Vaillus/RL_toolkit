@@ -21,8 +21,6 @@ class DDPGAgent:
         self.seed = None
 
         # neural network parameters
-        self.eval_net = None # to be deleted
-        self.target_net = None # to be deleted
         self.actor = None
         self.actor_target = None
         self.critic = None
@@ -195,7 +193,6 @@ class DDPGAgent:
             self.critic.backpropagate(critic_loss)
             self.writer.add_scalar("Agent info/critic loss", critic_loss, self.tot_timestep)
             
-
             actions = self.actor(batch.observations)
             actor_loss = - self.critic(batch.observations, actions).mean()
             self.actor.backpropagate(actor_loss)
@@ -205,9 +202,6 @@ class DDPGAgent:
             q_res = self.target_net(batch.observations).gather(1, batch.actions.long())
             res_var = torch.var(q_res - q_eval) / torch.var(q_res)
             self.writer.add_scalar("Agent info/residual variance", res_var, self.tot_timestep)
-        
-            self.writer.add_scalar("Agent info/loss", loss, self.tot_timestep)
-            self.critic.backpropagate(critic_loss)
 
 
     def _concat_obs_action(self, obs:torch.Tensor, action:torch.Tensor) -> torch.Tensor:

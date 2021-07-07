@@ -2,6 +2,9 @@
 	"folders": [
 		{
 			"path": "."
+		},
+		{
+			"path": "../external_repos/stable-baselines3"
 		}
 	],
 	"remoteAuthority": "wsl+Ubuntu",
