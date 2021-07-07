@@ -6,8 +6,6 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 from utils import set_random_seed
-
-from torch.utils.tensorboard import SummaryWriter
 #import torchvision
 
 
@@ -130,7 +128,8 @@ class CustomNeuralNetwork(nn.Module):
         return size
 
     # === === plotting =================================================
-    
+    # TODO: I'll probably get rid of it if I haven't used it in past months
+    # because now, I have WandB
     def plot_weights(self, layer_n: int):
         mean = self.history[:, layer_n, 0, 0]
         std_err = self.history[:, layer_n, 0, 1]
@@ -183,10 +182,5 @@ if __name__=="__main__":
     }
     set_random_seed(1)
     nn = CustomNeuralNetwork(params)
-    #nn.set_seed(1)
-    writer = SummaryWriter("/home/vaillus/projects/RL_toolkit/logs/actor_critic")
     input = torch.randn(4)
-    
-    writer.add_graph(nn, input)
-    writer.close()
     print(nn(input))

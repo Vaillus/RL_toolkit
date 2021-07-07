@@ -1,13 +1,12 @@
 import numpy as np
 import torch
+import wandb
 
 #class ProbeEnv(ABC):
 
 class ProbeEnv:
-    def __init__(self, name: str, writer):
-        self.action_type = action_type # discrete or continuous
+    def __init__(self, name: str):
         self.name = name
-        self.writer = writer
         self.init_obs = None
         self.is_first_step = True
 
@@ -19,8 +18,8 @@ class ProbeEnv:
         pass
 
 class DiscreteProbeEnv(ProbeEnv):
-    def __init__(self, name: str, writer):
-        super(DiscreteProbeEnv, self).__init__(name, writer)
+    def __init__(self, name: str):
+        super(DiscreteProbeEnv, self).__init__(name)
     
     def reset(self):
         if self.name == "one":
@@ -40,7 +39,7 @@ class DiscreteProbeEnv(ProbeEnv):
             state_data = [obs]
         return state_data
 
-    def step_discrete(self, actions_data):
+    def step(self, actions_data):
         if self.name == "one":
             new_state_data = [0]
             done = True
@@ -91,35 +90,43 @@ class DiscreteProbeEnv(ProbeEnv):
         if self.name == "one":
             state = torch.tensor([0])
             state_value = agent.get_state_value_eval(state)
-            self.writer.add_scalar("Probe/Value of state 0", state_value, episode_id)
+            wandb.log({"Probe/Value of state 0": state_value})
         elif self.name == "two":
             state_pos = torch.tensor([1])
             state_neg = torch.tensor([-1])
             state_value_pos = agent.get_state_value_eval(state_pos)
             state_value_neg = agent.get_state_value_eval(state_neg)
-            self.writer.add_scalar("Probe/Value of state -1", state_value_neg, episode_id)
-            self.writer.add_scalar("Probe/Value of state 1", state_value_pos, episode_id)
+            wandb.log({
+                "Probe/Value of state -1": state_value_neg,
+                "Probe/Value of state 1": state_value_pos
+            })
         elif self.name == "three":
             first_state = torch.tensor([0])
             second_state = torch.tensor([1])
             first_state_value = agent.get_state_value_eval(first_state)
             second_state_value = agent.get_state_value_eval(second_state)
-            self.writer.add_scalar("Probe/Value of state 0", first_state_value, episode_id)
-            self.writer.add_scalar("Probe/Value of state 1", second_state_value, episode_id)
+            wandb.log({
+                "Probe/Value of state 0": first_state_value,
+                "Probe/Value of state 1": second_state_value
+            })
         elif self.name == "four":
             state = torch.tensor([0])
             actions_values = agent.get_state_value_eval(state)
-            self.writer.add_scalar("Probe/state 0 action 0", actions_values[0], episode_id)
-            self.writer.add_scalar("Probe/state 0 action 1", actions_values[1], episode_id)
+            wandb.log({
+                "Probe/state 0 action 0": actions_values[0],
+                "Probe/state 0 action 1": actions_values[1]
+            })
         elif self.name == "five":
             first_state = torch.tensor([-1])
             second_state = torch.tensor([1])
             first_state_value = agent.get_state_value_eval(first_state)
             second_state_value = agent.get_state_value_eval(second_state)
-            self.writer.add_scalar("Probe/state -1 action 0", first_state_value[0], episode_id)
-            self.writer.add_scalar("Probe/state -1 action 1", first_state_value[1], episode_id)
-            self.writer.add_scalar("Probe/state 1 action 0", second_state_value[0], episode_id)
-            self.writer.add_scalar("Probe/state 1 action 1", second_state_value[1], episode_id)
+            wandb.log({
+                'Probe/state -1 action 0': first_state_value[0],
+                'Probe/state -1 action 1': first_state_value[1],
+                'Probe/state 1 action 0': second_state_value[0],
+                'Probe/state 1 action 1': second_state_value[1]})
+            
     
     def show_result(self, agent):
         if self.name == "one":
@@ -155,8 +162,8 @@ class DiscreteProbeEnv(ProbeEnv):
 
 
 class ContinuousProbeEnv(ProbeEnv):
-    def __init__(self, name: str, writer):
-        super(ContinuousProbeEnv, self).__init__(name, writer)
+    def __init__(self, name: str):
+        super(ContinuousProbeEnv, self).__init__(name)
     
     def reset(self):
         if self.names == "one":
@@ -227,37 +234,45 @@ class ContinuousProbeEnv(ProbeEnv):
         if self.name == "one":
             state = torch.tensor([0])
             state_value = agent.get_state_value_eval(state)
-            self.writer.add_scalar("Probe/Value of state 0", state_value, episode_id)
+            wandb.log({"Probe/Value of state 0": state_value})
         elif self.name == "two":
             state_pos = torch.tensor([1])
             state_neg = torch.tensor([-1])
             state_value_pos = agent.get_state_value_eval(state_pos)
             state_value_neg = agent.get_state_value_eval(state_neg)
-            self.writer.add_scalar("Probe/Value of state -1", state_value_neg, episode_id)
-            self.writer.add_scalar("Probe/Value of state 1", state_value_pos, episode_id)
+            wandb.log({
+                "Probe/Value of state -1": state_value_neg,
+                "Probe/Value of state 1": state_value_pos
+            })
         elif self.name == "three":
             first_state = torch.tensor([0])
             second_state = torch.tensor([1])
             first_state_value = agent.get_state_value_eval(first_state)
             second_state_value = agent.get_state_value_eval(second_state)
-            self.writer.add_scalar("Probe/Value of state 0", first_state_value, episode_id)
-            self.writer.add_scalar("Probe/Value of state 1", second_state_value, episode_id)
+            wandb.log({
+                "Probe/Value of state 0": first_state_value,
+                "Probe/Value of state 1": second_state_value
+            })
         elif self.name == "four":
             state = torch.tensor([0])
             actions = torch.tensor([0.25, 0.75])
             actions_values = agent.get_action_values_eval(state, actions)
-            self.writer.add_scalar("Probe/state 0 action 0", actions_values[0], episode_id)
-            self.writer.add_scalar("Probe/state 0 action 1", actions_values[1], episode_id)
+            wandb.log({
+                "Probe/state 0 action 0": actions_values[0],
+                "Probe/state 0 action 1": actions_values[1]
+            })
+            
         elif self.name == "five":
             first_state = torch.tensor([-1])
             second_state = torch.tensor([1])
             actions = torch.tensor([0.25, 0.75])
             first_state_av = agent.get_action_values_eval(first_state, actions)
             second_state_av = agent.get_action_values_eval(second_state, actions)
-            self.writer.add_scalar("Probe/state -1 action 0.25", first_state_av[0], episode_id)
-            self.writer.add_scalar("Probe/state -1 action 0.75", first_state_av[1], episode_id)
-            self.writer.add_scalar("Probe/state 1 action 0.25", second_state_av[0], episode_id)
-            self.writer.add_scalar("Probe/state 1 action 0.75", second_state_av[1], episode_id)
+            wandb.log({
+                "Probe/state -1 action 0.25": first_state_av[0],
+                'Probe/state -1 action 0.75': first_state_av[1],
+                'Probe/state 1 action 0.25': second_state_av[0],
+                'Probe/state 1 action 0.75': second_state_av[1]})
 
     def show_results(self, agent):
         if self.name == "one":

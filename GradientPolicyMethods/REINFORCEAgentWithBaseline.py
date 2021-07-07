@@ -1,6 +1,7 @@
 from CustomNeuralNetwork import CustomNeuralNetwork as CustomNN
 import numpy as np
 import torch
+import wandb
 
 
 class REINFORCEAgentWithBaseline:
@@ -16,7 +17,6 @@ class REINFORCEAgentWithBaseline:
         self.actions = []
         self.rewards = []
 
-        self.writer = None
         self.tot_timestep = 0
 
         self.set_params_from_dict(params)
@@ -104,6 +104,12 @@ class REINFORCEAgentWithBaseline:
             loss.backward()
             self.policy_estimator.optimizer.step()
             self.writer.add_scalar("Agent info/actor loss", loss, self.tot_timestep)
+
+            wandb.log({
+                "Agent info/critic loss": value_loss,
+                "Agent info/policy entropy": entropy,
+                "Agent info/actor loss": loss
+            })
     
     def get_state_value_eval(self, state):
         state_value = self.function_approximator(state).data

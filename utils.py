@@ -6,7 +6,9 @@ import random
 import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
+import wandb
 import datetime
+
 
 def get_params(file_name):
     complete_path = make_full_params_path(file_name)
@@ -83,12 +85,15 @@ def set_in_dict(d, map_tuple, value):
 def get_attr(o, map_tuple):
     return reduce(getattr, map_tuple, o)
 
-def to_tensor(a):
-    return torch.tensor(a, device=var.device).float()
+#def to_tensor(a):
+#    return torch.tensor(a, device=var.device).float()
 
 def create_writer(dir):
-    log_dir = "/home/vaillus/projects/logs/"
+    log_dir = "/home/vaillus/projects/logs2/"
     date = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     log_file_name = log_dir + dir + "/" + date
     writer = SummaryWriter(log_file_name)
     return writer
+
+def init_wandb_project(project_name: str):
+    wandb.init(project=project_name)

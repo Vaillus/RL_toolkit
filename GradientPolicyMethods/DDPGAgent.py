@@ -3,6 +3,7 @@ from utils import set_random_seed
 import numpy as np
 import torch
 from memory_buffer import ReplayBuffer, ReplayBufferSamples
+import wandb
 
 #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -39,7 +40,6 @@ class DDPGAgent:
         self.target_policy_noise = None
         self.target_noise_clip = None
 
-        self.writer = None
         self.tot_timestep = 0
 
         self.set_params_from_dict(params)
@@ -89,7 +89,7 @@ class DDPGAgent:
     def init_memory_buffer(self, params):
         params["obs_dim"] = self.state_dim
         params["action_dim"] = self.num_actions
-        self.replay_buffer = ReplayBuffer(params)
+        self.replay_buffer = ReplayBuffer(**params)
 
     def init_seed(self, seed):
         if seed:
@@ -173,7 +173,7 @@ class DDPGAgent:
         # with the eval network
         self._update_target_net()
         # we can start learning when the memory is full
-        if (self.memory_counter > self.memory_size):
+        if self.replay_buffer.full:
             # getting batch data
             batch = self.replay_buffer.sample()
 
@@ -191,17 +191,20 @@ class DDPGAgent:
             critic_loss = self.loss_func(q_eval, q_target)
 
             self.critic.backpropagate(critic_loss)
-            self.writer.add_scalar("Agent info/critic loss", critic_loss, self.tot_timestep)
             
             actions = self.actor(batch.observations)
             actor_loss = - self.critic(batch.observations, actions).mean()
             self.actor.backpropagate(actor_loss)
-            self.writer.add_scalar("Agent info/actor loss", act, self.tot_timestep)
 
             # residual variance for plotting purposes (not sure if it is correct)
             q_res = self.target_net(batch.observations).gather(1, batch.actions.long())
             res_var = torch.var(q_res - q_eval) / torch.var(q_res)
-            self.writer.add_scalar("Agent info/residual variance", res_var, self.tot_timestep)
+
+            wandb.log({
+                "Agent info/critic loss": critic_loss,
+                "Agent info/actor loss": actor_loss,
+                "Agent info/residual variance": res_var
+            })
 
 
     def _concat_obs_action(self, obs:torch.Tensor, action:torch.Tensor) -> torch.Tensor:
@@ -213,8 +216,8 @@ class DDPGAgent:
         """
         first_action = torch.tensor([0.25])
         sec_action = torch.tensor([0.75])
-        first_stt_act = torch.cat(state, first_action)
-        sec_stt_act = torch.cat(state, sec_action)
+        first_stt_act = torch.cat((state, first_action))
+        sec_stt_act = torch.cat((state, sec_action))
         first_action_value = self.critic(first_stt_act).data
         sec_action_value = self.critic(sec_stt_act).data
         return [first_action_value, sec_action_value]
@@ -242,25 +245,3 @@ class DDPGAgent:
         noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
         return noise
 
-#%%
-import torch
-act = torch.ones(3)
-state = torch.zeros((3,2))
-print(act)
-print(state)
-torch.cat((state,act.unsqueeze(1)), 1)
-# %%
-import numpy as np
-action = np.ones(3)
-np.unsqueeze(action,1)
-# %%
-first_state = torch.tensor([-1])
-actions = torch.tensor([0.25, 0.75])
-a = torch.cat((first_state, first_state)).unsqueeze(1)
-print(a)
-print(actions.unsqueeze(1))
-a = torch.cat((a, actions.unsqueeze(1)),1)
-a
-# %%
-(first_state, actions.unsqueeze(1))
-# %%

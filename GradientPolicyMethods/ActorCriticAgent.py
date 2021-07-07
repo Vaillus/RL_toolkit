@@ -2,6 +2,7 @@ from CustomNeuralNetwork import CustomNeuralNetwork
 import numpy as np
 import torch
 from torch.distributions import Categorical
+import wandb
 
 class ActorCriticAgent:
     def __init__(self, params={}):
@@ -31,7 +32,6 @@ class ActorCriticAgent:
 
         self.seed = None
 
-        self.writer = None
         self.tot_timestep = 0
 
         self.set_params_from_dict(params)
@@ -136,12 +136,11 @@ class ActorCriticAgent:
             self.function_approximator_eval.optimizer.zero_grad()
             value_loss.backward()
             self.function_approximator_eval.optimizer.step()
-            self.writer.add_scalar("Agent info/critic loss", value_loss, self.tot_timestep)
 
             # plot the policy entropy
             probs = self.policy_estimator(state).detach().numpy()
             entropy = -(np.sum(probs * np.log(probs)))
-            self.writer.add_scalar("Agent info/policy entropy", entropy, self.tot_timestep)
+            
             logprob = - torch.log(self.policy_estimator(
                 batch_state).gather(1, batch_action.long()))
             loss = logprob * δ 
@@ -149,7 +148,12 @@ class ActorCriticAgent:
             self.policy_estimator.optimizer.zero_grad()
             loss.backward()
             self.policy_estimator.optimizer.step()
-            self.writer.add_scalar("Agent info/actor loss", loss, self.tot_timestep)
+
+            wandb.log({
+                "Agent info/critic loss": value_loss,
+                "Agent info/policy entropy": entropy,
+                "Agent info/actor loss": loss
+            })
 
     def vanilla_control(self, state, reward, is_terminal_state):
         prev_state_value = self.function_approximator_eval(self.previous_state)
@@ -163,19 +167,24 @@ class ActorCriticAgent:
         self.function_approximator_eval.optimizer.zero_grad()
         value_loss.backward()
         self.function_approximator_eval.optimizer.step()
-        self.writer.add_scalar("Agent info/critic loss", value_loss, self.tot_timestep)
+        
 
         # plot the policy entropy
         probs = self.policy_estimator(state).detach().numpy()
         entropy = -(np.sum(probs * np.log(probs)))
-        self.writer.add_scalar("Agent info/policy entropy", entropy, self.tot_timestep)
+        
 
         logprob = - torch.log(self.policy_estimator(self.previous_state)[self.previous_action])
         loss = logprob * δ 
         self.policy_estimator.optimizer.zero_grad()
         loss.backward()
         self.policy_estimator.optimizer.step()
-        self.writer.add_scalar("Agent info/actor loss", loss, self.tot_timestep)
+        
+        wandb.log({
+                "Agent info/critic loss": value_loss,
+                "Agent info/policy entropy": entropy,
+                "Agent info/actor loss": loss
+            })
 
 
     # ====== Action choice related functions ===========================

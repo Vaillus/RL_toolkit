@@ -9,7 +9,6 @@ from AbaddonAgent import *
 import gym
 import matplotlib.pyplot as plt
 import json
-from torch.utils.tensorboard import SummaryWriter
 import torchvision
 
 import os
@@ -17,7 +16,7 @@ import pathlib
 import sys
 
 import GodotEnvironment as godot
-from probe_env import ProbeEnv
+from probe_env import DiscreteProbeEnv, ContinuousProbeEnv
 
 from typing import Dict, Any
 
@@ -60,15 +59,11 @@ class Session:
         self.return_results = None
 
         self.seed = None
-
-        self.writer = None
         self.tot_timestep = 0
         self.max_timestep = None
 
         self.set_params_from_dict(params=params)
         self._set_env_and_agent(params)
-        if self.writer:
-            self.agent.log_model(self.writer)
         
 
     # ====== Initialization functions ==================================
@@ -85,8 +80,9 @@ class Session:
         self.max_timestep = params.get("num_timesteps", 1000)
         self._init_seed(params.get("seed", None))
 
-        if params.get("use_tensorboard", False):
-            self.writer = create_writer(self.session_type)
+        if params.get("use_wandb", False):
+            wandb_name = params.get("wandb_name", "")
+            init_wandb_project(wandb_name)
  
     def _set_env_and_agent(self, params):
         env_params = params.get("environment_info", {})
@@ -111,8 +107,10 @@ class Session:
             self.environment = godot.GodotEnvironment(env_params)
             self.environment.set_seed(self.seed)
         elif self.environment_type == "probe":
-            if action_type == "continuous":
-            self.environment = ProbeEnv(action_type, self.environment_name, self.writer)
+            if action_type == "discrete":
+                self.environment = DiscreteProbeEnv(self.environment_name)
+            elif action_type == "continuous":
+                self.environment = ContinuousProbeEnv(self.environment_name)
     
     def _init_agent(self, agent_params):
         """initialize one or several agents
@@ -126,9 +124,6 @@ class Session:
             self._init_multiagent(agent_params)
         else:
             self.agent = self._init_single_agent(agent_params)
-            self.agent.writer = self.writer
-            #self.writer.add_graph(self.agent.eval_net, torch.tensor([0, 0, 0, 0]))
-            #self.writer.close()
 
     def _init_multiagent(self, agent_params):
         self.agent = {}
@@ -350,12 +345,14 @@ class Session:
                 print(f'reward: {episode_reward}')
                 print(f'success: {success}')
             rewards = np.append(rewards, episode_reward)
-            self.writer.add_scalar("General episode info/rewards", episode_reward, id_episode)
-            self.writer.add_scalar("General episode info/episode length", ep_len, id_episode)
+            wandb.log({
+                "General episode info/rewards": episode_reward,
+                "General episode info/episode length": ep_len
+            })
             id_episode += 1
         
         # plot the rewards
-        if self.plot and not self.writer:
+        if self.plot:
             # TODO: change that, it is temporary. We plot the evolution
             # region lighting rate
             if self.session_type == "Abaddon test":
@@ -364,15 +361,10 @@ class Session:
                 avg_reward = Session._average_rewards(rewards)
                 avg_reward = np.array(avg_reward)
                 plt.plot(avg_reward)
-                #avg_reward = torch.Tensor(avg_reward)
-                #img_grid = torchvision.utils.make_grid(avg_reward.T)
-                
-                #writer.add_image(img_grid)
-                #writer.close()
             plt.show()
 
         if self.environment_type == "probe":
-            self.environment.show_probe_env_result(self.agent)
+            self.environment.show_result(self.agent)
             
             
             #print(episode_reward)
@@ -430,7 +422,7 @@ class Session:
                     self.agent.learn_from_experience()
                 
                 if self.environment_type == "probe":
-                    self.environment.plot_probe_envs(episode_id, self.agent)
+                    self.environment.plot(episode_id, self.agent)
                 
                 return episode_reward, success, ep_len
 
@@ -532,7 +524,7 @@ if __name__ == "__main__":
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
-    data = get_params("ddpg_params")
+    data = get_params("probe/ddpg_params")
     session_parameters = data["session_info"]
     session_parameters["agent_info"] = data["agent_info"]
     #session_parameters["environment_info"] = data["environment_info"]

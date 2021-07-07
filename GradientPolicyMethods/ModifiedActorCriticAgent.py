@@ -1,7 +1,7 @@
-from GradientPolicyMethods.PolicyEstimator import *
+from #GradientPolicyMethods.PolicyEstimator import *
 from DQN.DQN import *
-from GradientPolicyMethods.BaselineNetwork import *
-from DQN.CustomNeuralNetwork import *
+from #GradientPolicyMethods.BaselineNetwork import *
+from CustomNeuralNetwork import *
 
 class ActorCriticAgent:
     def __init__(self, params={}):

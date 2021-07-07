@@ -2,6 +2,8 @@ from CustomNeuralNetwork import CustomNeuralNetwork
 import numpy as np
 import torch
 from torch.distributions import Categorical
+import wandb
+#from typing import Number
 
 
 MSELoss = torch.nn.MSELoss()
@@ -24,7 +26,6 @@ class PPOAgent:
 
         self.seed = None
 
-        self.writer = None
         self.tot_timestep = 0
 
         self.clipping = None
@@ -44,6 +45,8 @@ class PPOAgent:
         self.initialize_policy_estimator(params.get("policy_estimator_info"))
         self.initialize_function_approximator(params.get(
             "function_approximator_info"))
+        wandb.watch(self.policy_estimator, log_freq=100)
+        wandb.watch(self.function_approximator, log_freq=100)
 
         self.memory_size = params.get("memory_size", 200)
         self.state_dim = params.get("state_dim", 4)
@@ -136,13 +139,9 @@ class PPOAgent:
                 policy_loss = - policy_loss.mean() # OK
                 
                 entropy = -(torch.sum(probs_new * torch.log(probs_new), dim=1, keepdim=True).mean())
-                self.writer.add_scalar("Agent info/policy entropy", entropy, self.tot_timestep)
                 entropy_loss = entropy * self.entropy_coeff
                 self.policy_estimator.backpropagate(policy_loss + entropy_loss)
 
-                self.writer.add_scalar("Agent info/actor loss", policy_loss, self.tot_timestep)
-                self.policy_estimator.add_state_to_history()
-                self.write_layers_info(self.policy_estimator)
                 
                 # TODO: clip the state value variation. nb: only openai does that.
                 # delta_state_value = self.function_approximator_eval(batch_state) - prev_state_value
@@ -153,10 +152,10 @@ class PPOAgent:
                 value_loss *= self.value_coeff
                 self.function_approximator.backpropagate(value_loss)
                 
-                self.writer.add_scalar("Agent info/critic loss", value_loss, self.tot_timestep)
-                # save the state of the nn for plotting purposes
-                self.function_approximator.add_state_to_history()
-                self.write_layers_info(self.function_approximator)
+                wandb.log({
+                    'Agent info/critic loss': value_loss,
+                    'Agent info/actor loss': policy_loss,
+                    'Agent info/policy entropy': entropy})
 
                 self.reset_memory()
                 
@@ -166,7 +165,7 @@ class PPOAgent:
 
     # ====== Action choice related functions ===========================
 
-    def choose_action(self, state) -> Number:
+    def choose_action(self, state) -> int:
         action_probs = Categorical(self.policy_estimator(state))
         action_chosen = action_probs.sample()
         return action_chosen.item()
@@ -212,48 +211,5 @@ class PPOAgent:
         else: 
             state_value = self.function_approximator(state).data
         return state_value
-
-    def log_model(self, writer):
-        data = torch.zeros(self.state_dim)
-        writer.add_graph(self.function_approximator, data)
-
-    def write_layers_info(self, model: CustomNeuralNetwork):
-        weight_mean = model.history[:,0,0,0]
-        for state in model.history:
-            pass
-        for layer in model.layers:
-            pass
-            #under_line = weight.mean() - weight_std_error
-            #over_line = weight.mean() + weight_std_error
-
-            # make a matplotlib plot containing layer info
-            """ found in Experiment l116
-            mean_sessions = np.mean(session_reward, axis=0)
-            smooth_mean_sessions = self._smooth_curve(mean_sessions)
-            std_deviation_sessions = np.std(session_reward, axis=0)
-            std_error_sessions = 1.96*(std_deviation_sessions / math.sqrt(len(session_reward)))
-            smooth_std_error_sessions = self._smooth_curve(std_error_sessions)
-            # plot the std error
-            under_line = smooth_mean_sessions - smooth_std_error_sessions
-            over_line = smooth_mean_sessions + smooth_std_error_sessions
-            x_axis = np.arange(len(smooth_mean_sessions))
-            plt.fill_between(x_axis, under_line, over_line, alpha=.1)
-            # plot the mean
-            plt.plot(smooth_mean_sessions.T, linewidth=2)
-            """
-            # send this plot to tensorboard
-            """add_figure(tag, figure, global_step=None, close=True, walltime=None)
-            tag (string) – Data identifier
-
-            figure (matplotlib.pyplot.figure) – Figure or a list of figures
-
-            global_step (int) – Global step value to record
-
-            close (bool) – Flag to automatically close the figure
-
-            walltime (float) – Optional override default walltime (time.time()) seconds after epoch of event
-            """
-            pass
-
         
 

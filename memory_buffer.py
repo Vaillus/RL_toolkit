@@ -3,7 +3,7 @@ import torch
 from typing import NamedTuple, Optional
 from collections import namedtuple
 
-from torch._C import float32
+#from torch._C import float32
 
 
 class ReplayBufferSamples(NamedTuple): # Not sure how I would use it.
@@ -62,7 +62,7 @@ class ReplayBuffer:
     def store_transition(self, obs, action, reward, next_obs, done):
         # store a transition (SARS' + is_terminal) in the memory
         self.observations[self.pos] = obs
-        self.actions[self.pos] = action
+        self.actions[self.pos] = action.detach().cpu().numpy()
         self.rewards[self.pos] = reward
         self.next_observations[self.pos] = next_obs
         self.dones[self.pos] = done
