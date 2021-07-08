@@ -35,11 +35,11 @@ class ReplayBuffer:
         self.batch_size = batch_size
         self.pos = 0
         self.full = False
-        self.observations = np.zeros((self.size, self.obs_dim), dtype=np.float32)
-        self.actions = np.zeros((self.size, self.action_dim)) # TODO: add type later
-        self.rewards = np.zeros((self.size), dtype=np.float32)
-        self.next_observations = np.zeros((self.size, self.obs_dim), dtype=np.float32)
-        self.dones = np.zeros((self.size), dtype=np.bool)
+        self.observations = torch.zeros((self.size, self.obs_dim), dtype=torch.float32)
+        self.actions = torch.zeros((self.size, self.action_dim)) # TODO: add type later
+        self.rewards = torch.zeros((self.size), dtype=torch.float32)
+        self.next_observations = torch.zeros((self.size, self.obs_dim), dtype=torch.float32)
+        self.dones = torch.zeros((self.size), dtype=torch.bool)
 
     def sample(self) -> ReplayBufferSamples:
         """Sample a batch of transitions.
@@ -61,10 +61,10 @@ class ReplayBuffer:
     
     def store_transition(self, obs, action, reward, next_obs, done):
         # store a transition (SARS' + is_terminal) in the memory
-        self.observations[self.pos] = obs
-        self.actions[self.pos] = action.detach().cpu().numpy()
+        self.observations[self.pos] = torch.Tensor(obs)
+        self.actions[self.pos] = action#.detach().cpu().numpy()
         self.rewards[self.pos] = reward
-        self.next_observations[self.pos] = next_obs
+        self.next_observations[self.pos] = torch.Tensor(next_obs)
         self.dones[self.pos] = done
         self._incr_mem_cnt()
         

@@ -208,7 +208,7 @@ class DDPGAgent:
 
 
     def _concat_obs_action(self, obs:torch.Tensor, action:torch.Tensor) -> torch.Tensor:
-        obs_action = torch.cat((obs, action.unsqueeze(1)),1)
+        obs_action = torch.cat((obs, action), 1)#.unsqueeze(1)),1)
         return obs_action
     
     def get_state_value_eval(self, state:torch.Tensor):
@@ -244,4 +244,3 @@ class DDPGAgent:
         # clip the normal distribution
         noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
         return noise
-

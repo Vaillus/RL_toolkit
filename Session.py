@@ -8,12 +8,8 @@ from GradientPolicyMethods.DDPGAgent import *
 from AbaddonAgent import *
 import gym
 import matplotlib.pyplot as plt
-import json
-import torchvision
 
 import os
-import pathlib
-import sys
 
 import GodotEnvironment as godot
 from probe_env import DiscreteProbeEnv, ContinuousProbeEnv

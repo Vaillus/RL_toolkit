@@ -1,0 +1,22 @@
+{
+    "os": "Linux-4.19.128-microsoft-standard-x86_64-with-glibc2.29",
+    "python": "3.8.5",
+    "heartbeatAt": "2021-07-08T16:32:10.671293",
+    "startedAt": "2021-07-08T16:32:02.633246",
+    "docker": null,
+    "cpu_count": 4,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/home/vaillus/projects/RL_toolkit/Session.py",
+    "codePath": "Session.py",
+    "git": {
+        "remote": "git@github.com:Vaillus/RL_toolkit.git",
+        "commit": "ee4ac54a0e665492f6e619d41a7aff4bff1e5958"
+    },
+    "email": "hugovaillaud@gmail.com",
+    "root": "/home/vaillus/projects/RL_toolkit",
+    "host": "LAPTOP-OJ5I9S4B",
+    "username": "vaillus",
+    "executable": "/usr/bin/python3"
+}

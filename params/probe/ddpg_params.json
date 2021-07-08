@@ -9,7 +9,7 @@
     "environment_name": "one",
     "return_results": true,
     "use_tensorboard": false,
-    "use_wandb": true,
+    "use_wandb": false,
     "wandb_project": "test"
   },
   "agent_info":{
