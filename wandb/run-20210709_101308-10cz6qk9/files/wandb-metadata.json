@@ -1,0 +1,24 @@
+{
+    "os": "Linux-5.10.43.3-microsoft-standard-WSL2-x86_64-with-glibc2.29",
+    "python": "3.8.5",
+    "heartbeatAt": "2021-07-09T08:13:10.818276",
+    "startedAt": "2021-07-09T08:13:08.062425",
+    "docker": null,
+    "gpu": "NVIDIA GeForce RTX 3070",
+    "gpu_count": 1,
+    "cpu_count": 16,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/home/vaillus/projects/RL_toolkit/Session.py",
+    "codePath": "Session.py",
+    "git": {
+        "remote": "git@github.com:Vaillus/RL_toolkit.git",
+        "commit": "04f115480a2fad08a0141776c0c8911a6d837881"
+    },
+    "email": "hugovaillaud@gmail.com",
+    "root": "/home/vaillus/projects/RL_toolkit",
+    "host": "NyanCat",
+    "username": "vaillus",
+    "executable": "/usr/bin/python3"
+}

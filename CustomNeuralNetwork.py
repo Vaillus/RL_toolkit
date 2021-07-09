@@ -79,7 +79,7 @@ class CustomNeuralNetwork(nn.Module):
 
     def backpropagate(self, loss):
         self.optimizer.zero_grad()
-        loss.backward()  # il faut que la loss ait une seule valeur.
+        loss.backward()
         self.optimizer.step()
 
     # === functions related to gradient logging and plotting ===========

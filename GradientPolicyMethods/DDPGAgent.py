@@ -181,29 +181,29 @@ class DDPGAgent:
             batch_oa = self._concat_obs_action(batch.observations, batch.actions)
             q_eval = self.critic(batch_oa)
             # values of the actions at the next step
-            q_next = self.critic_target(batch.next_observations).detach()
+            q_next = self.critic_target(batch_oa)
             q_next = self._zero_terminal_states(q_next, batch.next_observations)
             noise = self._create_noise_tensor(batch.actions)
             q_next += noise
             # Q containing only the max value of q in next step
             q_target = batch.rewards + self.discount_factor * q_next
             # computing the loss
-            critic_loss = self.loss_func(q_eval, q_target)
+            critic_loss = self.loss_func(q_eval, q_target.detach())
 
             self.critic.backpropagate(critic_loss)
             
             actions = self.actor(batch.observations)
-            actor_loss = - self.critic(batch.observations, actions).mean()
+            batch_oa = self._concat_obs_action(batch.observations, actions)
+            actor_loss = - self.critic(batch_oa).mean()
             self.actor.backpropagate(actor_loss)
 
             # residual variance for plotting purposes (not sure if it is correct)
-            q_res = self.target_net(batch.observations).gather(1, batch.actions.long())
-            res_var = torch.var(q_res - q_eval) / torch.var(q_res)
+            #q_res = self.target_net(batch.observations).gather(1, batch.actions.long())
+            #res_var = torch.var(q_res - q_eval) / torch.var(q_res)
 
             wandb.log({
                 "Agent info/critic loss": critic_loss,
-                "Agent info/actor loss": actor_loss,
-                "Agent info/residual variance": res_var
+                "Agent info/actor loss": actor_loss
             })
 
 
@@ -218,8 +218,8 @@ class DDPGAgent:
         sec_action = torch.tensor([0.75])
         first_stt_act = torch.cat((state, first_action))
         sec_stt_act = torch.cat((state, sec_action))
-        first_action_value = self.critic(first_stt_act).data
-        sec_action_value = self.critic(sec_stt_act).data
+        first_action_value = self.critic(first_stt_act).detach().data
+        sec_action_value = self.critic(sec_stt_act).detach().data
         return [first_action_value, sec_action_value]
     
     def get_action_values_eval(self, state:torch.Tensor, actions:torch.Tensor):

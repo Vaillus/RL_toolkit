@@ -1,7 +1,7 @@
 {
   "session_info":{
     "session_type": "DDPG",
-    "num_timesteps": 1500000,
+    "num_timesteps": 20000,
     "plot": false,
     "show": false,
     "show_every": 1000,
@@ -9,7 +9,7 @@
     "environment_name": "one",
     "return_results": true,
     "use_tensorboard": false,
-    "use_wandb": false,
+    "use_wandb": true,
     "wandb_project": "test"
   },
   "agent_info":{

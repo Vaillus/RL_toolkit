@@ -1,0 +1,1 @@
+{"Probe/Value of state 0": [0.3915340006351471, 0.3967632055282593], "_runtime": 15, "_timestamp": 1625823449, "_step": 20000, "General episode info/rewards": 1.0, "General episode info/episode length": 1, "Agent info/critic loss": 1.0014495849609375, "Agent info/actor loss": -0.3881359398365021}

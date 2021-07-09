@@ -51,11 +51,11 @@ class ReplayBuffer:
         sample_index = np.random.choice(self.size, self.batch_size)
 
         sample = ReplayBufferSample
-        sample.observations = self.observations[sample_index]
-        sample.actions = self.actions[sample_index]
-        sample.rewards = self.rewards[sample_index]
-        sample.next_observations = self.next_observations[sample_index]
-        sample.dones = self.dones[sample_index]
+        sample.observations = self.observations[sample_index].detach()
+        sample.actions = self.actions[sample_index].detach()
+        sample.rewards = self.rewards[sample_index].detach()
+        sample.next_observations = self.next_observations[sample_index].detach()
+        sample.dones = self.dones[sample_index].detach()
 
         return sample
     
