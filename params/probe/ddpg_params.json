@@ -11,6 +11,7 @@
     "use_wandb": true,
     "wandb_project": "test"
   },
+  "env_info":  {},
   "agent_info":{
     "discount_factor": 0.99,
     "num_actions": 1,

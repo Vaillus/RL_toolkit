@@ -1,21 +1,14 @@
-from TDAgent import *
-from DQN.DQNAgent import *
-from GradientPolicyMethods.REINFORCEAgent import *
-from GradientPolicyMethods.REINFORCEAgentWithBaseline import *
-from GradientPolicyMethods.ActorCriticAgent import *
-from GradientPolicyMethods.PPOAgent import *
-from GradientPolicyMethods.DDPGAgent import *
-from AbaddonAgent import *
 import gym
 import matplotlib.pyplot as plt
 
 import os
 
 import GodotEnvironment as godot
-from probe_env import DiscreteProbeEnv, ContinuousProbeEnv
 
 from typing import Dict, Any, Optional
 
+from agent import Agent
+from environment import Environment
 
 from utils import *
 
@@ -37,6 +30,9 @@ def reward_func(env, x, x_dot, theta, theta_dot):
     reward = r1 + r2
     return reward
 
+
+
+
 class Session:
 
     def __init__(
@@ -55,7 +51,6 @@ class Session:
         seed: Optional[int] = 0,
         env_kwargs: Optional[Dict[str, Any]] = {},
         agent_kwargs: Optional[Dict[str, Any]] = {}
-        
     ):
         self.agent = None
         self.environment_type = environment_type
@@ -85,22 +80,21 @@ class Session:
     # ====== Initialization functions ==================================
 
 
-    def _set_env_and_agent(self, params):
-        env_params = params.get("environment_info", {})
-        action_type = params.get("action_type", "discrete")
-        self._init_env(env_params, action_type)
+    def _set_env_and_agent(self, env_kwargs, agent_kwargs):
+        self.env = self._init_env(env_kwargs)
 
         agent_params = params.get("agent_info", {})
         agent_params["seed"] = self.seed
         self._init_agent(agent_params)
     
-    def _init_env(self, env_params:Dict[str, Any], action_type: str):
+    def _init_env(self, env_kwargs:Dict[str, Any], action_type: str):
         """the environment is set differently if it's a gym environment 
         or a godot environment.
 
         Args:
             env_params (dict): used only in case of a godot env.
         """
+        env = Environment()
         if self.environment_type == "gym":
             self.environment = gym.make(self.environment_name)
             self.environment.seed(self.seed)
@@ -195,10 +189,7 @@ class Session:
         if seed:
             self.seed = seed
             set_random_seed(seed)
-            if self.environment_type == "gym":
-                self.environment.seed(seed)
-            else:
-                self.environment.set_seed(seed)
+            self.environment.set_seed(seed)
             if self.is_multiagent:
                 for agent_name in self.agents_names:
                     self.agent[agent_name].set_seed(seed)
@@ -207,122 +198,7 @@ class Session:
 
 
 
-    # ====== Agent execution functions =================================
-
-
-
-    def get_agent_action(self, state_data, reward_data=None, start=False):
-        """ Get the agent(s) action in response to the state and reward data.
-
-        Args:
-            state_data (dict)
-            reward_data (dict, optional): Defaults to None.
-            start (bool, optional): indocate if it's the first transition
-                                    Defaults to False.
-
-        Returns:
-            dict: contains action(s) data
-        """
-        if self.is_multiagent:
-            action_data = self._get_multiagent_action(state_data=state_data,
-                                                    reward_data=reward_data,
-                                                    start=start)
-        else:
-            # in case it is a godot env
-            if self.environment_type == "godot":
-                agent_name = state_data[0]["name"]
-                state_data = state_data[0]["state"]
-                if not start:
-                    reward_data = reward_data[0]['reward']
-            # in every case
-            action_data = self._get_single_agent_action(agent=self.agent, 
-                                        state_data=state_data, 
-                                        reward_data=reward_data, 
-                                        start=start)
-            # if env is abaddon, format further
-            # TODO: about to change
-            if self.environment_type == "godot":
-                if self.environment_name == "Abaddon-Test-v0":
-                    action_data = {
-                        "sensor_name": "Radar",
-                        "action_name": "dwell",
-                        "angle": int(action_data)
-                    }
-                    action_data = [{"agent_name": agent_name, "action": action_data}]
-            
-        return action_data
     
-    def _get_multiagent_action(self, state_data, reward_data=None, start=False):
-        """ distribute states to all agents and get their actions back.
-
-        Args:
-            state_data (dict)
-            reward_data (dict, optional): Defaults to None.
-            start (bool, optional): indicates whether it is the first 
-                step of the agent. Defaults to False.
-
-        Returns:
-            dict
-        """
-        action_data = []
-        # for each agent, get 
-        for n_agent in range(len(state_data)):
-            agent_name = state_data[n_agent]["name"]
-            agent_state = state_data[n_agent]["state"]
-            agent_reward = None
-            if not start:
-                agent_reward = reward_data[n_agent]['reward']
-            action = self._get_single_agent_action(agent=self.agent[agent_name], 
-                                                    state_data=agent_state, 
-                                                    reward_data=agent_reward, 
-                                                    start=start)
-            action_data.append({"name": agent_name, "action": action})
-        return action_data
-      
-    def _get_single_agent_action(self, agent, state_data, reward_data=None, start=False):
-        """if this is the first state of the episode, get the first 
-        action of the agent else, also give reward of the previous 
-        action to complete the previous transition.
-
-        Args:
-            agent (Agent)
-            state_data (dict)
-            reward_data (dict, optional): Defaults to None.
-            start (bool, optional): indicates whether it is the first 
-                                    step of the agent. Defaults to False.
-
-        Returns:
-            int : id of action taken
-        """
-        if start is True:
-            action_data = agent.start(state_data)
-        else:
-            action_data = agent.step(state_data, reward_data)
-        return action_data
-
-    def end_agent(self, state_data, reward_data):
-        if self.is_multiagent:
-            self.end_multiagent(state_data, reward_data)
-        else:
-            self.agent.end(state_data, reward_data)
-        
-    def end_multiagent(self, state_data, reward_data):
-        """send the terminal state and the final reward to every agent 
-        so they can complete their last transitions
-
-        Args:
-            state_data (dict)
-            reward_data (dict)
-        """
-        for n_agent in range(len(state_data)):
-                agent_name = state_data[n_agent]["name"]
-                agent_state = state_data[n_agent]["state"]
-                agent_reward = reward_data[n_agent]["reward"]
-
-                self.agent[agent_name].end(agent_state, agent_reward)
-
-
-
     # ==== Main loop functions =========================================
     
 
@@ -364,7 +240,7 @@ class Session:
                 plt.plot(avg_reward)
             plt.show()
 
-        if self.environment_type == "probe":
+        if self.environment.type == "probe":
             self.environment.show_result(self.agent)
             
             
@@ -388,7 +264,7 @@ class Session:
         """
         # get the first env state and the action that takes the agent
         self.print_episode_count(episode_id=episode_id)
-        state_data = self.env_reset(episode_id=episode_id)
+        state_data = self.environment.reset(episode_id=episode_id)
         action_data = self.get_agent_action(state_data, start=True)
         # declaration of variables useful in the loop
         episode_reward = 0
@@ -408,7 +284,7 @@ class Session:
             # save the reward
             episode_reward = self._save_reward(episode_reward, reward_data)
             # render environment (gym environments only)
-            self.render_gym_env(episode_id)
+            self.environment.render_gym(episode_id)
 
             if not done:
                 # get the action if it's not the last step
@@ -433,23 +309,7 @@ class Session:
 
 
 
-    def env_reset(self, episode_id):               
-        """ Reset the environment, in both godot and gym case
-        """
-        if self.environment_type == "godot":
-            state_data = self.godot_env_reset(episode_id)
-        else:
-            state_data = self.environment.reset()
-        return state_data
-
-    def godot_env_reset(self, episode_id):
-        """ set the right render type for the godot env episode
-        """
-        render = False
-        if (self.show is True) and (episode_id % self.show_every == 0):
-            render = True
-        state_data = self.environment.reset(render)
-        return state_data
+    
     
     def print_episode_count(self, episode_id):
         if ((self.show is True) and (episode_id % self.show_every == 0)):
@@ -483,12 +343,6 @@ class Session:
         else:
             episode_reward += reward_data
         return episode_reward
-    
-    def render_gym_env(self, episode_id):
-        """ render environment (gym environments only) if specified so
-        """
-        if (self.show is True) and (episode_id % self.show_every == 0) and (self.environment_type == "gym"):
-            self.environment.render()
     
     def assess_mountain_car_success(self, new_state_data):
         """ if the environment is mountaincar, assess whether the agent succeeded
