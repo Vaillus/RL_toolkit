@@ -8,7 +8,6 @@
     "environment_type": "probe",
     "environment_name": "one",
     "return_results": true,
-    "use_tensorboard": false,
     "use_wandb": true,
     "wandb_project": "test"
   },

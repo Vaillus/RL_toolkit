@@ -14,9 +14,8 @@ import os
 import GodotEnvironment as godot
 from probe_env import DiscreteProbeEnv, ContinuousProbeEnv
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
-#import stable_baselines3
 
 from utils import *
 
@@ -39,47 +38,53 @@ def reward_func(env, x, x_dot, theta, theta_dot):
     return reward
 
 class Session:
-    def __init__(self, params={}):
+
+    def __init__(
+        self,
+        session_type: str,
+        num_timestep: int,
+        plot: Optional[bool] = True,
+        show: Optional[bool] = True,
+        show_every: Optional[int] = 10,
+        return_results: Optional[bool] = True,
+        environment_type: Optional[str] = "gym",
+        environment_name: Optional[str] = "CartPole-v1",
+        wandb: Optional[bool] = False,
+        wandb_name : Optional[str] = "",
+        is_multiagent: Optional[bool] = False,
+        seed: Optional[int] = 0,
+        env_kwargs: Optional[Dict[str, Any]] = {},
+        agent_kwargs: Optional[Dict[str, Any]] = {}
+        
+    ):
         self.agent = None
-        self.environment_type = None
-        self.environment_name = None
+        self.environment_type = environment_type
+        self.environment_name = environment_name
         self.environment = None
 
-        self.session_type = None
-        self.is_multiagent = None
+        self.session_type = session_type
+        self.is_multiagent = is_multiagent
 
-        self.show = None
-        self.show_every = None
+        self.show = show
+        self.show_every = show_every
 
-        self.plot = None
-        self.return_results = None
+        self.plot = plot
+        self.return_results = return_results
 
-        self.seed = None
+        self.seed = seed
         self.tot_timestep = 0
-        self.max_timestep = None
+        self.max_timestep = num_timestep
 
-        self.set_params_from_dict(params=params)
-        self._set_env_and_agent(params)
+        self.wandb = wandb
+        if self.wandb:
+            init_wandb_project(wandb_name)
+
+        self._set_env_and_agent(env_kwargs, agent_kwargs)
         
 
     # ====== Initialization functions ==================================
 
-    def set_params_from_dict(self, params={}):
-        self.show = params.get("show", False)
-        self.show_every = params.get("show_every", 10)
-        self.environment_type = params.get("environment_type", "gym")
-        self.environment_name = params.get("environment_name", "MountainCar-v0")
-        self.plot = params.get("plot", False)
-        self.return_results = params.get("return_results", False)
-        self.session_type = params.get("session_type", "REINFORCE")
-        self.is_multiagent = params.get("is_multiagent", False)
-        self.max_timestep = params.get("num_timesteps", 1000)
-        self._init_seed(params.get("seed", None))
 
-        if params.get("use_wandb", False):
-            wandb_name = params.get("wandb_name", "")
-            init_wandb_project(wandb_name)
- 
     def _set_env_and_agent(self, params):
         env_params = params.get("environment_info", {})
         action_type = params.get("action_type", "discrete")
@@ -525,7 +530,7 @@ if __name__ == "__main__":
     session_parameters["agent_info"] = data["agent_info"]
     #session_parameters["environment_info"] = data["environment_info"]
 
-    sess = Session(session_parameters)
+    sess = Session(**session_parameters)
     #sess.set_seed(1)
     #print(sess.agent.policy_estimator.layers[0].weight)
     sess.run()  
