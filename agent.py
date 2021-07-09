@@ -16,6 +16,78 @@ class Agent:
     ):
         self.type = type
         self.is_multiagent = is_multiagent
+        self.agent = self._init_agent()
+
+    def _init_agent(self, agent_params):
+        """initialize one or several agents
+
+        Args:
+            agent_params (dict)
+        """
+        if self.is_multiagent:
+            # TODO: the following line only works with godot
+            self.agents_names = self.environment.agent_names
+            self._init_multiagent(agent_params)
+        else:
+            self.agent = self._init_single_agent(agent_params)
+
+    def _init_multiagent(self, agent_params):
+        self.agent = {}
+        for agent_name in self.agents_names:
+            self.agent[agent_name] = self._init_single_agent(agent_params)
+
+
+    def _init_single_agent(self, agent_params):
+        """Create and return an agent. The type of agent depends on the 
+        self.session_type parameter
+        Args:
+            agent_params (dict)
+
+        Returns:
+            Agent: the agent initialized
+        """
+        agent = None
+        if self.session_type == "DQN":
+            agent = DQNAgent(agent_params)
+        elif self.session_type == "tile coder test":
+            agent = self._init_tc_agent(agent_params)
+        elif self.session_type == "REINFORCE":
+            agent = REINFORCEAgent(agent_params)
+        elif self.session_type == "REINFORCE with baseline":
+            agent = REINFORCEAgentWithBaseline(agent_params)
+        elif self.session_type == "actor-critic":
+            agent = ActorCriticAgent(agent_params)
+        elif self.session_type == "Abaddon test":
+            agent = AbaddonAgent(agent_params)
+        elif self.session_type == "PPO":
+            agent = PPOAgent(agent_params)
+        elif self.session_type == "DDPG":
+            agent = DDPGAgent(agent_params)
+        else:
+            print("agent not initialized")
+        return agent
+    
+    def _init_tc_agent(self, agent_params):
+        """initialization of a tile coder agent, which depends on the 
+        gym environment
+
+        Args:
+            agent_params (dict)
+
+        Returns:
+            Agent
+        """
+        assert self.environment_name == "gym", "tile coder not supported for godot environments"
+        
+        params["agent_info"]["function_approximator_info"]["env_min_values"] = \
+            self.environment.observation_space.low
+        params["agent_info"]["function_approximator_info"]["env_max_values"] = \
+            self.environment.observation_space.high
+        agent = TDAgent(agent_params)
+         
+        return agent
+
+
 
     # ====== Agent execution functions =================================
 

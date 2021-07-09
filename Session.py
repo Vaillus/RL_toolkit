@@ -43,8 +43,6 @@ class Session:
         show: Optional[bool] = True,
         show_every: Optional[int] = 10,
         return_results: Optional[bool] = True,
-        environment_type: Optional[str] = "gym",
-        environment_name: Optional[str] = "CartPole-v1",
         wandb: Optional[bool] = False,
         wandb_name : Optional[str] = "",
         is_multiagent: Optional[bool] = False,
@@ -52,13 +50,12 @@ class Session:
         env_kwargs: Optional[Dict[str, Any]] = {},
         agent_kwargs: Optional[Dict[str, Any]] = {}
     ):
-        self.agent = None
-        self.environment_type = environment_type
-        self.environment_name = environment_name
-        self.environment = None
+        self.environment = Environment(**env_kwargs)
 
         self.session_type = session_type
         self.is_multiagent = is_multiagent
+        agent_kwargs["seed"] = seed
+        self.agent = Agent(**agent_kwargs)
 
         self.show = show
         self.show_every = show_every
@@ -78,104 +75,8 @@ class Session:
         
 
     # ====== Initialization functions ==================================
-
-
-    def _set_env_and_agent(self, env_kwargs, agent_kwargs):
-        self.env = self._init_env(env_kwargs)
-
-        agent_params = params.get("agent_info", {})
-        agent_params["seed"] = self.seed
-        self._init_agent(agent_params)
     
-    def _init_env(self, env_kwargs:Dict[str, Any], action_type: str):
-        """the environment is set differently if it's a gym environment 
-        or a godot environment.
-
-        Args:
-            env_params (dict): used only in case of a godot env.
-        """
-        env = Environment()
-        if self.environment_type == "gym":
-            self.environment = gym.make(self.environment_name)
-            self.environment.seed(self.seed)
-        elif self.environment_type == "godot":
-            self.environment = godot.GodotEnvironment(env_params)
-            self.environment.set_seed(self.seed)
-        elif self.environment_type == "probe":
-            if action_type == "discrete":
-                self.environment = DiscreteProbeEnv(self.environment_name)
-            elif action_type == "continuous":
-                self.environment = ContinuousProbeEnv(self.environment_name)
-    
-    def _init_agent(self, agent_params):
-        """initialize one or several agents
-
-        Args:
-            agent_params (dict)
-        """
-        if self.is_multiagent:
-            # TODO: the following line only works with godot
-            self.agents_names = self.environment.agent_names
-            self._init_multiagent(agent_params)
-        else:
-            self.agent = self._init_single_agent(agent_params)
-
-    def _init_multiagent(self, agent_params):
-        self.agent = {}
-        for agent_name in self.agents_names:
-            self.agent[agent_name] = self._init_single_agent(agent_params)
-
-
-    def _init_single_agent(self, agent_params):
-        """Create and return an agent. The type of agent depends on the 
-        self.session_type parameter
-        Args:
-            agent_params (dict)
-
-        Returns:
-            Agent: the agent initialized
-        """
-        agent = None
-        if self.session_type == "DQN":
-            agent = DQNAgent(agent_params)
-        elif self.session_type == "tile coder test":
-            agent = self._init_tc_agent(agent_params)
-        elif self.session_type == "REINFORCE":
-            agent = REINFORCEAgent(agent_params)
-        elif self.session_type == "REINFORCE with baseline":
-            agent = REINFORCEAgentWithBaseline(agent_params)
-        elif self.session_type == "actor-critic":
-            agent = ActorCriticAgent(agent_params)
-        elif self.session_type == "Abaddon test":
-            agent = AbaddonAgent(agent_params)
-        elif self.session_type == "PPO":
-            agent = PPOAgent(agent_params)
-        elif self.session_type == "DDPG":
-            agent = DDPGAgent(agent_params)
-        else:
-            print("agent not initialized")
-        return agent
-    
-    def _init_tc_agent(self, agent_params):
-        """initialization of a tile coder agent, which depends on the 
-        gym environment
-
-        Args:
-            agent_params (dict)
-
-        Returns:
-            Agent
-        """
-        assert self.environment_name == "gym", "tile coder not supported for godot environments"
-        
-        params["agent_info"]["function_approximator_info"]["env_min_values"] = \
-            self.environment.observation_space.low
-        params["agent_info"]["function_approximator_info"]["env_max_values"] = \
-            self.environment.observation_space.high
-        agent = TDAgent(agent_params)
-         
-        return agent
-
+   
     def _init_seed(self, seed):
         self.seed = seed
 
@@ -309,8 +210,6 @@ class Session:
 
 
 
-    
-    
     def print_episode_count(self, episode_id):
         if ((self.show is True) and (episode_id % self.show_every == 0)):
             print(f'EPISODE: {episode_id}')
@@ -381,8 +280,8 @@ if __name__ == "__main__":
 
     data = get_params("probe/ddpg_params")
     session_parameters = data["session_info"]
-    session_parameters["agent_info"] = data["agent_info"]
-    #session_parameters["environment_info"] = data["environment_info"]
+    session_parameters["agent_kwargs"] = data["agent_info"]
+    session_parameters["env_kwargs"] = data["environment_info"]
 
     sess = Session(**session_parameters)
     #sess.set_seed(1)

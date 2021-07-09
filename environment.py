@@ -2,7 +2,6 @@ import gym
 from GodotEnvironment import GodotEnvironment
 from probe_env import DiscreteProbeEnv, ContinuousProbeEnv
 from typing import Optional, Any
-import re
 
 
 class Environment:
