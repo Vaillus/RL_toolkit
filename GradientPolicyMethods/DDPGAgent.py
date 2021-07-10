@@ -9,13 +9,7 @@ import wandb
 
 class DDPGAgent:
     def __init__(self, params={}):
-        # parameters to be set from params dict
-        self.epsilon = None
         self.num_actions = None
-        self.is_greedy = None
-        self.function_approximator = None
-        self.is_vanilla = None
-
         # parameters not set at initilization
         self.previous_action = None
         self.previous_obs = None
@@ -44,17 +38,11 @@ class DDPGAgent:
 
         self.set_params_from_dict(params)
 
-        self.set_other_params()
-
     # ====== Initialization functions ==================================
 
     def set_params_from_dict(self, params={}):
-        self.epsilon = params.get("epsilon", 0.9)
-        self.num_actions = params.get("num_actions", 0)
-        self.is_greedy = params.get("is_greedy", False)
-        self.is_vanilla = params.get("is_vanilla", False)
         self.init_seed(params.get("seed", None))
-
+        self.num_actions = params.get("num_actions", 1)
         self.state_dim = params.get("state_dim", 4)
         self.update_target_rate = params.get("update_target_rate", 50)
         self.discount_factor = params.get("discount_factor", 0.995)
@@ -65,18 +53,10 @@ class DDPGAgent:
         replay_buffer_params = params.get("memory_info", {})
         self.init_memory_buffer(replay_buffer_params)
 
-        self.memory_size = params.get("memory_size", 200)
-        self.batch_size = params.get("batch_size", 64)
-
         self.min_action = params.get("min_action", 0.0) # will probably get rid of these two.
         self.max_action = params.get("max_action", 0.0)
         self.target_policy_noise = params.get("target_policy_noise", 0.2)
         self.target_noise_clip = params.get("target_noise_clip", 0.5)
-
-    def set_other_params(self):
-        # two slots for the states, + 1 for the reward an the last for 
-        # the action (per memory slot)
-        self.memory = np.zeros((self.memory_size, 2 * self.state_dim + 3))
     
     def init_actor(self, nn_params):
         self.actor = CustomNeuralNetwork(nn_params)
@@ -212,20 +192,20 @@ class DDPGAgent:
         return obs_action
     
     def get_state_value_eval(self, state:torch.Tensor):
-        """for plotting purposes only?
+        """ for plotting purposes only?
         """
-        first_action = torch.tensor([0.25])
-        sec_action = torch.tensor([0.75])
+        first_action = torch.tensor([-0.5])
+        sec_action = torch.tensor([0.5])
         first_stt_act = torch.cat((state, first_action))
         sec_stt_act = torch.cat((state, sec_action))
         first_action_value = self.critic(first_stt_act).detach().data
         sec_action_value = self.critic(sec_stt_act).detach().data
-        return [first_action_value, sec_action_value]
+        return np.mean([first_action_value, sec_action_value])
     
     def get_action_values_eval(self, state:torch.Tensor, actions:torch.Tensor):
-        """for plotting purposes only?
+        """ for plotting purposes only?
         """
-        state = torch.cat((first_state, first_state)).unsqueeze(1)
+        state = torch.cat((state, state)).unsqueeze(1)
         state_action = torch.cat((state, actions.unsqueeze(1)),1)
         action_values = self.critic(state_action).data
         return action_values
