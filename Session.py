@@ -7,8 +7,8 @@ import GodotEnvironment as godot
 
 from typing import Dict, Any, Optional
 
-from agent import Agent
-from environment import Environment
+from agent import AgentInterface
+from environment import EnvInterface
 
 from utils import *
 
@@ -37,7 +37,6 @@ class Session:
 
     def __init__(
         self,
-        session_type: str,
         num_timestep: int,
         plot: Optional[bool] = True,
         show: Optional[bool] = True,
@@ -50,12 +49,11 @@ class Session:
         env_kwargs: Optional[Dict[str, Any]] = {},
         agent_kwargs: Optional[Dict[str, Any]] = {}
     ):
-        self.environment = Environment(**env_kwargs)
+        self.environment = EnvInterface(**env_kwargs)
 
-        self.session_type = session_type
         self.is_multiagent = is_multiagent
         agent_kwargs["seed"] = seed
-        self.agent = Agent(**agent_kwargs)
+        self.agent = AgentInterface(**agent_kwargs)
 
         self.show = show
         self.show_every = show_every
@@ -133,7 +131,7 @@ class Session:
         if self.plot:
             # TODO: change that, it is temporary. We plot the evolution
             # region lighting rate
-            if self.session_type == "Abaddon test":
+            if self.environment.type == "Abaddon":
                 plt.plot(self.environment.metrics["regions"])
             else:
                 avg_reward = Session._average_rewards(rewards)
@@ -166,7 +164,8 @@ class Session:
         # get the first env state and the action that takes the agent
         self.print_episode_count(episode_id=episode_id)
         state_data = self.environment.reset(episode_id=episode_id)
-        action_data = self.get_agent_action(state_data, start=True)
+        action_data = self.agent.get_action(state_data, self.environment.type,
+            self.environment.name, start=True)
         # declaration of variables useful in the loop
         episode_reward = 0
         done = False

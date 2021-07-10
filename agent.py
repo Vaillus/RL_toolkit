@@ -7,16 +7,19 @@ from GradientPolicyMethods.PPOAgent import *
 from GradientPolicyMethods.DDPGAgent import *
 from AbaddonAgent import *
 
+from typing import List, Optional
 
-class Agent:
+
+class AgentInterface:
     def __init__(
         self, 
         type,
         is_multiagent
     ):
+        self.agent = self._init_agent()
         self.type = type
         self.is_multiagent = is_multiagent
-        self.agent = self._init_agent()
+        self.agents_names
 
     def _init_agent(self, agent_params):
         """initialize one or several agents
@@ -39,7 +42,7 @@ class Agent:
 
     def _init_single_agent(self, agent_params):
         """Create and return an agent. The type of agent depends on the 
-        self.session_type parameter
+        self.type parameter
         Args:
             agent_params (dict)
 
@@ -47,35 +50,31 @@ class Agent:
             Agent: the agent initialized
         """
         agent = None
-        if self.session_type == "DQN":
+        if self.type == "DQN":
             agent = DQNAgent(agent_params)
-        elif self.session_type == "tile coder test":
+        elif self.type == "tile coder test":
             agent = self._init_tc_agent(agent_params)
-        elif self.session_type == "REINFORCE":
+        elif self.type == "REINFORCE":
             agent = REINFORCEAgent(agent_params)
-        elif self.session_type == "REINFORCE with baseline":
+        elif self.type == "REINFORCE with baseline":
             agent = REINFORCEAgentWithBaseline(agent_params)
-        elif self.session_type == "actor-critic":
+        elif self.type == "actor-critic":
             agent = ActorCriticAgent(agent_params)
-        elif self.session_type == "Abaddon test":
+        elif self.type == "Abaddon test":
             agent = AbaddonAgent(agent_params)
-        elif self.session_type == "PPO":
+        elif self.type == "PPO":
             agent = PPOAgent(agent_params)
-        elif self.session_type == "DDPG":
+        elif self.type == "DDPG":
             agent = DDPGAgent(agent_params)
         else:
-            print("agent not initialized")
+            raise ValueError(f"agent not initialized because {self.type} is not \
+                recognised")
         return agent
     
     def _init_tc_agent(self, agent_params):
         """initialization of a tile coder agent, which depends on the 
         gym environment
-
-        Args:
-            agent_params (dict)
-
-        Returns:
-            Agent
+        I sould probably get rid of tile coder.
         """
         assert self.environment_name == "gym", "tile coder not supported for godot environments"
         
@@ -91,7 +90,7 @@ class Agent:
 
     # ====== Agent execution functions =================================
 
-    def get_agent_action(
+    def get_action(
         self, state_data, env_type, env_name, reward_data=None, start=False):
         """ Get the agent(s) action in response to the state and reward data.
 
@@ -121,7 +120,7 @@ class Agent:
                                         reward_data=reward_data, 
                                         start=start)
             # if env is Abaddon, format further
-            # TODO: about to change
+            # TODO: about to change. That should not happen here.
             if env_type == "godot":
                 if env_name == "Abaddon-Test-v0":
                     action_data = {
@@ -133,7 +132,12 @@ class Agent:
             
         return action_data
     
-    def _get_multiagent_action(self, state_data, reward_data=None, start=False):
+    def _get_multiagent_action(
+        self, 
+        state_data: List[dict],
+        reward_data: List[dict] = [],
+        start: Optional[bool] = False
+    ):
         """ distribute states to all agents and get their actions back.
 
         Args:
@@ -145,8 +149,12 @@ class Agent:
         Returns:
             dict
         """
+        if not start:
+            assert len(reward_data) == 0, "If it's not the first state, \
+                there should be a reward data"
         action_data = []
-        # for each agent, get 
+        # Isolate state and reward data for each agent and get their actions
+        # individually.
         for n_agent in range(len(state_data)):
             agent_name = state_data[n_agent]["name"]
             agent_state = state_data[n_agent]["state"]
