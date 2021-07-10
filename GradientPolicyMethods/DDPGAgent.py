@@ -191,6 +191,7 @@ class DDPGAgent:
         obs_action = torch.cat((obs, action), 1)#.unsqueeze(1)),1)
         return obs_action
     
+<<<<<<< HEAD
     def get_state_value_eval(self, state:torch.Tensor):
         """ for plotting purposes only?
         """
@@ -201,6 +202,16 @@ class DDPGAgent:
         first_action_value = self.critic(first_stt_act).detach().data
         sec_action_value = self.critic(sec_stt_act).detach().data
         return np.mean([first_action_value, sec_action_value])
+=======
+    def get_action_value_eval(self, state:torch.Tensor):
+        """for plotting purposes only?
+        """
+        action = np.random.uniform(-1, 1, 1)
+        action = torch.Tensor(action)
+        state_action = torch.cat((state, action))
+        action_value = self.critic(state_action).detach().data
+        return action_value
+>>>>>>> f1a4c25872771ee7283256d321e37fe387fb3d35
     
     def get_action_values_eval(self, state:torch.Tensor, actions:torch.Tensor):
         """ for plotting purposes only?

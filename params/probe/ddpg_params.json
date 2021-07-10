@@ -1,18 +1,17 @@
 {
   "session_info":{
-    "session_type": "DDPG",
     "num_timesteps": 20000,
     "plot": false,
-    "show": false,
-    "show_every": 1000,
-    "environment_type": "probe",
-    "environment_name": "one",
     "return_results": true,
-    "use_tensorboard": false,
     "use_wandb": true,
     "wandb_project": "test"
   },
+  "env_info":  {
+    "type": "gym",
+    "name": "one"
+  },
   "agent_info":{
+    "type": "DDPG",
     "discount_factor": 0.99,
     "num_actions": 1,
     "state_dim": 1,
