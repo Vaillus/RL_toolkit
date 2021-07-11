@@ -1,40 +1,14 @@
-import gym
 import matplotlib.pyplot as plt
-
 import os
-
-import GodotEnvironment as godot
-
 from typing import Dict, Any, Optional
 
-from agent import AgentInterface
+from agent import MultiAgentInterface, SingleAgentInterface
 from environment import EnvInterface
-
 from utils import *
-
-
- 
-
-def reward_func(env, x, x_dot, theta, theta_dot):
-    """
-    For cartpole
-    :param env:
-    :param x:
-    :param x_dot:
-    :param theta:
-    :param theta_dot:
-    :return:
-    """
-    r1 = (env.x_threshold - abs(x)) / env.x_threshold - 0.5
-    r2 = (env.theta_threshold_radians - abs(theta)) / env.theta_threshold_radians - 0.5
-    reward = r1 + r2
-    return reward
-
 
 
 
 class Session:
-
     def __init__(
         self,
         num_timestep: int,
@@ -49,11 +23,14 @@ class Session:
         env_kwargs: Optional[Dict[str, Any]] = {},
         agent_kwargs: Optional[Dict[str, Any]] = {}
     ):
-        self.environment = EnvInterface(**env_kwargs)
+        self.environment = EnvInterface(
+            **env_kwargs, 
+            show=show, 
+            show_every=show_every)
 
         self.is_multiagent = is_multiagent
         agent_kwargs["seed"] = seed
-        self.agent = AgentInterface(**agent_kwargs)
+        self.agent = self._init_agent(agent_kwargs, is_multiagent)
 
         self.show = show
         self.show_every = show_every
@@ -89,13 +66,13 @@ class Session:
             self.seed = seed
             set_random_seed(seed)
             self.environment.set_seed(seed)
-            if self.is_multiagent:
-                for agent_name in self.agents_names:
-                    self.agent[agent_name].set_seed(seed)
-            else:
-                self.agent.set_seed(seed)
-
-
+            self.agent.set_seed(seed)
+    
+    def _init_agent(self, agent_kwargs, is_multiagent):
+        if is_multiagent:
+            return MultiAgentInterface(**agent_kwargs)
+        else:
+            return SingleAgentInterface(**agent_kwargs)
 
     
     # ==== Main loop functions =========================================
@@ -141,8 +118,6 @@ class Session:
 
         if self.environment.type == "probe":
             self.environment.show_result(self.agent)
-            
-            
             #print(episode_reward)
 
         # return the rewards
@@ -164,7 +139,7 @@ class Session:
         # get the first env state and the action that takes the agent
         self.print_episode_count(episode_id=episode_id)
         state_data = self.environment.reset(episode_id=episode_id)
-        action_data = self.agent.get_action(state_data, self.environment.type,
+        action_data = self.get_agent_action(state_data, self.environment.type,
             self.environment.name, start=True)
         # declaration of variables useful in the loop
         episode_reward = 0
@@ -180,7 +155,7 @@ class Session:
             new_state_data, reward_data, done, _ = self.environment.step(action_data)
             # self.environment.step([float(action)]) | if continuous 
             # mountain car
-            reward_data = self.shape_reward(state_data, reward_data)
+            reward_data = self.environment.shape_reward(state_data, reward_data)
             # save the reward
             episode_reward = self._save_reward(episode_reward, reward_data)
             # render environment (gym environments only)
@@ -192,7 +167,7 @@ class Session:
             else:
                 # actions made when the last state is reached
                 # get the final reward and success in the mountaincar env
-                #reward_data, success = self.assess_mountain_car_success(new_state_data)
+                #reward_data, success = self.environment.assess_mountain_car_success(new_state_data)
                 # send parts of the last transition to the agent.
                 self.end_agent(new_state_data, reward_data)
                 if self.session_type == "REINFORCE" or self.session_type == "REINFORCE with baseline":
@@ -204,26 +179,27 @@ class Session:
                 return episode_reward, success, ep_len
 
 
-
     # === other functions ==============================================
 
+    def get_agent_action(self, state_data, reward_data, start=False):
+        # TODO : my intuition is that the two environment functions work
+        # only with single agent and not multiagent.
+        # in case of an Abaddon, unwrap the agent name, the state and 
+        # the reward data from the state data
+        state_data, reward_data, agent_name = \
+            self.environment.unwrap_godot_state_data(
+                state_data, reward_data, start)
 
+        action_data = self.agent.get_action(state_data, reward_data, start)
+
+        # in the case of an Abaddon environment, wrap the state data in a certain way.
+        action_data = self.environment.wrap_godot_action_data(action_data, agent_name)
+
+        return action_data
 
     def print_episode_count(self, episode_id):
         if ((self.show is True) and (episode_id % self.show_every == 0)):
             print(f'EPISODE: {episode_id}')
-    
-    def shape_reward(self, state_data, reward_data):
-        """ shaping reward for cartpole environment
-        """
-        if self.environment_name == "CartPole-v0" or self.environment_name == "CartPole-v1":  
-            x, x_dot, theta, theta_dot = state_data
-            reward_data = reward_func(self.environment, x, x_dot, theta, theta_dot)
-        if self.environment_name == "MountainCar-v0":
-            position = state_data[0]
-            if position > 0.5:
-                reward_data += 0.1
-        return reward_data
     
     def _save_reward(self, episode_reward, reward_data):
         """add the reward earned at the last step to the reward 
@@ -236,23 +212,11 @@ class Session:
         Returns:
             int: updated reward
         """
-        if self.environment_type == "godot":
+        if self.environment.type == "godot":
             episode_reward += reward_data[0]["reward"]
         else:
             episode_reward += reward_data
         return episode_reward
-    
-    def assess_mountain_car_success(self, new_state_data):
-        """ if the environment is mountaincar, assess whether the agent succeeded
-        """
-        success = False
-        reward_data = 0.0
-        if self.environment_name == "MountainCar-v0":
-            if new_state_data[0] >= self.environment.goal_position:
-                success = True
-                reward_data = 1
-
-        return reward_data, success 
 
     @staticmethod
     def _average_rewards(rewards):
@@ -268,10 +232,10 @@ class Session:
 
         return avg_rewards
 
-
     def increment_timestep(self):
         self.tot_timestep += 1
         self.agent.tot_timestep = self.tot_timestep
+
 
 if __name__ == "__main__":
     # set the working dir to the script's directory
@@ -280,7 +244,7 @@ if __name__ == "__main__":
     data = get_params("probe/ddpg_params")
     session_parameters = data["session_info"]
     session_parameters["agent_kwargs"] = data["agent_info"]
-    session_parameters["env_kwargs"] = data["environment_info"]
+    session_parameters["env_kwargs"] = data["env_info"]
 
     sess = Session(**session_parameters)
     #sess.set_seed(1)

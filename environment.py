@@ -66,7 +66,7 @@ class EnvInterface:
                 type checking')
     
     def get_godot_action_type(self):
-        if self.name.starts_with("Abaddon"):
+        if self.name.startswith("Abaddon"):
             return "continuous" # TODO: that will change
         else:
             raise ValueError(f'{self.name} is not supported for action \
@@ -105,4 +105,55 @@ class EnvInterface:
         if (self.show is True) and (episode_id % self.show_every == 0) and (self.type == "gym"):
             self.env.render()
     
+    def unwrap_godot_state_data(self, state_data, reward_data, start):
+        agent_name = ""
+        if self.type == "godot":
+            agent_name = state_data[0]["name"]
+            state_data = state_data[0]["state"]
+            if not start:
+                reward_data = reward_data[0]['reward']
+        
+        return state_data, reward_data, agent_name
     
+    def wrap_godot_action_data(self, action_data:int, agent_name:str) -> dict:
+        if self.type == "godot":
+            if self.name.startswith("Abaddon"):
+                action_data = {
+                    "sensor_name": "Radar",
+                    "action_name": "dwell",
+                    "angle": int(action_data)
+                }
+                action_data = [{"agent_name": agent_name, "action": action_data}]
+        return action_data
+    
+    def assess_mountain_car_success(self, new_state_data):
+        """ if the environment is mountaincar, assess whether the agent succeeded
+        """
+        success = False
+        reward_data = 0.0
+        if self.name.startswith("MountainCar"):
+            if new_state_data[0] >= self.env.goal_position:
+                success = True
+                reward_data = 1.0
+
+        return reward_data, success 
+    
+    def shape_reward(self, state_data, reward_data):
+        """ shaping reward for cartpole environment
+        """
+        if self.name.startswith("CartPole"):  
+            x, x_dot, theta, theta_dot = state_data
+            reward_data = self.reward_func(x, x_dot, theta, theta_dot)
+        if self.name.startswith("MountainCar"):
+            position = state_data[0]
+            if position > 0.5: # why?
+                reward_data += 0.1
+        return reward_data
+    
+    def reward_func(self, x, x_dot, theta, theta_dot):
+        """ For cartpole only
+        """
+        r1 = (self.env.x_threshold - abs(x)) / self.env.x_threshold - 0.5
+        r2 = (self.env.theta_threshold_radians - abs(theta)) / self.env.theta_threshold_radians - 0.5
+        reward = r1 + r2
+        return reward

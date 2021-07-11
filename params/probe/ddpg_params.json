@@ -1,50 +1,50 @@
 {
   "session_info":{
-    "num_timesteps": 20000,
+    "num_timestep": 20000,
     "plot": false,
     "return_results": true,
-    "use_wandb": true,
-    "wandb_project": "test"
+    "wandb": true,
+    "wandb_name": "test"
   },
   "env_info":  {
-    "type": "gym",
+    "type": "probe",
     "name": "one"
   },
   "agent_info":{
     "type": "DDPG",
-    "discount_factor": 0.99,
-    "num_actions": 1,
-    "state_dim": 1,
-    "memory_info":{
-      "size": 10000,
-      "batch_size": 32
-    },
-    "update_target_rate": 1000,
+    "agent_kwargs":{
+      "discount_factor": 0.99,
+      "num_actions": 1,
+      "state_dim": 1,
+      "memory_info":{
+        "size": 10000,
+        "batch_size": 32},
+      "update_target_rate": 1000,
 
-    "policy_estimator_info": {
-      "layers_info": [
-            {"type": "linear", "input_size": 1, "output_size": 8, 
-              "activation": "relu"},
-            {"type": "linear", "input_size": 8, "output_size": 1, 
-              "activation": "none"}
+      "policy_estimator_info": {
+        "layers_info": [
+          {"type": "linear", "input_size": 1, "output_size": 8, 
+            "activation": "relu"},
+          {"type": "linear", "input_size": 8, "output_size": 1, 
+            "activation": "none"}
         ],
         "optimizer_info": {
           "type": "adam",
           "learning_rate": 0.001
-            
         }
-    },
-    "function_approximator_info": {
-      "layers_info": [
-            {"type": "linear", "input_size": 2, "output_size": 8, 
-              "activation": "relu"},
-            {"type": "linear", "input_size": 8, "output_size": 1, 
-              "activation": "none"}
+      },
+      "function_approximator_info": {
+        "layers_info": [
+          {"type": "linear", "input_size": 2, "output_size": 8, 
+            "activation": "relu"},
+          {"type": "linear", "input_size": 8, "output_size": 1, 
+            "activation": "none"}
         ],
         "optimizer_info": {
-            "type": "adam",
-            "learning_rate": 0.001
+          "type": "adam",
+          "learning_rate": 0.001
         }
+      }
     }
   }
 }
