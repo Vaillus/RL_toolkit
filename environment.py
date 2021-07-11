@@ -1,8 +1,94 @@
 import gym
 from GodotEnvironment import GodotEnvironment
 from probe_env import DiscreteProbeEnv, ContinuousProbeEnv
-from typing import Optional, Any
+from typing import Dict, Optional, Any
+import re
 
+dict_envs = {
+    "gym": {
+        "MountainCarContinuous": {
+            "action_type" : "continuous",
+            "action_dim" : 1,
+            "state_dim" : 2
+        },
+        "MountainCar": {
+            "action_type" : "discrete",
+            "action_dim" : 3,
+            "state_dim" : 2
+        },
+        "CartPole": {
+            "action_type" : "discrete",
+            "action_dim" : 2,
+            "state_dim" : 4
+        },
+        "Pendulum": {
+            "action_type" : "continuous",
+            "action_dim" : 1,
+            "state_dim" : 3
+        },
+        "Acrobot": {
+            "action_type" : "discrete",
+            "action_dim" : 3,
+            "state_dim" : 6
+        }
+    },
+    "probe": {
+        "discrete": {
+            "one": {
+                "action_type" : "discrete",
+                "action_dim" : 1,
+                "state_dim" : 1
+            },
+            "two": {
+                "action_type" : "discrete",
+                "action_dim" : 1,
+                "state_dim" : 1
+            },
+            "three": {
+                "action_type" : "discrete",
+                "action_dim" : 1,
+                "state_dim" : 1
+            },
+            "four": {
+                "action_type" : "discrete",
+                "action_dim" : 2,
+                "state_dim" : 1
+            },
+            "five": {
+                "action_type" : "discrete",
+                "action_dim" : 2,
+                "state_dim" : 1
+            }
+        },
+        "continuous": {
+            "one": {
+                "action_type" : "continuous",
+                "action_dim" : 1,
+                "state_dim" : 1
+            },
+            "two": {
+                "action_type" : "continuous",
+                "action_dim" : 1,
+                "state_dim" : 1
+            },
+            "three": {
+                "action_type" : "continuous",
+                "action_dim" : 1,
+                "state_dim" : 1
+            },
+            "four": {
+                "action_type" : "continuous",
+                "action_dim" : 1,
+                "state_dim" : 1
+            },
+            "five": {
+                "action_type" : "continuous",
+                "action_dim" : 1,
+                "state_dim" : 1
+            }
+        }
+    }
+}
 
 class EnvInterface:
     def __init__(
@@ -73,7 +159,7 @@ class EnvInterface:
                 type checking')
 
     def step(self, action_data):
-        self.env.step(action_data)
+        return self.env.step(action_data)
 
     def close(self):
         self.env.close()
@@ -157,3 +243,33 @@ class EnvInterface:
         r2 = (self.env.theta_threshold_radians - abs(theta)) / self.env.theta_threshold_radians - 0.5
         reward = r1 + r2
         return reward
+    
+    def plot(self, episode_id, agent):
+        if self.type == "probe":
+            self.env.plot(episode_id, agent)
+        else:
+            raise ValueError("cannot use plot with something else than a \
+                probe environment")
+    
+    def get_env_data(self) -> Dict[str, Any]:
+        """ Get the env data useful for agent correct initialization
+        
+        Raises:
+            ValueError: [description]
+
+        Returns:
+            Dict[str, Any]: keys: [action_type, action_dim, state_dim]
+        """
+        if self.type == "gym":
+            env_data = dict_envs[self.type][re.split("-", self.name)[0]]
+        elif self.type == "probe":
+            env_data = dict_envs[self.type][self.action_type][self.name]
+        else:
+            raise ValueError(f"{self.type} not supported for env-agent matching")
+        return env_data
+
+
+    #%%
+    import re
+    re.split("-","lol-salut")
+    #%%

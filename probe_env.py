@@ -166,7 +166,7 @@ class ContinuousProbeEnv(ProbeEnv):
         super(ContinuousProbeEnv, self).__init__(name)
     
     def reset(self):
-        if self.names == "one":
+        if self.name == "one":
             state_data = [0]
         elif self.name == "two":
             obs = np.random.choice([-1, 1])

@@ -7,12 +7,18 @@ import math
 import matplotlib.pyplot as plt
 from utils import set_random_seed
 #import torchvision
+from typing import Optional, Any, Dict
 
 
 class CustomNeuralNetwork(nn.Module):
     """ Attempt to make an easy-to-use neural net class
     """
-    def __init__(self, params):
+    def __init__(
+        self,
+        layers_info: Dict[str, Any],
+        optimizer_info: Dict[str, Any],
+        seed: Optional[int] = None
+    ):
         super(CustomNeuralNetwork, self).__init__()
 
         self.layers = nn.ModuleList()
@@ -20,15 +26,11 @@ class CustomNeuralNetwork(nn.Module):
         self.optimizer = None
         self.seed = None
         self.history = np.array([])
-
-        self.set_params_from_dict(params=params)
-
-    
-    def set_params_from_dict(self, params):
-        self.init_layers(params["layers_info"])
-        self.init_optimizer(params["optimizer_info"])
-        self.seed = params.get("seed", None)
-        if self.seed:
+        
+        self.init_layers(layers_info)
+        self.init_optimizer(optimizer_info)
+        self.seed = seed
+        if self.seed is not None:
             torch.manual_seed(self.seed)
     
     def set_seed(self, seed):

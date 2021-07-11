@@ -46,7 +46,7 @@ class Session:
         if self.wandb:
             init_wandb_project(wandb_name)
 
-        self._set_env_and_agent(env_kwargs, agent_kwargs)
+        self.adjust_agent_with_env()
         
 
     # ====== Initialization functions ==================================
@@ -139,8 +139,7 @@ class Session:
         # get the first env state and the action that takes the agent
         self.print_episode_count(episode_id=episode_id)
         state_data = self.environment.reset(episode_id=episode_id)
-        action_data = self.get_agent_action(state_data, self.environment.type,
-            self.environment.name, start=True)
+        action_data = self.get_agent_action(state_data, start=True)
         # declaration of variables useful in the loop
         episode_reward = 0
         done = False
@@ -169,19 +168,19 @@ class Session:
                 # get the final reward and success in the mountaincar env
                 #reward_data, success = self.environment.assess_mountain_car_success(new_state_data)
                 # send parts of the last transition to the agent.
-                self.end_agent(new_state_data, reward_data)
-                if self.session_type == "REINFORCE" or self.session_type == "REINFORCE with baseline":
+                self.agent.end(new_state_data, reward_data)
+                if self.agent.type.startswith("REINFORCE"):
                     self.agent.learn_from_experience()
                 
-                if self.environment_type == "probe":
-                    self.environment.plot(episode_id, self.agent)
+                if self.environment.type == "probe":
+                    self.environment.plot(episode_id, self.agent.agent)
                 
                 return episode_reward, success, ep_len
 
 
     # === other functions ==============================================
 
-    def get_agent_action(self, state_data, reward_data, start=False):
+    def get_agent_action(self, state_data, reward_data= {}, start=False):
         # TODO : my intuition is that the two environment functions work
         # only with single agent and not multiagent.
         # in case of an Abaddon, unwrap the agent name, the state and 
@@ -236,6 +235,16 @@ class Session:
         self.tot_timestep += 1
         self.agent.tot_timestep = self.tot_timestep
 
+
+    # === agent-env wrapping ===========================================
+
+
+    def adjust_agent_with_env(self):
+        env_data = self.environment.get_env_data()
+        agent_ok = self.agent.check(**env_data)
+        if not agent_ok:
+            self.agent.fix(env_data)
+        
 
 if __name__ == "__main__":
     # set the working dir to the script's directory

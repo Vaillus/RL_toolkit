@@ -4,67 +4,58 @@ import numpy as np
 import torch
 from memory_buffer import ReplayBuffer, ReplayBufferSamples
 import wandb
+from typing import Any, Dict, Optional
 
 #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 class DDPGAgent:
-    def __init__(self, params={}):
-        self.num_actions = None
-        # parameters not set at initilization
+    def __init__(
+        self, 
+        policy_estimator_info: Dict[str, Any],
+        function_approximator_info: Dict[str, Any],
+        memory_info: Dict[str, Any],
+        seed: Optional[int] = 0,
+        num_actions: Optional[int] = 1,
+        state_dim: Optional[int] = 1,
+        update_target_rate: Optional[int] = 50,
+        discount_factor: Optional[float] = 0.995,
+        target_policy_noise: Optional[float] = 0.2,
+        target_noise_clip: Optional[float] = 0.5
+    ):
+        self.num_actions = num_actions
+        self.state_dim = state_dim
         self.previous_action = None
         self.previous_obs = None
         self.seed = None
-
         # neural network parameters
         self.actor = None
         self.actor_target = None
         self.critic = None
         self.critic_target = None
-
-        self.update_target_rate = None
+        self.update_target_rate = update_target_rate
         self.update_target_counter = 0
         self.loss_func = torch.nn.MSELoss()
-        # learning parameters
-        self.discount_factor = None
+        self.discount_factor = discount_factor
         # memory parameters
         self.replay_buffer = None
-
-        self.min_action = None # TODO : will probably get rid of these two.
-        self.max_action = None
-        self.target_policy_noise = None
-        self.target_noise_clip = None
-
+        self.target_policy_noise = target_policy_noise
+        self.target_noise_clip = target_noise_clip
         self.tot_timestep = 0
-
-        self.set_params_from_dict(params)
+        self.init_actor(policy_estimator_info)
+        self.init_critic(function_approximator_info)
+        self.init_memory_buffer(memory_info)
+        
+        self.init_seed(seed)
 
     # ====== Initialization functions ==================================
-
-    def set_params_from_dict(self, params={}):
-        self.init_seed(params.get("seed", None))
-        self.num_actions = params.get("num_actions", 1)
-        self.state_dim = params.get("state_dim", 4)
-        self.update_target_rate = params.get("update_target_rate", 50)
-        self.discount_factor = params.get("discount_factor", 0.995)
-        self.init_seed(params.get("seed", None))
-        self.init_actor(params.get("policy_estimator_info"))
-        self.init_critic(params.get("function_approximator_info"))
-
-        replay_buffer_params = params.get("memory_info", {})
-        self.init_memory_buffer(replay_buffer_params)
-
-        self.min_action = params.get("min_action", 0.0) # will probably get rid of these two.
-        self.max_action = params.get("max_action", 0.0)
-        self.target_policy_noise = params.get("target_policy_noise", 0.2)
-        self.target_noise_clip = params.get("target_noise_clip", 0.5)
     
-    def init_actor(self, nn_params):
-        self.actor = CustomNeuralNetwork(nn_params)
-        self.actor_target = CustomNeuralNetwork(nn_params)
+    def init_actor(self, params):
+        self.actor = CustomNeuralNetwork(**params)
+        self.actor_target = CustomNeuralNetwork(**params)
     
     def init_critic(self, params):
-        self.critic = CustomNeuralNetwork(params)
-        self.critic_target = CustomNeuralNetwork(params)
+        self.critic = CustomNeuralNetwork(**params)
+        self.critic_target = CustomNeuralNetwork(**params)
     
     def init_memory_buffer(self, params):
         params["obs_dim"] = self.state_dim
@@ -222,3 +213,8 @@ class DDPGAgent:
         # clip the normal distribution
         noise = noise.clamp(-self.target_noise_clip, self.target_noise_clip)
         return noise
+    
+    def adjust_dims(self, state_dim, action_dim):
+        self.state_dim = state_dim
+        self.num_actions = action_dim
+        self.actor.modules()

@@ -8,10 +8,20 @@ from GradientPolicyMethods.DDPGAgent import *
 from AbaddonAgent import *
 
 from typing import List, Optional
+from abc import ABC, abstractmethod
 
+agent_action_type = {
+    "DQN" : "discrete",
+    "tile coder test" : "discrete",
+    "REINFORCE" : "discrete",
+    "REINFORCE with baseline" : "discrete",
+    "actor-critic" : "discrete",
+    "Abaddon test" : "continuous",
+    "PPO" : "discrete",
+    "DDPG" : "continuous"
+}
 
-
-class AgentInterface:
+class AgentInterface(ABC):
     def __init__(
         self, 
         type,
@@ -21,7 +31,7 @@ class AgentInterface:
         self.type = type
         self.init_agent(agent_kwargs)
         
-
+    @abstractmethod
     def init_agent(self, agent_kwargs:dict):
         raise ValueError("This function is not supposed to be accessed because \
              one of the children should be used instead.")
@@ -72,7 +82,7 @@ class AgentInterface:
          
         return agent
       
-    def _get_single_agent_action(self, agent, state_data, reward_data=None, start=False):
+    def _get_single_agent_action(self, state_data, reward_data=None, start=False):
         """if this is the first state of the episode, get the first 
         action of the agent else, also give reward of the previous 
         action to complete the previous transition.
@@ -114,12 +124,15 @@ class SingleAgentInterface(AgentInterface):
     def get_action(self, state_data, reward_data=None, start=False):
 
         action_data = self._get_single_agent_action(
-            agent, state_data, reward_data, start)
+            state_data, reward_data, start)
 
         return action_data
 
     def end(self, state_data, reward_data):
         self.agent.end(state_data, reward_data)
+
+    def learn_from_experience(self):
+        self.agent.learn_from_experience()
     
 
 
@@ -195,3 +208,12 @@ class MultiAgentInterface(AgentInterface):
                 agent_reward = reward_data[n_agent]["reward"]
 
                 self.agent[agent_name].end(agent_state, agent_reward)
+    
+    def check(self, action_type:str, action_dim:int, state_dim:int) -> bool:
+        assert action_type == agent_action_type[self.type], "env and agent\
+             action types don't match"
+        is_ok = self.agent.num_actions == action_dim and self.agent.state_dim == state_dim
+        return is_ok
+    
+    def fix(self, action_dim:int, state_dim:int):
+        self.agent.adjust_dims(state_dim, action_dim)

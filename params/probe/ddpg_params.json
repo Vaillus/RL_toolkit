@@ -2,13 +2,15 @@
   "session_info":{
     "num_timestep": 20000,
     "plot": false,
+    "show": false,
     "return_results": true,
     "wandb": true,
     "wandb_name": "test"
   },
   "env_info":  {
     "type": "probe",
-    "name": "one"
+    "name": "one",
+    "action_type": "continuous"
   },
   "agent_info":{
     "type": "DDPG",
