@@ -1,11 +1,11 @@
-from TDAgent import *
-from DQN.DQNAgent import *
-from GradientPolicyMethods.REINFORCEAgent import *
-from GradientPolicyMethods.REINFORCEAgentWithBaseline import *
-from GradientPolicyMethods.ActorCriticAgent import *
-from GradientPolicyMethods.PPOAgent import *
-from GradientPolicyMethods.DDPGAgent import *
-from AbaddonAgent import *
+from TDAgent import TDAgent
+from DQN.DQNAgent import DQNAgent
+from GradientPolicyMethods.REINFORCEAgent import REINFORCEAgent
+from GradientPolicyMethods.REINFORCEAgentWithBaseline import REINFORCEAgentWithBaseline
+from GradientPolicyMethods.ActorCriticAgent import ActorCriticAgent
+from GradientPolicyMethods.PPOAgent import PPOAgent
+from GradientPolicyMethods.DDPGAgent import DDPGAgent
+from AbaddonAgent import AbaddonAgent
 
 from typing import List, Optional
 from abc import ABC, abstractmethod
@@ -181,7 +181,7 @@ class MultiAgentInterface(AgentInterface):
         action_data = []
         # Isolate state and reward data for each agent and get their actions
         # individually.
-        for n_agent in range(len(state_data)):
+        for n_agent in enumerate(state_data):
             agent_name = state_data[n_agent]["name"]
             agent_state = state_data[n_agent]["state"]
             agent_reward = None
@@ -202,7 +202,7 @@ class MultiAgentInterface(AgentInterface):
             state_data (dict)
             reward_data (dict)
         """
-        for n_agent in range(len(state_data)):
+        for n_agent in enumerate(state_data):
                 agent_name = state_data[n_agent]["name"]
                 agent_state = state_data[n_agent]["state"]
                 agent_reward = reward_data[n_agent]["reward"]
