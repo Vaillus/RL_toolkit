@@ -7,7 +7,7 @@ import ast
 from utils import get_path
 
 import struct
-
+from typing import Optional
 
 def recv_msg(sock):
     # Read message length and unpack it into an integer
@@ -30,7 +30,7 @@ def recvall(sock, n):
     return data
 
 class GodotEnvironment:
-    def __init__(self, params={}):
+    def __init__(self, params={}, wandb:Optional[bool]=False):
 
         self.host = None
         self.port = None
@@ -58,6 +58,8 @@ class GodotEnvironment:
         self.max_rec_bits = None
 
         self.metrics = {}
+
+        self.wandb = wandb
 
         self.set_params_from_dict(params)
 

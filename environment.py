@@ -98,28 +98,29 @@ class EnvInterface:
         godot_kwargs: Optional[dict] = {},
         show: Optional[bool] = True,
         show_every: Optional[int] = 10,
-        action_type: Optional[str] = "discrete"
+        action_type: Optional[str] = "discrete",
+        wandb: Optional[bool] = False
     ):
         self.type = type
         self.name = name
-        self.env = self._init_env(godot_kwargs, action_type)
+        self.env = self._init_env(godot_kwargs, action_type, wandb)
         self.show = show
         self.show_every = show_every
         self.seed = 0
         self.action_type = self.get_action_type(action_type)
 
-    def _init_env(self, godot_kwargs, action_type):
+    def _init_env(self, godot_kwargs, action_type, wandb):
         if self.type == "gym":
             env = gym.make(self.name)
             env.seed(self.seed)
         elif self.type == "godot":
-            env = GodotEnvironment(godot_kwargs)
+            env = GodotEnvironment(godot_kwargs, wandb)
             env.set_seed(self.seed)
         elif self.type == "probe":
             if action_type == "discrete":
-                env = DiscreteProbeEnv(self.name)
+                env = DiscreteProbeEnv(self.name, wandb)
             elif action_type == "continuous":
-                env = ContinuousProbeEnv(self.name)
+                env = ContinuousProbeEnv(self.name, wandb)
         return env
     
     def set_seed(self, seed:int):

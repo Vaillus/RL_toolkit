@@ -3,13 +3,17 @@ import numpy as np
 import torch
 from torch.distributions import Categorical
 import wandb
-#from typing import Number
+from typing import Optional
 
 
 MSELoss = torch.nn.MSELoss()
 
 class PPOAgent:
-    def __init__(self, params):
+    def __init__(
+        self, 
+        params,
+        wandb: Optional[bool] = False
+    ):
         self.γ = None
         self.state_dim = None
         self.num_actions = None
@@ -32,6 +36,7 @@ class PPOAgent:
         self.value_coeff = None
         self.entropy_coeff = None
         self.n_epochs = None
+        self.wandb = wandb
 
         self.set_params_from_dict(params)
         self.set_other_params()

@@ -4,7 +4,7 @@
     "plot": false,
     "show": false,
     "return_results": true,
-    "wandb": true,
+    "wandb": false,
     "wandb_name": "test"
   },
   "env_info":  {
@@ -16,8 +16,8 @@
     "type": "DDPG",
     "agent_kwargs":{
       "discount_factor": 0.99,
-      "num_actions": 1,
-      "state_dim": 1,
+      "num_actions": 10,
+      "state_dim": 10,
       "memory_info":{
         "size": 10000,
         "batch_size": 32},

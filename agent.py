@@ -7,7 +7,7 @@ from GradientPolicyMethods.PPOAgent import PPOAgent
 from GradientPolicyMethods.DDPGAgent import DDPGAgent
 from AbaddonAgent import AbaddonAgent
 
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 from abc import ABC, abstractmethod
 import torch
 
@@ -37,7 +37,7 @@ class AgentInterface(ABC):
         raise ValueError("This function is not supposed to be accessed because \
              one of the children should be used instead.")
 
-    def _init_single_agent(self, agent_kwargs):
+    def _init_single_agent(self, agent_kwargs:Dict[str, Any]):
         """Create and return an agent. The type of agent depends on the 
         self.type parameter
         Args:

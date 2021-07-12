@@ -8,6 +8,7 @@ import torch
 from torch.utils.tensorboard import SummaryWriter
 import wandb
 import datetime
+from typing import Dict, Any
 
 
 def get_params(file_name):
@@ -97,3 +98,7 @@ def create_writer(dir):
 
 def init_wandb_project(project_name: str):
     wandb.init(project=project_name)
+
+def wandb_log(log_dict: Dict[str, Any], activated: bool = False):
+    if activated:
+        wandb.log(log_dict)

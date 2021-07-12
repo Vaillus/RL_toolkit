@@ -4,7 +4,8 @@ from typing import Dict, Any, Optional
 
 from agent import MultiAgentInterface, SingleAgentInterface
 from environment import EnvInterface
-from utils import *
+from utils import wandb_log, get_params, set_random_seed, init_wandb_project
+import numpy as np
 
 
 
@@ -26,10 +27,12 @@ class Session:
         self.environment = EnvInterface(
             **env_kwargs, 
             show=show, 
-            show_every=show_every)
+            show_every=show_every,
+            wandb=wandb)
 
         self.is_multiagent = is_multiagent
-        agent_kwargs["seed"] = seed
+        agent_kwargs["seed"] = seed # those two might not work for multiagent.
+        agent_kwargs["agent_kwargs"]["wandb"] = wandb
         self.agent = self._init_agent(agent_kwargs, is_multiagent)
 
         self.show = show
@@ -98,10 +101,10 @@ class Session:
                 print(f'reward: {episode_reward}')
                 print(f'success: {success}')
             rewards = np.append(rewards, episode_reward)
-            wandb.log({
+            wandb_log({
                 "General episode info/rewards": episode_reward,
                 "General episode info/episode length": ep_len
-            })
+            }, self.wandb)
             id_episode += 1
         
         # plot the rewards
@@ -243,7 +246,7 @@ class Session:
         env_data = self.environment.get_env_data()
         agent_ok = self.agent.check(**env_data)
         if not agent_ok:
-            self.agent.fix(env_data)
+            self.agent.fix(env_data["action_dim"], env_data["state_dim"])
         
 
 if __name__ == "__main__":
