@@ -6,7 +6,6 @@ import numpy as np
 import math
 import matplotlib.pyplot as plt
 from utils import set_random_seed
-#import torchvision
 from typing import Optional, Any, Dict
 
 
@@ -25,7 +24,8 @@ class CustomNeuralNetwork(nn.Module):
         self.activations = []
         self.optimizer = None
         self.seed = None
-        self.history = np.array([])
+        self.history = np.array([]) # TODO: get rid of it. Don't need it anymore.
+        self.layers_info = layers_info # for reinit purposes
         
         self.init_layers(layers_info)
         self.init_optimizer(optimizer_info)
@@ -83,6 +83,12 @@ class CustomNeuralNetwork(nn.Module):
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+    
+    def reinit_layers(self, input_dim, output_dim):
+        self.layers_info[0]["input_size"] = input_dim
+        self.layers_info[-1]["output_size"] = output_dim
+        self.layers = nn.ModuleList() # erase previous layers
+        self.init_layers(self.layers_info) # create new ones
 
     # === functions related to gradient logging and plotting ===========
     # === === logging ==================================================

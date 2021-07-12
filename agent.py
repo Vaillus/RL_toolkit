@@ -9,6 +9,7 @@ from AbaddonAgent import AbaddonAgent
 
 from typing import List, Optional
 from abc import ABC, abstractmethod
+import torch
 
 agent_action_type = {
     "DQN" : "discrete",
@@ -74,9 +75,9 @@ class AgentInterface(ABC):
         """
         assert self.environment_name == "gym", "tile coder not supported for godot environments"
         
-        params["agent_info"]["function_approximator_info"]["env_min_values"] = \
+        agent_params["agent_info"]["function_approximator_info"]["env_min_values"] = \
             self.environment.observation_space.low
-        params["agent_info"]["function_approximator_info"]["env_max_values"] = \
+        agent_params["agent_info"]["function_approximator_info"]["env_max_values"] = \
             self.environment.observation_space.high
         agent = TDAgent(agent_params)
          
@@ -102,6 +103,14 @@ class AgentInterface(ABC):
         else:
             action_data = self.agent.step(state_data, reward_data)
         return action_data
+    
+    def get_state_value_eval(self, state):
+        return self.agent.get_state_value_eval(state)
+    def get_action_value_eval(self, state:torch.Tensor):
+        return self.agent.get_action_value_eval(state)
+    
+    def get_action_values_eval(self, state:torch.Tensor, actions:torch.Tensor):
+        return self.agent.get_action_value_eval(state, actions)
         
     
     
@@ -133,6 +142,15 @@ class SingleAgentInterface(AgentInterface):
 
     def learn_from_experience(self):
         self.agent.learn_from_experience()
+    
+    def check(self, action_type:str, action_dim:int, state_dim:int) -> bool:
+        assert action_type == agent_action_type[self.type], "env and agent\
+             action types don't match"
+        is_ok = self.agent.num_actions == action_dim and self.agent.state_dim == state_dim
+        return is_ok
+    
+    def fix(self, action_dim:int, state_dim:int):
+        self.agent.adjust_dims(state_dim, action_dim)
     
 
 
@@ -209,11 +227,4 @@ class MultiAgentInterface(AgentInterface):
 
                 self.agent[agent_name].end(agent_state, agent_reward)
     
-    def check(self, action_type:str, action_dim:int, state_dim:int) -> bool:
-        assert action_type == agent_action_type[self.type], "env and agent\
-             action types don't match"
-        is_ok = self.agent.num_actions == action_dim and self.agent.state_dim == state_dim
-        return is_ok
-    
-    def fix(self, action_dim:int, state_dim:int):
-        self.agent.adjust_dims(state_dim, action_dim)
+   

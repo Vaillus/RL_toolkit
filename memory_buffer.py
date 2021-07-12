@@ -76,3 +76,17 @@ class ReplayBuffer:
         if self.pos == self.size:
             self.full = True
             self.pos = 0
+    
+    def reinit(self, state_dim: int, action_dim: int) -> None:
+        """Makes the necessary changes for one wants to modify action 
+        and observations dimensions
+
+        Args:
+            state_dim (int)
+            action_dim (int)
+        """
+        self.action_dim = action_dim
+        self.obs_dim = state_dim
+        self.observations = torch.zeros((self.size, self.obs_dim), dtype=torch.float32)
+        self.actions = torch.zeros((self.size, self.action_dim)) # TODO: add type later
+        self.next_observations = torch.zeros((self.size, self.obs_dim), dtype=torch.float32)

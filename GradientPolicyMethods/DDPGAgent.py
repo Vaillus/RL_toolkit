@@ -217,4 +217,8 @@ class DDPGAgent:
     def adjust_dims(self, state_dim, action_dim):
         self.state_dim = state_dim
         self.num_actions = action_dim
-        self.actor.modules()
+        self.actor.reinit_layers(state_dim, action_dim)
+        self.actor_target.reinit_layers(state_dim, action_dim)
+        self.critic.reinit_layers(state_dim + action_dim, 1)
+        self.critic_target.reinit_layers(state_dim + action_dim, 1)
+        self.replay_buffer.reinit(state_dim, action_dim)

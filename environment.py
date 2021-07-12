@@ -183,7 +183,7 @@ class EnvInterface:
         return state_data
 
     def show_result(self, agent):
-        self.env.show_result(agent)
+        self.env.show_results(agent)
     
     def render_gym(self, episode_id):
         """ render environment (gym environments only) if specified so

@@ -238,8 +238,8 @@ class ContinuousProbeEnv(ProbeEnv):
         elif self.name == "two":
             state_pos = torch.tensor([1])
             state_neg = torch.tensor([-1])
-            state_value_pos = agent.get_state_value_eval(state_pos)
-            state_value_neg = agent.get_state_value_eval(state_neg)
+            state_value_pos = agent.get_action_value_eval(state_pos)
+            state_value_neg = agent.get_action_value_eval(state_neg)
             wandb.log({
                 "Probe/Value of state -1": state_value_neg,
                 "Probe/Value of state 1": state_value_pos
@@ -247,8 +247,8 @@ class ContinuousProbeEnv(ProbeEnv):
         elif self.name == "three":
             first_state = torch.tensor([0])
             second_state = torch.tensor([1])
-            first_state_value = agent.get_state_value_eval(first_state)
-            second_state_value = agent.get_state_value_eval(second_state)
+            first_state_value = agent.get_action_value_eval(first_state)
+            second_state_value = agent.get_action_value_eval(second_state)
             wandb.log({
                 "Probe/Value of state 0": first_state_value,
                 "Probe/Value of state 1": second_state_value
@@ -277,25 +277,25 @@ class ContinuousProbeEnv(ProbeEnv):
     def show_results(self, agent):
         if self.name == "one":
             state = torch.tensor([0])
-            state_value = agent.get_state_value_eval(state)
+            state_value = agent.get_action_value_eval(state)
             print(f'value of state {state.data}: {state_value}')
         elif self.name == "two":
             state_pos = torch.tensor([1])
             state_neg = torch.tensor([-1])
-            state_value_pos = agent.get_state_value_eval(state_pos)
-            state_value_neg = agent.get_state_value_eval(state_neg)
+            state_value_pos = agent.get_action_value_eval(state_pos)
+            state_value_neg = agent.get_action_value_eval(state_neg)
             print(f'value of state {state_pos.data}: {state_value_pos}')
             print(f'value of state {state_neg.data}: {state_value_neg}')
         elif self.name == "three":
             first_state = torch.tensor([0])
             second_state = torch.tensor([1])
-            first_state_value = agent.get_state_value_eval(first_state)
-            second_state_value = agent.get_state_value_eval(second_state)
+            first_state_value = agent.get_action_value_eval(first_state)
+            second_state_value = agent.get_action_value_eval(second_state)
             print(f'value of state {first_state.data}: {first_state_value}')
             print(f'value of state {second_state.data}: {second_state_value}')
         elif self.name == "four":
             state = torch.tensor([0])
-            actions_values = agent.get_state_value_eval(state)
+            actions_values = agent.get_action_value_eval(state)
             print(f'value of actions in state {state.data}: {actions_values}')
         elif self.name == "five":
             first_state = torch.tensor([-1])
