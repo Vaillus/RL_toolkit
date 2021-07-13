@@ -20,8 +20,7 @@ class DDPGAgent:
         update_target_rate: Optional[int] = 50,
         discount_factor: Optional[float] = 0.995,
         target_policy_noise: Optional[float] = 0.2,
-        target_noise_clip: Optional[float] = 0.5,
-        wandb: Optional[bool] = False
+        target_noise_clip: Optional[float] = 0.5
     ):
         self.num_actions = num_actions
         self.state_dim = state_dim
@@ -47,7 +46,6 @@ class DDPGAgent:
         self.init_memory_buffer(memory_info)
         
         self.init_seed(seed)
-        self.wandb = wandb
 
     # ====== Initialization functions ==================================
     
@@ -176,7 +174,7 @@ class DDPGAgent:
             wandb_log({
                 "Agent info/critic loss": critic_loss,
                 "Agent info/actor loss": actor_loss
-            }, self.wandb)
+            })
 
 
     def _concat_obs_action(self, obs:torch.Tensor, action:torch.Tensor) -> torch.Tensor:

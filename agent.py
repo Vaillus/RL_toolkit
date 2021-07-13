@@ -119,6 +119,7 @@ class SingleAgentInterface(AgentInterface):
         self,
         type,
         agent_kwargs,
+        
         seed
     ):
         super(SingleAgentInterface, self).__init__(type, agent_kwargs)

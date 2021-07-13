@@ -11,8 +11,7 @@ MSELoss = torch.nn.MSELoss()
 class PPOAgent:
     def __init__(
         self, 
-        params,
-        wandb: Optional[bool] = False
+        params
     ):
         self.γ = None
         self.state_dim = None
@@ -36,7 +35,6 @@ class PPOAgent:
         self.value_coeff = None
         self.entropy_coeff = None
         self.n_epochs = None
-        self.wandb = wandb
 
         self.set_params_from_dict(params)
         self.set_other_params()

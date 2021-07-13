@@ -5,7 +5,7 @@
     "show": false,
     "return_results": true,
     "wandb": true,
-    "wandb_name": "test"
+    "wandb_job_type": "test"
   },
   "env_info":  {
     "type": "probe",

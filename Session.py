@@ -18,7 +18,7 @@ class Session:
         show_every: Optional[int] = 10,
         return_results: Optional[bool] = True,
         wandb: Optional[bool] = False,
-        wandb_name : Optional[str] = "",
+        wandb_job_type : Optional[str] = "",
         is_multiagent: Optional[bool] = False,
         seed: Optional[int] = 0,
         env_kwargs: Optional[Dict[str, Any]] = {},
@@ -27,12 +27,10 @@ class Session:
         self.environment = EnvInterface(
             **env_kwargs, 
             show=show, 
-            show_every=show_every,
-            wandb=wandb)
+            show_every=show_every)
 
         self.is_multiagent = is_multiagent
         agent_kwargs["seed"] = seed # those two might not work for multiagent.
-        agent_kwargs["agent_kwargs"]["wandb"] = wandb
         self.agent = self._init_agent(agent_kwargs, is_multiagent)
 
         self.show = show
@@ -45,9 +43,8 @@ class Session:
         self.tot_timestep = 0
         self.max_timestep = num_timestep
 
-        self.wandb = wandb
-        if self.wandb:
-            init_wandb_project(wandb_name)
+        if wandb:
+            init_wandb_project(wandb_job_type)
 
         self.adjust_agent_with_env()
         
@@ -104,7 +101,7 @@ class Session:
             wandb_log({
                 "General episode info/rewards": episode_reward,
                 "General episode info/episode length": ep_len
-            }, self.wandb)
+            })
             id_episode += 1
         
         # plot the rewards
@@ -262,3 +259,7 @@ if __name__ == "__main__":
     #sess.set_seed(1)
     #print(sess.agent.policy_estimator.layers[0].weight)
     sess.run()  
+
+#%% 
+import wandb
+wandb.run
