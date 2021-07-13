@@ -4,7 +4,7 @@
     "plot": false,
     "show": false,
     "return_results": true,
-    "wandb": false,
+    "wandb": true,
     "wandb_name": "test"
   },
   "env_info":  {

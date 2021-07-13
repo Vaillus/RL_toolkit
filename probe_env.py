@@ -41,7 +41,7 @@ class DiscreteProbeEnv(ProbeEnv):
             state_data = [obs]
         return state_data
 
-    def step(self, actions_data):
+    def step(self, actions_data:int):
         if self.name == "one":
             new_state_data = [0]
             done = True
@@ -185,7 +185,8 @@ class ContinuousProbeEnv(ProbeEnv):
             state_data = [obs]
         return state_data
     
-    def step(self, actions_data):
+    def step(self, actions_data:float):
+        wandb_log({"Probe/Action value": actions_data}, self.wandb)
         if self.name == "one":
             new_state_data = [0]
             done = True

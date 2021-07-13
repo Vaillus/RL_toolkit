@@ -97,7 +97,7 @@ class DDPGAgent:
         self.replay_buffer.store_transition(self.previous_obs, self.previous_action, 
                                             reward, obs, False)
         # getting the action values from the function approximator
-        current_action = self.actor(obs)
+        current_action = self.choose_action(obs)
         self.control()
         self.previous_action = current_action
         self.previous_obs = obs

@@ -179,7 +179,7 @@ class MultiAgentInterface(AgentInterface):
     def get_action(
         self, 
         state_data: List[dict],
-        reward_data: List[dict] = [],
+        reward_data: Optional[List[dict]] = [],
         start: Optional[bool] = False
     ):
         """ distribute states to all agents and get their actions back.
