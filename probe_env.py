@@ -1,7 +1,7 @@
 import numpy as np
 import torch
-import wandb
-from utils import wandb_log
+from logger import Logger
+#from typing import Type
 
 #class ProbeEnv(ABC):
 
@@ -10,10 +10,14 @@ class ProbeEnv:
         self.name = name
         self.init_obs = None
         self.is_first_step = True
+        self.logger = None
 
     def set_seed(self, seed):
         self.seed = seed
         self.random_generator = np.random.RandomState(seed=seed)
+    
+    def set_logger(self, logger: Logger):
+        self.logger = logger
     
     def close(self):
         pass
@@ -77,7 +81,6 @@ class DiscreteProbeEnv(ProbeEnv):
                     reward_data = 1.0
                 if actions_data == 1:
                     reward_data = -1.0
-
             elif self.init_obs == 1:
                 if actions_data == 0:
                     reward_data = -1.0
@@ -91,13 +94,13 @@ class DiscreteProbeEnv(ProbeEnv):
         if self.name == "one":
             state = torch.tensor([0])
             state_value = agent.get_state_value_eval(state)
-            wandb_log({"Probe/Value of action at state 0": state_value})
+            self.logger.wandb_log({"Probe/Value of action at state 0": state_value})
         elif self.name == "two":
             state_pos = torch.tensor([1])
             state_neg = torch.tensor([-1])
             state_value_pos = agent.get_state_value_eval(state_pos)
             state_value_neg = agent.get_state_value_eval(state_neg)
-            wandb_log({
+            self.logger.wandb_log({
                 "Probe/Value of state -1": state_value_neg,
                 "Probe/Value of state 1": state_value_pos
             })
@@ -106,14 +109,14 @@ class DiscreteProbeEnv(ProbeEnv):
             second_state = torch.tensor([1])
             first_state_value = agent.get_state_value_eval(first_state)
             second_state_value = agent.get_state_value_eval(second_state)
-            wandb_log({
+            self.logger.wandb_log({
                 "Probe/Value of state 0": first_state_value,
                 "Probe/Value of state 1": second_state_value
             })
         elif self.name == "four":
             state = torch.tensor([0])
             actions_values = agent.get_state_value_eval(state)
-            wandb_log({
+            self.logger.wandb_log({
                 "Probe/state 0 action 0": actions_values[0],
                 "Probe/state 0 action 1": actions_values[1]
             })
@@ -122,7 +125,7 @@ class DiscreteProbeEnv(ProbeEnv):
             second_state = torch.tensor([1])
             first_state_value = agent.get_state_value_eval(first_state)
             second_state_value = agent.get_state_value_eval(second_state)
-            wandb_log({
+            self.logger.wandb_log({
                 'Probe/state -1 action 0': first_state_value[0],
                 'Probe/state -1 action 1': first_state_value[1],
                 'Probe/state 1 action 0': second_state_value[0],
@@ -185,7 +188,7 @@ class ContinuousProbeEnv(ProbeEnv):
         return state_data
     
     def step(self, actions_data:float):
-        wandb_log({"Probe/Action value": actions_data})
+        self.logger.wandb_log({"Probe/Action value": actions_data})
         if self.name == "one":
             new_state_data = [0]
             done = True
@@ -236,13 +239,13 @@ class ContinuousProbeEnv(ProbeEnv):
         if self.name == "one":
             state = torch.tensor([0])
             state_value = agent.get_action_value_eval(state)
-            wandb_log({"Probe/Value of state 0": state_value})
+            self.logger.wandb_log({"Probe/Value of state 0": state_value})
         elif self.name == "two":
             state_pos = torch.tensor([1])
             state_neg = torch.tensor([-1])
             state_value_pos = agent.get_action_value_eval(state_pos)
             state_value_neg = agent.get_action_value_eval(state_neg)
-            wandb_log({
+            self.logger.wandb_log({
                 "Probe/Value of state -1": state_value_neg,
                 "Probe/Value of state 1": state_value_pos
             })
@@ -251,7 +254,7 @@ class ContinuousProbeEnv(ProbeEnv):
             second_state = torch.tensor([1])
             first_state_value = agent.get_action_value_eval(first_state)
             second_state_value = agent.get_action_value_eval(second_state)
-            wandb_log({
+            self.logger.wandb_log({
                 "Probe/Value of state 0": first_state_value,
                 "Probe/Value of state 1": second_state_value
             })
@@ -259,7 +262,7 @@ class ContinuousProbeEnv(ProbeEnv):
             state = torch.tensor([0])
             actions = torch.tensor([0.25, 0.75])
             actions_values = agent.get_action_values_eval(state, actions)
-            wandb_log({
+            self.logger.wandb_log({
                 "Probe/state 0 action 0": actions_values[0],
                 "Probe/state 0 action 1": actions_values[1]
             })
@@ -270,7 +273,7 @@ class ContinuousProbeEnv(ProbeEnv):
             actions = torch.tensor([0.25, 0.75])
             first_state_av = agent.get_action_values_eval(first_state, actions)
             second_state_av = agent.get_action_values_eval(second_state, actions)
-            wandb_log({
+            self.logger.wandb_log({
                 "Probe/state -1 action 0.25": first_state_av[0],
                 'Probe/state -1 action 0.75': first_state_av[1],
                 'Probe/state 1 action 0.25': second_state_av[0],

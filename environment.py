@@ -3,6 +3,7 @@ from GodotEnvironment import GodotEnvironment
 from probe_env import DiscreteProbeEnv, ContinuousProbeEnv
 from typing import Dict, Optional, Any
 import re
+from logger import Logger
 
 dict_envs = {
     "gym": {
@@ -107,6 +108,7 @@ class EnvInterface:
         self.show_every = show_every
         self.seed = 0
         self.action_type = self.get_action_type(action_type)
+        self.logger = None
 
     def _init_env(self, godot_kwargs, action_type):
         if self.type == "gym":
@@ -127,6 +129,11 @@ class EnvInterface:
             self.env.seed(seed)
         else:
             self.env.set_seed(seed)
+    
+    def set_logger(self, logger:Logger):
+        self.logger = logger
+        if self.type == "probe":
+            self.env.set_logger(logger)
 
     def get_action_type(self, action_type:str) -> str:
         if self.type == "probe":

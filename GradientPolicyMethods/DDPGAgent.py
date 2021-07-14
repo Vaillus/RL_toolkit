@@ -1,9 +1,8 @@
 from CustomNeuralNetwork import CustomNeuralNetwork
-from utils import set_random_seed, wandb_log
+from utils import set_random_seed
 import numpy as np
 import torch
 from memory_buffer import ReplayBuffer, ReplayBufferSamples
-import wandb
 from typing import Any, Dict, Optional
 
 #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -27,6 +26,7 @@ class DDPGAgent:
         self.previous_action = None
         self.previous_obs = None
         self.seed = None
+        self.logger = None
         # neural network parameters
         self.actor = None
         self.actor_target = None
@@ -72,6 +72,9 @@ class DDPGAgent:
             self.seed = seed
             set_random_seed(self.seed)
             self.function_approximator.set_seed(seed)
+    
+    def set_logger(self, logger):
+        self.logger = logger
 
     # ====== Action choice related functions ===========================
 
@@ -171,7 +174,7 @@ class DDPGAgent:
             # residual variance for plotting purposes (not sure if it is correct)
             #q_res = self.target_net(batch.observations).gather(1, batch.actions.long())
             #res_var = torch.var(q_res - q_eval) / torch.var(q_res)
-            wandb_log({
+            self.logger.wandb_log({
                 "Agent info/critic loss": critic_loss,
                 "Agent info/actor loss": actor_loss
             })

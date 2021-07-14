@@ -1,11 +1,13 @@
 import matplotlib.pyplot as plt
 import os
 from typing import Dict, Any, List, Optional
+import numpy as np
 
 from agent import MultiAgentInterface, SingleAgentInterface
 from environment import EnvInterface
-from utils import wandb_log, get_params, set_random_seed, init_wandb_project
-import numpy as np
+from logger import Logger
+
+from utils import get_params, set_random_seed
 
 
 
@@ -17,12 +19,11 @@ class Session:
         show: Optional[bool] = True,
         show_every: Optional[int] = 10,
         return_results: Optional[bool] = True,
-        wandb: Optional[bool] = False,
-        wandb_kwargs: Optional[Dict[str, Any]] = None,
         is_multiagent: Optional[bool] = False,
         seed: Optional[int] = 0,
         env_kwargs: Optional[Dict[str, Any]] = {},
-        agent_kwargs: Optional[Dict[str, Any]] = {}
+        agent_kwargs: Optional[Dict[str, Any]] = {},
+        logger_kwargs : Optional[Dict[str, Any]] = {}
     ):
         self.environment = EnvInterface(
             **env_kwargs, 
@@ -43,8 +44,9 @@ class Session:
         self.tot_timestep = 0
         self.max_timestep = num_timestep
 
-        if wandb:
-            init_wandb_project(**wandb_kwargs)
+        self.logger = Logger(**logger_kwargs)
+        self.agent.set_logger(self.logger)
+        self.environment.set_logger(self.logger)
 
         self.adjust_agent_with_env()
         
@@ -98,7 +100,7 @@ class Session:
                 print(f'reward: {episode_reward}')
                 print(f'success: {success}')
             rewards = np.append(rewards, episode_reward)
-            wandb_log({
+            self.logger.wandb_log({
                 "General episode info/rewards": episode_reward,
                 "General episode info/episode length": ep_len
             })
@@ -254,12 +256,11 @@ if __name__ == "__main__":
     session_parameters = data["session_info"]
     session_parameters["agent_kwargs"] = data["agent_info"]
     session_parameters["env_kwargs"] = data["env_info"]
+    session_parameters["logger_kwargs"] = data["logger_kwargs"]
 
     sess = Session(**session_parameters)
     #sess.set_seed(1)
     #print(sess.agent.policy_estimator.layers[0].weight)
     sess.run()  
+    print("done")
 
-#%% 
-import wandb
-wandb.run

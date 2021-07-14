@@ -29,8 +29,13 @@ class AgentInterface(ABC):
         agent_kwargs
     ):
         self.agent = None 
+        self.logger = None
         self.type = type
         self.init_agent(agent_kwargs)
+    
+    def set_logger(self, logger):
+        self.logger = logger
+        self.agent.set_logger(logger)
         
     @abstractmethod
     def init_agent(self, agent_kwargs:dict):
@@ -176,6 +181,11 @@ class MultiAgentInterface(AgentInterface):
     def set_seed(self, seed):
         for agent_name in self.agents_names:
             self.agent[agent_name].set_seed(seed)
+    
+    def set_logger(self, logger):
+        self.logger = logger
+        for agent_name in self.agents_names:
+            self.agent[agent_name].set_logger(logger)
 
     def get_action(
         self, 

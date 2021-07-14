@@ -3,9 +3,7 @@
     "num_timestep": 20000,
     "plot": false,
     "show": false,
-    "return_results": true,
-    "wandb": true,
-    "wandb_job_type": "test"
+    "return_results": true
   },
   "env_info":  {
     "type": "probe",
@@ -48,5 +46,12 @@
         }
       }
     }
+  },
+  "logger_kwargs": {
+    "wandb": true,
+    "wandb_kwargs": {
+      "job_type": "test"
+    },
+    "log_every": 50
   }
 }

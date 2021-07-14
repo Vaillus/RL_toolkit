@@ -8,6 +8,7 @@ from utils import get_path
 
 import struct
 from typing import Optional
+from logger import Logger
 
 def recv_msg(sock):
     # Read message length and unpack it into an integer
@@ -30,7 +31,7 @@ def recvall(sock, n):
     return data
 
 class GodotEnvironment:
-    def __init__(self, params={}, wandb:Optional[bool]=False):
+    def __init__(self, params={}):
 
         self.host = None
         self.port = None
@@ -59,7 +60,7 @@ class GodotEnvironment:
 
         self.metrics = {}
 
-        self.wandb = wandb
+        self.logger = None
 
         self.set_params_from_dict(params)
 
@@ -87,6 +88,9 @@ class GodotEnvironment:
     def set_seed(self, seed):
         self.seed = seed
         self.random_generator = np.random.RandomState(seed=seed)
+    
+    def set_logger(self, logger: Logger):
+        self.logger = logger
 
     # main functions ===================================================
 
