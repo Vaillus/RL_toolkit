@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import os
-from typing import Dict, Any, Optional
+from typing import Dict, Any, List, Optional
 
 from agent import MultiAgentInterface, SingleAgentInterface
 from environment import EnvInterface
@@ -18,7 +18,7 @@ class Session:
         show_every: Optional[int] = 10,
         return_results: Optional[bool] = True,
         wandb: Optional[bool] = False,
-        wandb_job_type : Optional[str] = "",
+        wandb_kwargs: Optional[Dict[str, Any]] = None,
         is_multiagent: Optional[bool] = False,
         seed: Optional[int] = 0,
         env_kwargs: Optional[Dict[str, Any]] = {},
@@ -44,7 +44,7 @@ class Session:
         self.max_timestep = num_timestep
 
         if wandb:
-            init_wandb_project(wandb_job_type)
+            init_wandb_project(**wandb_kwargs)
 
         self.adjust_agent_with_env()
         
