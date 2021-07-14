@@ -175,8 +175,8 @@ class DDPGAgent:
             #q_res = self.target_net(batch.observations).gather(1, batch.actions.long())
             #res_var = torch.var(q_res - q_eval) / torch.var(q_res)
             self.logger.wandb_log({
-                "Agent info/critic loss": critic_loss,
-                "Agent info/actor loss": actor_loss
+                "Agent info/critic loss": critic_loss.item(),
+                "Agent info/actor loss": actor_loss.item()
             })
 
 
