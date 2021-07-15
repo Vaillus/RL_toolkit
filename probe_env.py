@@ -238,7 +238,7 @@ class ContinuousProbeEnv(ProbeEnv):
     def plot(self, episode_id, agent):
         if self.name == "one":
             state = torch.tensor([0])
-            state_value = agent.get_action_value_eval(state)
+            state_value = agent.get_action_value_eval(state).item()
             self.logger.wandb_log({"Probe/Value of state 0": state_value})
         elif self.name == "two":
             state_pos = torch.tensor([1])

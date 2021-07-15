@@ -3,7 +3,9 @@ from utils import set_random_seed
 import numpy as np
 import torch
 from memory_buffer import ReplayBuffer, ReplayBufferSamples
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Type
+from copy import deepcopy
+from logger import Logger
 
 #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -35,7 +37,7 @@ class DDPGAgent:
         self.update_target_rate = update_target_rate
         self.update_target_counter = 0
         self.loss_func = torch.nn.MSELoss()
-        self.discount_factor = discount_factor
+        self.γ = discount_factor
         # memory parameters
         self.replay_buffer = None
         self.target_policy_noise = target_policy_noise
@@ -51,11 +53,11 @@ class DDPGAgent:
     
     def init_actor(self, params):
         self.actor = CustomNeuralNetwork(**params)
-        self.actor_target = CustomNeuralNetwork(**params)
+        self.actor_target = deepcopy(self.actor)
     
     def init_critic(self, params):
         self.critic = CustomNeuralNetwork(**params)
-        self.critic_target = CustomNeuralNetwork(**params)
+        self.critic_target = deepcopy(self.critic)
     
     def init_memory_buffer(self, params):
         params["obs_dim"] = self.state_dim
@@ -73,13 +75,17 @@ class DDPGAgent:
             set_random_seed(self.seed)
             self.function_approximator.set_seed(seed)
     
-    def set_logger(self, logger):
+    def set_logger(self, logger:Type[Logger]):
         self.logger = logger
+        self.logger.wandb_watch(self.actor, log_freq=1)
+        self.logger.wandb_watch(self.critic, log_freq=1)
 
     # ====== Action choice related functions ===========================
 
     def choose_action(self, obs:torch.Tensor):
         action = self.actor(obs)
+        noise = np.random.normal(0,self.target_noise_clip)
+        action += noise
         action = torch.clamp(action, -1, 1)
         return action
 
@@ -87,7 +93,7 @@ class DDPGAgent:
     # ====== Agent core functions ======================================
 
     def start(self, obs):
-        current_action = self.actor(obs)
+        current_action = self.choose_action(obs)
         self.previous_action = current_action
         self.previous_obs = obs
 
@@ -137,7 +143,7 @@ class DDPGAgent:
     def control(self):
         self._learn()
 
-    def _learn(self):
+    def _learn_old(self):
         """
         Updates target net, sample a batch of transitions and compute 
         loss from it
@@ -156,9 +162,9 @@ class DDPGAgent:
             q_eval = self.critic(batch_oa)
             # values of the actions at the next step
             q_next = self.critic_target(batch_oa)
-            q_next = self._zero_terminal_states(q_next, batch.next_observations)
-            noise = self._create_noise_tensor(batch.actions)
-            q_next += noise
+            q_next = self._zero_terminal_states(q_next, batch.dones)
+            #noise = self._create_noise_tensor(batch.actions)
+            #q_next += noise
             # Q containing only the max value of q in next step
             q_target = batch.rewards + self.discount_factor * q_next
             # computing the loss
@@ -166,7 +172,7 @@ class DDPGAgent:
 
             self.critic.backpropagate(critic_loss)
             
-            actions = self.actor(batch.observations)
+            actions = self.actor(batch.observations) #self.choose_action(batch.observations)
             batch_oa = self._concat_obs_action(batch.observations, actions)
             actor_loss = - self.critic(batch_oa).mean()
             self.actor.backpropagate(actor_loss)
@@ -178,6 +184,39 @@ class DDPGAgent:
                 "Agent info/critic loss": critic_loss.item(),
                 "Agent info/actor loss": actor_loss.item()
             })
+    
+    def _learn(self):
+        if self.replay_buffer.full:
+            self._update_target_net()
+            # getting batch data
+            batch = self.replay_buffer.sample()
+            # compute critic target
+            target_actions = self.actor_target(batch.next_observations).detach()
+            batch_oa = self._concat_obs_action(batch.next_observations, target_actions)
+            q_next = self.critic_target(batch_oa).detach()
+            q_next = (1.0 - batch.dones.float()) * q_next
+            y = batch.rewards + self.γ * q_next
+            batch_oa_eval = self._concat_obs_action(batch.observations, batch.actions)
+            # compute critic eval
+            q_eval = self.critic(batch_oa_eval)
+            # learn critic
+            critic_loss = self.loss_func(q_eval, q_next)
+            
+
+
+            actor_eval = self.actor(batch.observations)
+            #with torch.no_grad():
+            test_oa = self._concat_obs_action(batch.observations, actor_eval)
+            actor_loss = self.critic(test_oa)
+            actor_loss = - actor_loss.mean()
+            self.logger.wandb_log({
+                "Agent info/critic loss": critic_loss,
+                "Agent info/actor loss": actor_loss
+            })
+            self.critic.backpropagate(critic_loss)
+            self.actor.backpropagate(actor_loss)
+
+            
 
 
     def _concat_obs_action(self, obs:torch.Tensor, action:torch.Tensor) -> torch.Tensor:

@@ -103,10 +103,11 @@ class EnvInterface:
     ):
         self.type = type
         self.name = name
-        self.env = self._init_env(godot_kwargs, action_type)
+        
         self.show = show
         self.show_every = show_every
         self.seed = 0
+        self.env = self._init_env(godot_kwargs, action_type)
         self.action_type = self.get_action_type(action_type)
         self.logger = None
 
@@ -134,6 +135,8 @@ class EnvInterface:
         self.logger = logger
         if self.type == "probe":
             self.env.set_logger(logger)
+        elif self.type == "gym":
+            self.logger.gym_monitor()
 
     def get_action_type(self, action_type:str) -> str:
         if self.type == "probe":
@@ -166,7 +169,7 @@ class EnvInterface:
                 type checking')
 
     def step(self, action_data):
-        return self.env.step(action_data)
+        return self.env.step(action_data.detach().numpy())
 
     def close(self):
         self.env.close()

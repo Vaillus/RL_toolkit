@@ -37,9 +37,9 @@ class ReplayBuffer:
         self.full = False
         self.observations = torch.zeros((self.size, self.obs_dim), dtype=torch.float32)
         self.actions = torch.zeros((self.size, self.action_dim)) # TODO: add type later
-        self.rewards = torch.zeros((self.size), dtype=torch.float32)
+        self.rewards = torch.zeros((self.size,1), dtype=torch.float32)
         self.next_observations = torch.zeros((self.size, self.obs_dim), dtype=torch.float32)
-        self.dones = torch.zeros((self.size), dtype=torch.bool)
+        self.dones = torch.zeros((self.size,1), dtype=torch.bool)
 
     def sample(self) -> ReplayBufferSamples:
         """Sample a batch of transitions.
