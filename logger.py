@@ -23,7 +23,7 @@ class Logger:
         tags: Optional[List[str]] = None,
         config: Optional[Dict[str, Any]] = None
     ):
-        wandb.init(job_type=job_type, notes=notes, tags=tags, config=config)
+        wandb.init(job_type, notes=notes, tags=tags, config=config)
 
     def wandb_watch(self, model, log_freq:int):
         if bool(wandb.run):

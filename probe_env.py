@@ -192,7 +192,7 @@ class ContinuousProbeEnv(ProbeEnv):
         if self.name == "one":
             new_state_data = [0]
             done = True
-            reward_data = 1.0
+            reward_data = ContinuousProbeEnv.gaussian(actions_data, 0, 1)
         elif self.name == "two":
             obs = 0
             new_state_data = [obs]
@@ -238,8 +238,9 @@ class ContinuousProbeEnv(ProbeEnv):
     def plot(self, episode_id, agent):
         if self.name == "one":
             state = torch.tensor([0])
-            state_value = agent.get_action_value_eval(state).item()
-            self.logger.wandb_log({"Probe/Value of state 0": state_value})
+            action =torch.tensor([0])
+            action_value = agent.get_action_values_eval(state, action).item()
+            self.logger.wandb_log({"Probe/Value of action 0 at state 0": action_value})
         elif self.name == "two":
             state_pos = torch.tensor([1])
             state_neg = torch.tensor([-1])
@@ -282,8 +283,12 @@ class ContinuousProbeEnv(ProbeEnv):
     def show_results(self, agent):
         if self.name == "one":
             state = torch.tensor([0])
+            action = torch.tensor([0])
+            action_value = agent.get_action_values_eval(state, action).item()
+            self.logger.wandb_log({"Probe/Value of action 0 at state 0": action_value})
+            state = torch.tensor([0])
             state_value = agent.get_action_value_eval(state)
-            print(f'value of state {state.data}: {state_value}')
+            print(f'Value of action 0 at state 0: {state_value}')
         elif self.name == "two":
             state_pos = torch.tensor([1])
             state_neg = torch.tensor([-1])
@@ -309,3 +314,7 @@ class ContinuousProbeEnv(ProbeEnv):
             second_state_av = agent.get_state_value_eval(second_state, [0.25, 0.75])
             print(f'values of state {first_state.data}: {first_state_av}')
             print(f'values of state {second_state.data}: {second_state_av}')
+    
+    @staticmethod
+    def gaussian(x, mu, sig):
+        return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))

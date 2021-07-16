@@ -212,9 +212,15 @@ class DDPGAgent:
             self.logger.wandb_log({
                 "Agent info/critic loss": critic_loss,
                 "Agent info/actor loss": actor_loss
-            })
-            self.critic.backpropagate(critic_loss)
-            self.actor.backpropagate(actor_loss)
+            }, log_freq=2)
+            self.actor.optimizer.zero_grad()
+            self.critic.optimizer.zero_grad()
+            critic_loss.backward()
+            actor_loss.backward()
+            self.actor.optimizer.step()
+            self.critic.optimizer.step()
+            #self.critic.backpropagate(critic_loss)
+            #self.actor.backpropagate(actor_loss)
 
             
 
@@ -235,7 +241,8 @@ class DDPGAgent:
     def get_action_values_eval(self, state:torch.Tensor, actions:torch.Tensor):
         """ for plotting purposes only?
         """
-        state = torch.cat((state, state)).unsqueeze(1)
+        #state = torch.cat((state, state)).unsqueeze(1)
+        state = (state.unsqueeze(1) * torch.ones(len(actions))).T
         state_action = torch.cat((state, actions.unsqueeze(1)),1)
         action_values = self.critic(state_action).data
         return action_values

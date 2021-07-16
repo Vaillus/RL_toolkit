@@ -1,6 +1,6 @@
 {
   "session_info":{
-    "num_timestep": 2000,
+    "num_timestep": 20000,
     "plot": false,
     "show": false,
     "return_results": true
@@ -23,9 +23,9 @@
 
       "policy_estimator_info": {
         "layers_info": [
-          {"type": "linear", "input_size": 1, "output_size": 16, 
+          {"type": "linear", "input_size": 1, "output_size": 8, 
             "activation": "relu"},
-          {"type": "linear", "input_size": 16, "output_size": 1, 
+          {"type": "linear", "input_size": 8, "output_size": 1, 
             "activation": "none"}
         ],
         "optimizer_info": {
@@ -35,9 +35,9 @@
       },
       "function_approximator_info": {
         "layers_info": [
-          {"type": "linear", "input_size": 2, "output_size": 16, 
+          {"type": "linear", "input_size": 2, "output_size": 8, 
             "activation": "relu"},
-          {"type": "linear", "input_size": 16, "output_size": 1, 
+          {"type": "linear", "input_size": 8, "output_size": 1, 
             "activation": "none"}
         ],
         "optimizer_info": {

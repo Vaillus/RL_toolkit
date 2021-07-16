@@ -1,0 +1,10 @@
+{
+    "DQN" : "discrete",
+    "tile coder test" : "discrete",
+    "REINFORCE" : "discrete",
+    "REINFORCE with baseline" : "discrete",
+    "actor-critic" : "discrete",
+    "Abaddon test" : "continuous",
+    "PPO" : "discrete",
+    "DDPG" : "continuous"
+}

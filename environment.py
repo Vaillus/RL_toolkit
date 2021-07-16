@@ -4,92 +4,7 @@ from probe_env import DiscreteProbeEnv, ContinuousProbeEnv
 from typing import Dict, Optional, Any
 import re
 from logger import Logger
-
-dict_envs = {
-    "gym": {
-        "MountainCarContinuous": {
-            "action_type" : "continuous",
-            "action_dim" : 1,
-            "state_dim" : 2
-        },
-        "MountainCar": {
-            "action_type" : "discrete",
-            "action_dim" : 3,
-            "state_dim" : 2
-        },
-        "CartPole": {
-            "action_type" : "discrete",
-            "action_dim" : 2,
-            "state_dim" : 4
-        },
-        "Pendulum": {
-            "action_type" : "continuous",
-            "action_dim" : 1,
-            "state_dim" : 3
-        },
-        "Acrobot": {
-            "action_type" : "discrete",
-            "action_dim" : 3,
-            "state_dim" : 6
-        }
-    },
-    "probe": {
-        "discrete": {
-            "one": {
-                "action_type" : "discrete",
-                "action_dim" : 1,
-                "state_dim" : 1
-            },
-            "two": {
-                "action_type" : "discrete",
-                "action_dim" : 1,
-                "state_dim" : 1
-            },
-            "three": {
-                "action_type" : "discrete",
-                "action_dim" : 1,
-                "state_dim" : 1
-            },
-            "four": {
-                "action_type" : "discrete",
-                "action_dim" : 2,
-                "state_dim" : 1
-            },
-            "five": {
-                "action_type" : "discrete",
-                "action_dim" : 2,
-                "state_dim" : 1
-            }
-        },
-        "continuous": {
-            "one": {
-                "action_type" : "continuous",
-                "action_dim" : 1,
-                "state_dim" : 1
-            },
-            "two": {
-                "action_type" : "continuous",
-                "action_dim" : 1,
-                "state_dim" : 1
-            },
-            "three": {
-                "action_type" : "continuous",
-                "action_dim" : 1,
-                "state_dim" : 1
-            },
-            "four": {
-                "action_type" : "continuous",
-                "action_dim" : 1,
-                "state_dim" : 1
-            },
-            "five": {
-                "action_type" : "continuous",
-                "action_dim" : 1,
-                "state_dim" : 1
-            }
-        }
-    }
-}
+from utils import get_params
 
 class EnvInterface:
     def __init__(
@@ -270,6 +185,7 @@ class EnvInterface:
         Returns:
             Dict[str, Any]: keys: [action_type, action_dim, state_dim]
         """
+        dict_envs = get_params("misc/env_data")
         if self.type == "gym":
             env_data = dict_envs[self.type][re.split("-", self.name)[0]]
         elif self.type == "probe":
@@ -278,8 +194,3 @@ class EnvInterface:
             raise ValueError(f"{self.type} not supported for env-agent matching")
         return env_data
 
-
-    #%%
-    import re
-    re.split("-","lol-salut")
-    #%%

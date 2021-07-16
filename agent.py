@@ -10,17 +10,9 @@ from AbaddonAgent import AbaddonAgent
 from typing import List, Optional, Any, Dict
 from abc import ABC, abstractmethod
 import torch
+from utils import get_params
 
-agent_action_type = {
-    "DQN" : "discrete",
-    "tile coder test" : "discrete",
-    "REINFORCE" : "discrete",
-    "REINFORCE with baseline" : "discrete",
-    "actor-critic" : "discrete",
-    "Abaddon test" : "continuous",
-    "PPO" : "discrete",
-    "DDPG" : "continuous"
-}
+
 
 class AgentInterface(ABC):
     def __init__(
@@ -115,7 +107,7 @@ class AgentInterface(ABC):
         return self.agent.get_action_value_eval(state)
     
     def get_action_values_eval(self, state:torch.Tensor, actions:torch.Tensor):
-        return self.agent.get_action_value_eval(state, actions)
+        return self.agent.get_action_values_eval(state, actions)
         
     
     
@@ -124,7 +116,6 @@ class SingleAgentInterface(AgentInterface):
         self,
         type,
         agent_kwargs,
-        
         seed
     ):
         super(SingleAgentInterface, self).__init__(type, agent_kwargs)
@@ -150,6 +141,7 @@ class SingleAgentInterface(AgentInterface):
         self.agent.learn_from_experience()
     
     def check(self, action_type:str, action_dim:int, state_dim:int) -> bool:
+        agent_action_type = get_params("misc/agent_action_type")
         assert action_type == agent_action_type[self.type], "env and agent\
              action types don't match"
         is_ok = self.agent.num_actions == action_dim and self.agent.state_dim == state_dim
