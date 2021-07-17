@@ -67,11 +67,11 @@ class CustomNeuralNetwork(nn.Module):
         num_layers = len(self.layers)
         for i in range(num_layers):
             if self.activations[i] == "relu":
-                x = F.relu(self.layers[i](x))
+                x = torch.relu(self.layers[i](x))
             elif self.activations[i] == "tanh":
-                x = F.tanh(self.layers[i](x))
+                x = torch.tanh(self.layers[i](x))
             elif self.activations[i] == "softmax":
-                x = F.softmax(self.layers[i](x))
+                x = torch.softmax(self.layers[i](x))
             elif self.activations[i] == "none":
                 x = self.layers[i](x)
             else:

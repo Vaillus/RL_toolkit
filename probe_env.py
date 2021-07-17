@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 from logger import Logger
+import matplotlib.pyplot as plt
 #from typing import Type
 
 #class ProbeEnv(ABC):
@@ -44,7 +45,7 @@ class DiscreteProbeEnv(ProbeEnv):
             state_data = [obs]
         return state_data
 
-    def step(self, actions_data:int):
+    def step(self, action:int):
         if self.name == "one":
             new_state_data = [0]
             done = True
@@ -69,22 +70,22 @@ class DiscreteProbeEnv(ProbeEnv):
         elif self.name == "four":
             new_state_data = [0]
             done = True
-            if actions_data == 0:
+            if action == 0:
                 reward_data = -1.0
-            if actions_data == 1:
+            if action == 1:
                 reward_data = 1.0
         elif self.name == "five":
             new_state_data = [0]
             done = True
             if self.init_obs == -1:
-                if actions_data == 0:
+                if action == 0:
                     reward_data = 1.0
-                if actions_data == 1:
+                if action == 1:
                     reward_data = -1.0
             elif self.init_obs == 1:
-                if actions_data == 0:
+                if action == 0:
                     reward_data = -1.0
-                if actions_data == 1:
+                if action == 1:
                     reward_data = 1.0
 
         other_data = None
@@ -187,12 +188,12 @@ class ContinuousProbeEnv(ProbeEnv):
             state_data = [obs]
         return state_data
     
-    def step(self, actions_data:float):
-        self.logger.wandb_log({"Probe/Action value": actions_data})
+    def step(self, action:float):
+        self.logger.wandb_log({"Probe/Action value": action})
         if self.name == "one":
             new_state_data = [0]
             done = True
-            reward_data = ContinuousProbeEnv.gaussian(actions_data, 0, 1)
+            reward_data = 1.0
         elif self.name == "two":
             obs = 0
             new_state_data = [obs]
@@ -206,30 +207,20 @@ class ContinuousProbeEnv(ProbeEnv):
                 reward_data = 0.0
                 self.is_first_step = False
             else:
-                obs = -1
+                obs = 0
                 new_state_data = [obs]
                 done = True
                 reward_data = 1.0
         elif self.name == "four":
             new_state_data = [0]
             done = True
-            if actions_data > 0.5:
-                reward_data = -1.0
-            if actions_data  <= 0.5:
-                reward_data = 1.0
+            reward_data = ContinuousProbeEnv.gaussian(action, 0, 1)
+            
         elif self.name == "five":
-            new_state_data = [0]
+            obs = 0
+            new_state_data = [obs]
             done = True
-            if self.init_obs == -1:
-                if actions_data > 0.5:
-                    reward_data = -1.0
-                if actions_data  <= 0.5:
-                    reward_data = 1.0
-            elif self.init_obs == 1:
-                if actions_data <= 0.5:
-                    reward_data = -1.0
-                if actions_data  > 0.5:
-                    reward_data = 1.0
+            reward_data = ContinuousProbeEnv.gaussian(action, self.init_obs * 0.5, 0.5)
         
         other_data = None
         return new_state_data, reward_data, done, other_data
@@ -244,51 +235,46 @@ class ContinuousProbeEnv(ProbeEnv):
         elif self.name == "two":
             state_pos = torch.tensor([1])
             state_neg = torch.tensor([-1])
-            state_value_pos = agent.get_action_value_eval(state_pos)
-            state_value_neg = agent.get_action_value_eval(state_neg)
+            state_value_pos = agent.get_action_values_eval(state_pos, torch.tensor([0.0]))
+            state_value_neg = agent.get_action_values_eval(state_neg, torch.tensor([0.0]))
             self.logger.wandb_log({
-                "Probe/Value of state -1": state_value_neg,
-                "Probe/Value of state 1": state_value_pos
+                "Probe/Value of action 0 at  state -1": state_value_neg,
+                "Probe/Value of action 0 at state 1": state_value_pos
             })
         elif self.name == "three":
             first_state = torch.tensor([0])
             second_state = torch.tensor([1])
-            first_state_value = agent.get_action_value_eval(first_state)
-            second_state_value = agent.get_action_value_eval(second_state)
+            state_value_pos = agent.get_action_values_eval(first_state, torch.tensor([0.0]))
+            state_value_neg = agent.get_action_values_eval(second_state, torch.tensor([0.0]))
             self.logger.wandb_log({
-                "Probe/Value of state 0": first_state_value,
-                "Probe/Value of state 1": second_state_value
+                "Probe/Value of action 0 at state 0": state_value_pos,
+                "Probe/Value of action 0 at state 1": state_value_neg
             })
         elif self.name == "four":
             state = torch.tensor([0])
-            actions = torch.tensor([0.25, 0.75])
-            actions_values = agent.get_action_values_eval(state, actions)
-            self.logger.wandb_log({
-                "Probe/state 0 action 0": actions_values[0],
-                "Probe/state 0 action 1": actions_values[1]
-            })
+            action =torch.tensor([0])
+            action_value = agent.get_action_values_eval(state, action).item()
+            self.logger.wandb_log({"Probe/Value of action 0 at state 0": action_value})
             
         elif self.name == "five":
-            first_state = torch.tensor([-1])
-            second_state = torch.tensor([1])
-            actions = torch.tensor([0.25, 0.75])
-            first_state_av = agent.get_action_values_eval(first_state, actions)
-            second_state_av = agent.get_action_values_eval(second_state, actions)
+            state_pos = torch.tensor([1])
+            state_neg = torch.tensor([-1])
+            state_value_pos = agent.get_action_values_eval(state_pos, torch.tensor([0.5]))
+            state_value_neg = agent.get_action_values_eval(state_neg, torch.tensor([-0.5]))
             self.logger.wandb_log({
-                "Probe/state -1 action 0.25": first_state_av[0],
-                'Probe/state -1 action 0.75': first_state_av[1],
-                'Probe/state 1 action 0.25': second_state_av[0],
-                'Probe/state 1 action 0.75': second_state_av[1]})
+                "Probe/Value of action -0.5 at  state -1": state_value_neg,
+                "Probe/Value of action 0.5 at state 1": state_value_pos
+            })
 
     def show_results(self, agent):
         if self.name == "one":
             state = torch.tensor([0])
             action = torch.tensor([0])
             action_value = agent.get_action_values_eval(state, action).item()
-            self.logger.wandb_log({"Probe/Value of action 0 at state 0": action_value})
-            state = torch.tensor([0])
-            state_value = agent.get_action_value_eval(state)
-            print(f'Value of action 0 at state 0: {state_value}')
+            print(f'Value of action 0 at state 0: {action_value}')
+
+            self.plot_final_result(agent, 0, mu= 1, mode="constant")
+
         elif self.name == "two":
             state_pos = torch.tensor([1])
             state_neg = torch.tensor([-1])
@@ -296,25 +282,48 @@ class ContinuousProbeEnv(ProbeEnv):
             state_value_neg = agent.get_action_value_eval(state_neg)
             print(f'value of state {state_pos.data}: {state_value_pos}')
             print(f'value of state {state_neg.data}: {state_value_neg}')
+            self.plot_final_result(agent, -1,  mu= -1, mode="constant")
+            self.plot_final_result(agent, 1,  mu= 1, mode="constant")
+
         elif self.name == "three":
             first_state = torch.tensor([0])
             second_state = torch.tensor([1])
-            first_state_value = agent.get_action_value_eval(first_state)
-            second_state_value = agent.get_action_value_eval(second_state)
+            first_state_value = agent.get_action_values_eval(first_state, torch.tensor([-0.5]))
+            second_state_value = agent.get_action_values_eval(second_state, torch.tensor([0.5]))
             print(f'value of state {first_state.data}: {first_state_value}')
             print(f'value of state {second_state.data}: {second_state_value}')
+            self.plot_final_result(agent, 0, agent.get_discount() , mode="constant")
+            self.plot_final_result(agent, 1, 1, mode="constant")
         elif self.name == "four":
             state = torch.tensor([0])
-            actions_values = agent.get_action_value_eval(state)
-            print(f'value of actions in state {state.data}: {actions_values}')
+            action = torch.tensor([0])
+            action_value = agent.get_action_values_eval(state, action).item()
+            print(f'Value of action 0 at state 0: {action_value}')
+
+            self.plot_final_result(agent, 0)
         elif self.name == "five":
-            first_state = torch.tensor([-1])
-            second_state = torch.tensor([1])
-            first_state_av = agent.get_action_values_eval(first_state, [0.25, 0.75])
-            second_state_av = agent.get_state_value_eval(second_state, [0.25, 0.75])
-            print(f'values of state {first_state.data}: {first_state_av}')
-            print(f'values of state {second_state.data}: {second_state_av}')
+            state_pos = torch.tensor([1])
+            state_neg = torch.tensor([-1])
+            state_value_pos = agent.get_action_value_eval(state_pos)
+            state_value_neg = agent.get_action_value_eval(state_neg)
+            print(f'value of state {state_pos.data}: {state_value_pos}')
+            print(f'value of state {state_neg.data}: {state_value_neg}')
+            self.plot_final_result(agent, -1, -0.5, 0.5)
+            self.plot_final_result(agent, 1, 0.5, 0.5)
     
     @staticmethod
     def gaussian(x, mu, sig):
         return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
+    
+    def plot_final_result(self, agent, state_value, mu=0, sigma=1, mode="gaussian"):
+        x = np.arange(-1,1, 0.1)
+        y = agent.get_action_values_eval(torch.tensor([state_value]), torch.tensor(x))
+        if mode == "gaussian":
+            baseline = ContinuousProbeEnv.gaussian(x, mu, sigma)
+        elif mode == "constant":
+            baseline = np.ones(x.shape) * mu
+        plt.plot(x, y, label='output of critic')
+        plt.plot(x, baseline, 'r', label='reward')
+        plt.xlabel("Action value")
+        plt.legend()
+        self.logger.wandb_plot({f"Probe/actions values at state {state_value}": plt})

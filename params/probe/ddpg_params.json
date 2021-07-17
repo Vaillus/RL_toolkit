@@ -1,32 +1,32 @@
 {
   "session_info":{
-    "num_timestep": 20000,
+    "num_timestep": 1000000,
     "plot": false,
     "show": false,
     "return_results": true
   },
   "env_info":  {
-    "type": "probe",
-    "name": "one",
+    "type": "gym",
+    "name": "Pendulum-v0",
     "action_type": "continuous"
   },
   "agent_info":{
     "type": "DDPG",
     "agent_kwargs":{
       "discount_factor": 0.99,
-      "num_actions": 10,
-      "state_dim": 10,
       "memory_info":{
-        "size": 10000,
-        "batch_size": 32},
+        "size": 50000,
+        "batch_size": 64},
       "update_target_rate": 1000,
 
       "policy_estimator_info": {
         "layers_info": [
-          {"type": "linear", "input_size": 1, "output_size": 8, 
+          {"type": "linear", "input_size": 1, "output_size": 256, 
             "activation": "relu"},
-          {"type": "linear", "input_size": 8, "output_size": 1, 
-            "activation": "none"}
+          {"type": "linear", "input_size": 256, "output_size": 256, 
+            "activation": "relu"},
+          {"type": "linear", "input_size": 256, "output_size": 1, 
+            "activation": "tanh"}
         ],
         "optimizer_info": {
           "type": "adam",
@@ -35,14 +35,16 @@
       },
       "function_approximator_info": {
         "layers_info": [
-          {"type": "linear", "input_size": 2, "output_size": 8, 
+          {"type": "linear", "input_size": 2, "output_size": 16, 
             "activation": "relu"},
-          {"type": "linear", "input_size": 8, "output_size": 1, 
+          {"type": "linear", "input_size": 16, "output_size": 32, 
+            "activation": "relu"},
+          {"type": "linear", "input_size": 32, "output_size": 1, 
             "activation": "none"}
         ],
         "optimizer_info": {
           "type": "adam",
-          "learning_rate": 0.001
+          "learning_rate": 0.002
         }
       }
     }
@@ -50,8 +52,8 @@
   "logger_kwargs": {
     "wandb": true,
     "wandb_kwargs": {
-      "job_type": "test"
+      "job_type": "test2"
     },
-    "log_every": 50
+    "log_every": 300
   }
 }

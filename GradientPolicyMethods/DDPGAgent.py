@@ -77,8 +77,10 @@ class DDPGAgent:
     
     def set_logger(self, logger:Type[Logger]):
         self.logger = logger
-        self.logger.wandb_watch(self.actor, log_freq=1)
-        self.logger.wandb_watch(self.critic, log_freq=1)
+        self.logger.wandb_watch([self.actor, self.critic])
+
+    def get_discount(self):
+        return self.γ
 
     # ====== Action choice related functions ===========================
 
@@ -200,9 +202,9 @@ class DDPGAgent:
             # compute critic eval
             q_eval = self.critic(batch_oa_eval)
             # learn critic
-            critic_loss = self.loss_func(q_eval, q_next)
+            critic_loss = self.loss_func(q_eval, y)
             
-
+            self.critic.backpropagate(critic_loss)
 
             actor_eval = self.actor(batch.observations)
             #with torch.no_grad():
@@ -212,15 +214,9 @@ class DDPGAgent:
             self.logger.wandb_log({
                 "Agent info/critic loss": critic_loss,
                 "Agent info/actor loss": actor_loss
-            }, log_freq=2)
-            self.actor.optimizer.zero_grad()
-            self.critic.optimizer.zero_grad()
-            critic_loss.backward()
-            actor_loss.backward()
-            self.actor.optimizer.step()
-            self.critic.optimizer.step()
-            #self.critic.backpropagate(critic_loss)
-            #self.actor.backpropagate(actor_loss)
+            })
+            
+            self.actor.backpropagate(actor_loss)
 
             
 

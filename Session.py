@@ -103,7 +103,7 @@ class Session:
             self.logger.wandb_log({
                 "General episode info/rewards": episode_reward,
                 "General episode info/episode length": ep_len
-            }, log_freq)
+            })
             id_episode += 1
         
         # plot the rewards

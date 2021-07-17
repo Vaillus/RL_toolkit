@@ -25,9 +25,11 @@ class Logger:
     ):
         wandb.init(job_type, notes=notes, tags=tags, config=config)
 
-    def wandb_watch(self, model, log_freq:int):
+    def wandb_watch(self, models, log_freq:Optional[int] = None):
+        if log_freq is None:
+            log_freq = 1000 # as in the wandb library.
         if bool(wandb.run):
-            wandb.watch(models=model, log_freq=log_freq)
+            wandb.watch(models=models, log_freq=log_freq)
     
     def gym_monitor(self):
         # works only when gym generates a video, which it doesn't, for now.
@@ -50,6 +52,10 @@ class Logger:
                     self.empty_log_count(key)
 
             wandb.log(actual_log_dict)
+
+    def wandb_plot(self, plot_dict):
+        if bool(wandb.run):
+            wandb.log(plot_dict)
     
     def incr_cnt(self, key: str, value: float, log_freq=None):
         if not key in self.log_counts:

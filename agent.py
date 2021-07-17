@@ -108,6 +108,9 @@ class AgentInterface(ABC):
     
     def get_action_values_eval(self, state:torch.Tensor, actions:torch.Tensor):
         return self.agent.get_action_values_eval(state, actions)
+    
+    def get_discount(self):
+        return self.agent.get_discount()
         
     
     
