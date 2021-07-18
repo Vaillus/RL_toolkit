@@ -71,7 +71,7 @@ class CustomNeuralNetwork(nn.Module):
             elif self.activations[i] == "tanh":
                 x = torch.tanh(self.layers[i](x))
             elif self.activations[i] == "softmax":
-                x = torch.softmax(self.layers[i](x))
+                x = F.softmax(self.layers[i](x))
             elif self.activations[i] == "none":
                 x = self.layers[i](x)
             else:

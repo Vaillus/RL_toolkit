@@ -2,7 +2,7 @@ from CustomNeuralNetwork import CustomNeuralNetwork
 from utils import set_random_seed
 import numpy as np
 import torch
-from memory_buffer import ReplayBuffer, ReplayBufferSamples
+from replay_buffer import ReplayBuffer
 from typing import Any, Dict, Optional, Type
 from copy import deepcopy
 from logger import Logger
@@ -25,9 +25,8 @@ class DDPGAgent:
     ):
         self.num_actions = num_actions
         self.state_dim = state_dim
-        self.previous_action = None
-        self.previous_obs = None
-        self.seed = None
+        
+        self.seed = self.init_seed(seed)
         self.logger = None
         # neural network parameters
         self.actor = None
@@ -37,17 +36,19 @@ class DDPGAgent:
         self.update_target_rate = update_target_rate
         self.update_target_counter = 0
         self.loss_func = torch.nn.MSELoss()
+
         self.γ = discount_factor
-        # memory parameters
-        self.replay_buffer = None
+        self.replay_buffer = self.init_memory_buffer(memory_info)
         self.target_policy_noise = target_policy_noise
         self.target_noise_clip = target_noise_clip
         self.tot_timestep = 0
         self.init_actor(policy_estimator_info)
         self.init_critic(function_approximator_info)
-        self.init_memory_buffer(memory_info)
+
+        self.previous_action = None
+        self.previous_obs = None
         
-        self.init_seed(seed)
+        
 
     # ====== Initialization functions ==================================
     
@@ -59,15 +60,15 @@ class DDPGAgent:
         self.critic = CustomNeuralNetwork(**params)
         self.critic_target = deepcopy(self.critic)
     
-    def init_memory_buffer(self, params):
+    def init_memory_buffer(self, params) -> ReplayBuffer:
         params["obs_dim"] = self.state_dim
         params["action_dim"] = self.num_actions
-        self.replay_buffer = ReplayBuffer(**params)
+        return ReplayBuffer(**params)
 
     def init_seed(self, seed):
         if seed:
-            self.seed = seed
             set_random_seed(self.seed)
+            return seed
 
     def set_seed(self, seed):
         if seed:
@@ -144,48 +145,6 @@ class DDPGAgent:
 
     def control(self):
         self._learn()
-
-    def _learn_old(self):
-        """
-        Updates target net, sample a batch of transitions and compute 
-        loss from it
-        :return: None
-        """
-        # every n learning cycle, the target network will be replaced 
-        # with the eval network
-        self._update_target_net()
-        # we can start learning when the memory is full
-        if self.replay_buffer.full:
-            # getting batch data
-            batch = self.replay_buffer.sample()
-
-            # value of the action being taken at the current timestep
-            batch_oa = self._concat_obs_action(batch.observations, batch.actions)
-            q_eval = self.critic(batch_oa)
-            # values of the actions at the next step
-            q_next = self.critic_target(batch_oa)
-            q_next = self._zero_terminal_states(q_next, batch.dones)
-            #noise = self._create_noise_tensor(batch.actions)
-            #q_next += noise
-            # Q containing only the max value of q in next step
-            q_target = batch.rewards + self.discount_factor * q_next
-            # computing the loss
-            critic_loss = self.loss_func(q_eval, q_target.detach())
-
-            self.critic.backpropagate(critic_loss)
-            
-            actions = self.actor(batch.observations) #self.choose_action(batch.observations)
-            batch_oa = self._concat_obs_action(batch.observations, actions)
-            actor_loss = - self.critic(batch_oa).mean()
-            self.actor.backpropagate(actor_loss)
-
-            # residual variance for plotting purposes (not sure if it is correct)
-            #q_res = self.target_net(batch.observations).gather(1, batch.actions.long())
-            #res_var = torch.var(q_res - q_eval) / torch.var(q_res)
-            self.logger.wandb_log({
-                "Agent info/critic loss": critic_loss.item(),
-                "Agent info/actor loss": actor_loss.item()
-            })
     
     def _learn(self):
         if self.replay_buffer.full:

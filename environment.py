@@ -84,7 +84,7 @@ class EnvInterface:
                 type checking')
 
     def step(self, action_data):
-        return self.env.step(action_data.detach().numpy())
+        return self.env.step(action_data) # type problem somewhere # .detach().numpy()
 
     def close(self):
         self.env.close()
