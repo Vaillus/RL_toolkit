@@ -1,13 +1,13 @@
 {
   "session_info":{
-    "num_timestep": 10000,
+    "num_timestep": 1000,
     "plot": false,
     "show": false,
     "return_results": true
   },
   "env_info":{
     "type": "probe",
-    "name": "five",
+    "name": "three",
     "action_type": "discrete"
   },
   "agent_info":{
@@ -22,7 +22,7 @@
       "entropy_coeff": 0.01,
 
       "memory_info":{
-        "size": 100,
+        "size": 3,
         "batch_size": 32},
 
       "policy_estimator_info": {

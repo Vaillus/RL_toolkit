@@ -133,7 +133,7 @@ class DiscreteProbeEnv(ProbeEnv):
                 'Probe/state 1 action 1': second_state_value[1]})
             
     
-    def show_result(self, agent):
+    def show_results(self, agent):
         if self.name == "one":
             state = torch.tensor([0])
             state_value = agent.get_state_value_eval(state)

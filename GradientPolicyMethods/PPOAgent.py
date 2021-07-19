@@ -4,7 +4,7 @@ import torch
 from torch.distributions import Categorical
 import wandb
 from typing import Optional, Type, Dict, Any
-from replay_buffer import ReplayBuffer
+from replay_buffer import PPOReplayBuffer
 from logger import Logger
 from utils import set_random_seed
 
@@ -45,7 +45,7 @@ class PPOAgent:
         self.previous_state = None
         self.previous_action = None
 
-     # ====== Initialization functions ==================================
+    # ====== Initialization functions ==================================
      
     def initialize_policy_estimator(self, params: Dict) -> CustomNeuralNetwork:
         return CustomNeuralNetwork(**params)
@@ -53,10 +53,11 @@ class PPOAgent:
     def initialize_function_approximator(self, params: Dict) -> CustomNeuralNetwork:
         return CustomNeuralNetwork(**params)
     
-    def init_memory_buffer(self, params: Dict) -> ReplayBuffer:
+    def init_memory_buffer(self, params: Dict) -> PPOReplayBuffer:
         params["obs_dim"] = self.state_dim
         params["action_dim"] = self.num_actions
-        return ReplayBuffer(**params)
+        params["discount_factor"] = self.γ
+        return PPOReplayBuffer(**params)
     
     def init_seed(self, seed):
         if seed:
@@ -71,17 +72,17 @@ class PPOAgent:
     
     def set_logger(self, logger:Type[Logger]):
         self.logger = logger
-        self.logger.wandb_watch([self.actor, self.critic])
+        self.logger.wandb_watch([self.actor, self.critic], 1)
     
 
-    def control(self):  
+    def control(self):
         if self.replay_buffer.full:
             batch = self.replay_buffer.sample()
             # get discounted rewards
-            batch_discounted_reward = torch.tensor(np.zeros((self.replay_buffer.batch_size, 1))).float()
+            batch_discounted_reward = torch.tensor(np.zeros((self.replay_buffer.size, 1))).float()
             disc_reward = 0.0
             for i, reward_i in enumerate(torch.flip(batch.rewards, (0,1))):
-                if batch.dones[self.replay_buffer.batch_size - 1 - i, 0]:
+                if batch.dones[self.replay_buffer.size - 1 - i, 0]:
                     disc_reward = 0.0
                 disc_reward = reward_i + self.γ * disc_reward
                 batch_discounted_reward[self.replay_buffer.batch_size - 1 - i, 0] = disc_reward
@@ -108,7 +109,6 @@ class PPOAgent:
                 entropy_loss = entropy * self.entropy_coeff
                 self.actor.backpropagate(policy_loss + entropy_loss)
 
-                
                 # TODO: clip the state value variation. nb: only openai does that.
                 # delta_state_value = self.function_approximator_eval(batch_state) - prev_state_value
                 # new_prev_state_value = prev_state_value + delta_state_value
@@ -171,4 +171,10 @@ class PPOAgent:
             state_value = self.critic(state).data
         return state_value
         
+    def adjust_dims(self, state_dim, action_dim):
+        self.state_dim = state_dim
+        self.num_actions = action_dim
+        self.actor.reinit_layers(state_dim, action_dim)
+        self.critic.reinit_layers(state_dim, 1)
+        self.replay_buffer.reinit(state_dim, action_dim)
 
