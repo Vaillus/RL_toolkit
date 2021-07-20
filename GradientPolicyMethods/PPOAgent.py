@@ -45,6 +45,8 @@ class PPOAgent:
         self.previous_state = None
         self.previous_action = None
 
+        self.memory_size = memory_info.get("memory_size", 200)
+
     # ====== Initialization functions ==================================
      
     def initialize_policy_estimator(self, params: Dict) -> CustomNeuralNetwork:
@@ -78,18 +80,10 @@ class PPOAgent:
     def control(self):
         if self.replay_buffer.full:
             batch = self.replay_buffer.sample()
-            # get discounted rewards
-            batch_discounted_reward = torch.tensor(np.zeros((self.replay_buffer.size, 1))).float()
-            disc_reward = 0.0
-            for i, reward_i in enumerate(torch.flip(batch.rewards, (0,1))):
-                if batch.dones[self.replay_buffer.size - 1 - i, 0]:
-                    disc_reward = 0.0
-                disc_reward = reward_i + self.γ * disc_reward
-                batch_discounted_reward[self.replay_buffer.batch_size - 1 - i, 0] = disc_reward
             
             # computing state values, advantage
             prev_state_value = self.critic(batch.observations)
-            advantage = batch_discounted_reward - prev_state_value.detach()
+            advantage = batch.returns - prev_state_value.detach()
             self.normalize(advantage) # is it really a good idea?
             # get probabilities of actions from policy estimator
             probs_old = self.actor(batch.observations).detach()
@@ -114,7 +108,7 @@ class PPOAgent:
                 # new_prev_state_value = prev_state_value + delta_state_value
                 # state_value_error = 
                 prev_state_value = self.critic(batch.observations)
-                value_loss = MSELoss(prev_state_value, batch_discounted_reward)
+                value_loss = MSELoss(prev_state_value, batch.returns)
                 value_loss *= self.value_coeff
                 self.critic.backpropagate(value_loss)
                 
@@ -122,6 +116,7 @@ class PPOAgent:
                     'Agent info/critic loss': value_loss,
                     'Agent info/actor loss': policy_loss,
                     'Agent info/policy entropy': entropy})
+            self.replay_buffer.reinit()
 
                 
     def normalize(self, tensor):

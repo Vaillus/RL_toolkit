@@ -224,4 +224,4 @@ class DDPGAgent:
         self.actor_target.reinit_layers(state_dim, action_dim)
         self.critic.reinit_layers(state_dim + action_dim, 1)
         self.critic_target.reinit_layers(state_dim + action_dim, 1)
-        self.replay_buffer.reinit(state_dim, action_dim)
+        self.replay_buffer.correct(state_dim, action_dim)
