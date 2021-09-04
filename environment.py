@@ -84,6 +84,8 @@ class EnvInterface:
                 type checking')
 
     def step(self, action_data):
+        if self.name.startswith("Pendulum"):
+            action_data *= 2.0
         return self.env.step(action_data) # type problem somewhere # .detach().numpy()
 
     def close(self):

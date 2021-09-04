@@ -6,11 +6,13 @@ from GradientPolicyMethods.ActorCriticAgent import ActorCriticAgent
 from GradientPolicyMethods.PPOAgent import PPOAgent
 from GradientPolicyMethods.DDPGAgent import DDPGAgent
 from AbaddonAgent import AbaddonAgent
+from logger import Logger
 
 from typing import List, Optional, Any, Dict
 from abc import ABC, abstractmethod
 import torch
 from utils import get_params
+import wandb
 
 
 
@@ -43,6 +45,9 @@ class AgentInterface(ABC):
         Returns:
             Agent: the agent initialized
         """
+        if self.logger:
+            if self.logger.wandb: 
+                agent_kwargs = wandb.config.__dict__['_items']["agent_kwargs"]
         agent = None
         if self.type == "DQN":
             agent = DQNAgent(**agent_kwargs)
@@ -144,9 +149,19 @@ class SingleAgentInterface(AgentInterface):
         self.agent.learn_from_experience()
     
     def check(self, action_type:str, action_dim:int, state_dim:int) -> bool:
+        """Check if environment and agent action types and dimensions match
+
+        Args:
+            action_type (str): environment action type
+            action_dim (int): environment action dimension
+            state_dim (int): environment state dimension
+
+        Returns:
+            bool: is the agent compatible with the environment?
+        """
         agent_action_type = get_params("misc/agent_action_type")
         assert action_type == agent_action_type[self.type], "env and agent\
-             action types don't match"
+         action types don't match"
         is_ok = self.agent.num_actions == action_dim and self.agent.state_dim == state_dim
         return is_ok
     

@@ -274,7 +274,6 @@ class ContinuousProbeEnv(ProbeEnv):
             print(f'Value of action 0 at state 0: {action_value}')
 
             self.plot_final_result(agent, 0, mu= 1, mode="constant")
-
         elif self.name == "two":
             state_pos = torch.tensor([1])
             state_neg = torch.tensor([-1])
@@ -284,7 +283,6 @@ class ContinuousProbeEnv(ProbeEnv):
             print(f'value of state {state_neg.data}: {state_value_neg}')
             self.plot_final_result(agent, -1,  mu= -1, mode="constant")
             self.plot_final_result(agent, 1,  mu= 1, mode="constant")
-
         elif self.name == "three":
             first_state = torch.tensor([0])
             second_state = torch.tensor([1])
@@ -299,7 +297,6 @@ class ContinuousProbeEnv(ProbeEnv):
             action = torch.tensor([0])
             action_value = agent.get_action_values_eval(state, action).item()
             print(f'Value of action 0 at state 0: {action_value}')
-
             self.plot_final_result(agent, 0)
         elif self.name == "five":
             state_pos = torch.tensor([1])
@@ -316,6 +313,13 @@ class ContinuousProbeEnv(ProbeEnv):
         return np.exp(-np.power(x - mu, 2.) / (2 * np.power(sig, 2.)))
     
     def plot_final_result(self, agent, state_value, mu=0, sigma=1, mode="gaussian"):
+        """ function that creates a plot to make sure the agent predicts the
+        action values correctly.
+        A first line (red) represents the reward of the actions, taking
+        the shape of a gaussian, and the other line (blue) displays the 
+        action value predictions of the agent. If everything works correctly,
+        the two line should overlap.
+        """
         x = np.arange(-1,1, 0.1)
         y = agent.get_action_values_eval(torch.tensor([state_value]), torch.tensor(x))
         if mode == "gaussian":

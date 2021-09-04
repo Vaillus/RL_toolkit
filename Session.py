@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import os
 from typing import Dict, Any, List, Optional
 import numpy as np
+import torch
 
 from agent import MultiAgentInterface, SingleAgentInterface
 from environment import EnvInterface
@@ -29,6 +30,10 @@ class Session:
             **env_kwargs, 
             show=show, 
             show_every=show_every)
+        
+        if logger_kwargs and logger_kwargs.get('wandb', False):
+            logger_kwargs['wandb_kwargs']['config'] = agent_kwargs
+        self.logger = Logger(**logger_kwargs)
 
         self.is_multiagent = is_multiagent
         agent_kwargs["seed"] = seed # those two might not work for multiagent.
@@ -44,7 +49,7 @@ class Session:
         self.tot_timestep = 0
         self.max_timestep = num_timestep
 
-        self.logger = Logger(**logger_kwargs)
+        
         self.agent.set_logger(self.logger)
         self.environment.set_logger(self.logger)
 
@@ -96,14 +101,15 @@ class Session:
             episode_reward, success, ep_len = self.episode(id_episode)
             self.environment.close()
             if self.show:
-                print(f'EPISODE: {id_episode}')
-                print(f'reward: {episode_reward}')
-                print(f'success: {success}')
+                pass
+                #print(f'EPISODE: {id_episode}')
+                #print(f'reward: {episode_reward}')
+                #print(f'success: {success}')
             rewards = np.append(rewards, episode_reward)
             self.logger.wandb_log({
-                "General episode info/rewards": episode_reward,
-                "General episode info/episode length": ep_len
-            })
+                "rewards": episode_reward,
+                "General/episode length": ep_len
+            },log_freq= 30)
             id_episode += 1
         
         # plot the rewards
@@ -195,12 +201,15 @@ class Session:
 
         # in the case of an Abaddon environment, wrap the state data in a certain way.
         action_data = self.environment.wrap_godot_action_data(action_data, agent_name)
+        if type(action_data) == torch.Tensor: # TODO: why?
+            action_data = action_data.detach().numpy()
 
         return action_data
 
     def print_episode_count(self, episode_id):
         if ((self.show is True) and (episode_id % self.show_every == 0)):
-            print(f'EPISODE: {episode_id}')
+            pass
+            #print(f'EPISODE: {episode_id}')
     
     def _save_reward(self, episode_reward, reward_data):
         """add the reward earned at the last step to the reward 
@@ -252,7 +261,7 @@ if __name__ == "__main__":
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
-    data = get_params("probe/ppo_params")
+    data = get_params("other/ddpg_params")
     session_parameters = data["session_info"]
     session_parameters["agent_kwargs"] = data["agent_info"]
     session_parameters["env_kwargs"] = data["env_info"]

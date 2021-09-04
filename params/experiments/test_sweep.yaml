@@ -1,0 +1,13 @@
+program: Session.py
+method: bayes
+parameters:
+  agent_kwargs.function_approximator_info.optimizer_info.learning_rate:
+    min: 0.001
+    max: 0.01 
+metric:
+  name: rewards
+  goal: maximize
+command: 
+  - ${env}
+  - python3
+  - ${program}

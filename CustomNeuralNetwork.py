@@ -23,6 +23,7 @@ class CustomNeuralNetwork(nn.Module):
         self.layers = nn.ModuleList()
         self.activations = []
         self.optimizer = None
+        self.optimizer_info = optimizer_info
         self.seed = None
         self.history = np.array([]) # TODO: get rid of it. Don't need it anymore.
         self.layers_info = layers_info # for reinit purposes
@@ -83,12 +84,16 @@ class CustomNeuralNetwork(nn.Module):
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
+        #print("coucou")
     
     def reinit_layers(self, input_dim, output_dim):
         self.layers_info[0]["input_size"] = input_dim
         self.layers_info[-1]["output_size"] = output_dim
         self.layers = nn.ModuleList() # erase previous layers
+        self.activations = []
+        self.optimizer = None
         self.init_layers(self.layers_info) # create new ones
+        self.init_optimizer(self.optimizer_info)
 
     # === functions related to gradient logging and plotting ===========
     # === === logging ==================================================

@@ -74,7 +74,11 @@ class DDPGAgent:
         if seed:
             self.seed = seed
             set_random_seed(self.seed)
-            self.function_approximator.set_seed(seed)
+            self.actor.set_seed(seed)
+            self.actor_target.set_seed(seed)
+            self.critic.set_seed(seed)
+            self.critic_target.set_seed(seed)
+            # TODO: set memory buffer seed?
     
     def set_logger(self, logger:Type[Logger]):
         self.logger = logger
@@ -171,13 +175,12 @@ class DDPGAgent:
             actor_loss = self.critic(test_oa)
             actor_loss = - actor_loss.mean()
             self.logger.wandb_log({
-                "Agent info/critic loss": critic_loss,
-                "Agent info/actor loss": actor_loss
+                "critic loss": critic_loss,
+                "actor loss": actor_loss
             })
             
             self.actor.backpropagate(actor_loss)
 
-            
 
 
     def _concat_obs_action(self, obs:torch.Tensor, action:torch.Tensor) -> torch.Tensor:
