@@ -2,11 +2,28 @@ program: Session.py
 method: bayes
 parameters:
   agent_kwargs.function_approximator_info.optimizer_info.learning_rate:
-    min: 0.001
+    min: 0.0005
     max: 0.01 
+  agent_kwargs.policy_estimator_info.optimizer_info.learning_rate:
+    min: 0.00005
+    max: 0.01 
+  agent_kwargs.discount_factor:
+    min: 0.9
+    max: 0.995
+  agent_kwargs.memory_info.size:
+    min: 5000
+    max: 50000
+  agent_kwargs.memory_info.batch_size:
+    values: 
+      - 16
+      - 32
+      - 64
+      - 128
+      - 256
+
 metric:
-  name: rewards
-  goal: maximize
+  name: actor loss
+  goal: minimize
 command: 
   - ${env}
   - python3
