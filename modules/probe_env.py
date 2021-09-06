@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from logger import Logger
+from modules.logger import Logger
 import matplotlib.pyplot as plt
 #from typing import Type
 

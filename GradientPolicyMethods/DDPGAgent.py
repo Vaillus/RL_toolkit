@@ -5,7 +5,7 @@ import torch
 from replay_buffer import ReplayBuffer
 from typing import Any, Dict, Optional, Type
 from copy import deepcopy
-from logger import Logger
+from modules.logger import Logger
 
 #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -53,11 +53,11 @@ class DDPGAgent:
     # ====== Initialization functions ==================================
     
     def init_actor(self, params):
-        self.actor = CustomNeuralNetwork(**params)
+        self.actor = CustomNeuralNetwork(**params, input_dim=self.state_dim, output_dim=self.num_actions)
         self.actor_target = deepcopy(self.actor)
     
     def init_critic(self, params):
-        self.critic = CustomNeuralNetwork(**params)
+        self.critic = CustomNeuralNetwork(**params, input_dim=self.state_dim, output_dim=self.num_actions)
         self.critic_target = deepcopy(self.critic)
     
     def init_memory_buffer(self, params) -> ReplayBuffer:

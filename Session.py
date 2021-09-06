@@ -4,9 +4,9 @@ from typing import Dict, Any, List, Optional
 import numpy as np
 import torch
 
-from agent import MultiAgentInterface, SingleAgentInterface
-from environment import EnvInterface
-from logger import Logger
+from modules.agent import MultiAgentInterface, SingleAgentInterface
+from modules.environment import EnvInterface
+from modules.logger import Logger
 
 from utils import get_params, set_random_seed
 
@@ -31,8 +31,8 @@ class Session:
             show=show, 
             show_every=show_every)
         
-        if logger_kwargs and logger_kwargs.get('wandb', False):
-            logger_kwargs['wandb_kwargs']['config'] = agent_kwargs
+        if logger_kwargs and logger_kwargs.get('is_wandb', False):
+            logger_kwargs['wandb_kwargs']['config'] = agent_kwargs["agent_kwargs"]
         self.logger = Logger(**logger_kwargs)
 
         self.is_multiagent = is_multiagent
@@ -77,9 +77,9 @@ class Session:
     
     def _init_agent(self, agent_kwargs, is_multiagent):
         if is_multiagent:
-            return MultiAgentInterface(**agent_kwargs)
+            return MultiAgentInterface(**agent_kwargs, logger=self.logger)
         else:
-            return SingleAgentInterface(**agent_kwargs)
+            return SingleAgentInterface(**agent_kwargs, logger=self.logger)
 
     
     # ==== Main loop functions =========================================

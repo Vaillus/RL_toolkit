@@ -6,7 +6,7 @@ from GradientPolicyMethods.ActorCriticAgent import ActorCriticAgent
 from GradientPolicyMethods.PPOAgent import PPOAgent
 from GradientPolicyMethods.DDPGAgent import DDPGAgent
 from AbaddonAgent import AbaddonAgent
-from logger import Logger
+from modules.logger import Logger
 
 from typing import List, Optional, Any, Dict
 from abc import ABC, abstractmethod
@@ -20,16 +20,19 @@ class AgentInterface(ABC):
     def __init__(
         self, 
         type,
-        agent_kwargs
+        agent_kwargs, 
+        logger: Optional[Logger] = None
     ):
         self.agent = None 
         self.logger = None
         self.type = type
+        self.set_logger(logger)
         self.init_agent(agent_kwargs)
     
     def set_logger(self, logger):
         self.logger = logger
-        self.agent.set_logger(logger)
+        if self.agent is not None:
+            self.agent.set_logger(logger)
         
     @abstractmethod
     def init_agent(self, agent_kwargs:dict):
@@ -45,9 +48,9 @@ class AgentInterface(ABC):
         Returns:
             Agent: the agent initialized
         """
-        if self.logger:
+        if self.logger: # TODO: replace with a new function in the logger.
             if self.logger.wandb: 
-                agent_kwargs = wandb.config.__dict__['_items']["agent_kwargs"]
+                agent_kwargs = self.logger.get_config()
         agent = None
         if self.type == "DQN":
             agent = DQNAgent(**agent_kwargs)
@@ -124,9 +127,10 @@ class SingleAgentInterface(AgentInterface):
         self,
         type,
         agent_kwargs,
-        seed
+        seed,
+        logger
     ):
-        super(SingleAgentInterface, self).__init__(type, agent_kwargs)
+        super(SingleAgentInterface, self).__init__(type, agent_kwargs, logger)
         self.set_seed(seed)
     
     def init_agent(self, agent_params):
@@ -176,9 +180,10 @@ class MultiAgentInterface(AgentInterface):
         type,
         agent_names,
         agent_kwargs,
-        seed
+        seed,
+        logger
     ):
-        super(MultiAgentInterface, self).__init__(type, agent_kwargs)
+        super(MultiAgentInterface, self).__init__(type, agent_kwargs, logger)
         self.set_seed(seed)
         self.agents_names = agent_names
 

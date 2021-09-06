@@ -1,20 +1,21 @@
 import wandb
 from typing import Dict, Any, Optional, List
+from functools import reduce  # forward compatibility for Python 3
+import operator
 
 
 class Logger:
     def __init__(
         self,
         log_every: int = 50,
-        wandb: bool = False,
-        wandb_kwargs: Optional[Dict[str, Any]] = {}
+        is_wandb: bool = False,
+        wandb_kwargs: Optional[Dict[str, Any]] = {}, 
     ):
         self.log_counts = {}
         self.log_every = log_every
-        self.wandb = wandb
-        
+        self.wandb = is_wandb
         if self.wandb:
-            self.init_wandb_project(**wandb_kwargs)
+            wandb.init(**wandb_kwargs)
     
     def init_wandb_project(
         self,
@@ -84,4 +85,25 @@ class Logger:
         self.log_counts[key]["count"] = 0
         self.log_counts[key]["value"] = 0
 
+    def get_config(self):
+        #print(wandb.config)
+        #print(wandb.config._items)
+        kwargs = wandb.config._as_dict()
+        del kwargs['_wandb']
+        final_kwargs = kwargs.copy()
+        
+        for key in kwargs.keys():
+            keys = key.split('.')
+            if len(keys) > 1:
+                setInDict(final_kwargs, keys, kwargs[key])
+                del final_kwargs[key]
+            
+        return final_kwargs
+    
+
+def getFromDict(dataDict, mapList):
+    return reduce(operator.getitem, mapList, dataDict)
+
+def setInDict(dataDict, mapList, value):
+    getFromDict(dataDict, mapList[:-1])[mapList[-1]] = value
 

@@ -8,7 +8,7 @@ from utils import get_path
 
 import struct
 from typing import Optional
-from logger import Logger
+from modules.logger import Logger
 
 def recv_msg(sock):
     # Read message length and unpack it into an integer

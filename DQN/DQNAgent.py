@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional, Type
 
 from CustomNeuralNetwork import CustomNeuralNetwork
 from replay_buffer import ReplayBuffer
-from logger import Logger
+from modules.logger import Logger
 
 #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 

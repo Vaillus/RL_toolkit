@@ -1,6 +1,6 @@
 {
   "session_info":{
-    "num_timestep": 55000,
+    "num_timestep": 100000,
     "plot": false,
     "show": true,
     "show_every": 100,
@@ -14,46 +14,42 @@
   "agent_info":{
     "type": "DDPG",
     "agent_kwargs":{
-      "discount_factor": 0.99,
+      "discount_factor": 0.9,
       "target_policy_noise": 0.2,
       "target_noise_clip": 0.5,
       "memory_info":{
-        "size": 10000,
-        "batch_size": 64},
+        "size": 20000,
+        "batch_size": 128},
       "update_target_rate": 1000,
 
       "policy_estimator_info": {
-        "layers_info": [
-          {"type": "linear", "input_size": 1, "output_size": 400, 
-            "activation": "relu"},
-          {"type": "linear", "input_size": 400, "output_size": 300, 
-            "activation": "relu"},
-          {"type": "linear", "input_size": 300, "output_size": 1, 
-            "activation": "tanh"}
-        ],
+        "layers_info": {
+          "n_hidden_layers": 2,
+          "types": "linear",
+          "sizes": [400, 300],
+          "activations": ["relu", "relu", "tanh"]
+        },
         "optimizer_info": {
           "type": "adam",
-          "learning_rate": 0.0001
+          "learning_rate": 0.00005
         }
       },
       "function_approximator_info": {
-        "layers_info": [
-          {"type": "linear", "input_size": 2, "output_size": 400, 
-            "activation": "relu"},
-            {"type": "linear", "input_size": 400, "output_size": 300, 
-              "activation": "relu"},
-          {"type": "linear", "input_size": 300, "output_size": 1, 
-            "activation": "none"}
-        ],
+        "layers_info": {
+          "n_hidden_layers": 2,
+          "types": "linear",
+          "sizes": [400, 300],
+          "activations": ["relu", "relu", "none"]
+        },
         "optimizer_info": {
           "type": "adam",
-          "learning_rate": 0.001
+          "learning_rate": 0.005
         }
       }
     }
   },
   "logger_kwargs": {
-    "wandb": true,
+    "is_wandb": true,
     "wandb_kwargs": {
       "job_type": "test2"
     },

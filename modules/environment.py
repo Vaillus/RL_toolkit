@@ -1,9 +1,9 @@
 import gym
 from GodotEnvironment import GodotEnvironment
-from probe_env import DiscreteProbeEnv, ContinuousProbeEnv
+from modules.probe_env import DiscreteProbeEnv, ContinuousProbeEnv
 from typing import Dict, Optional, Any
 import re
-from logger import Logger
+from modules.logger import Logger
 from utils import get_params
 
 class EnvInterface:
