@@ -13,7 +13,6 @@ parameters:
   policy_estimator_info.layers_info.sizes.1:
     min: 1
     max: 500
-  
 
 metric:
   name: actor loss

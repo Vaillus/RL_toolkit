@@ -2,6 +2,7 @@ import wandb
 from typing import Dict, Any, Optional, List
 from functools import reduce  # forward compatibility for Python 3
 import operator
+import re
 
 
 class Logger:
@@ -86,8 +87,16 @@ class Logger:
         self.log_counts[key]["value"] = 0
 
     def get_config(self):
-        #print(wandb.config)
-        #print(wandb.config._items)
+        """ I am having trouble with the wandb parameters that fail to load correctly.
+        In order to correct this, I made this function which interprets the parameters
+        correctly. For example, 
+        policy_estimator_info.layers_info.sizes.1
+        will be interpreted as:
+        ["policy_estimator_info"]["layers_info"]["sizes"][1]
+
+        Returns:
+            [type]: [description]
+        """
         kwargs = wandb.config._as_dict()
         del kwargs['_wandb']
         final_kwargs = kwargs.copy()
@@ -95,7 +104,14 @@ class Logger:
         for key in kwargs.keys():
             keys = key.split('.')
             if len(keys) > 1:
-                setInDict(final_kwargs, keys, kwargs[key])
+                if keys[-1].isdigit():
+                    id = int(keys.pop(-1))
+                    test_list = getFromDict(kwargs, keys)
+                    test_list[id] = kwargs[key]
+                    new_value = test_list
+                else: 
+                    new_value = kwargs[key]
+                setInDict(final_kwargs, keys, new_value)
                 del final_kwargs[key]
             
         return final_kwargs
@@ -107,3 +123,5 @@ def getFromDict(dataDict, mapList):
 def setInDict(dataDict, mapList, value):
     getFromDict(dataDict, mapList[:-1])[mapList[-1]] = value
 
+
+# %%
