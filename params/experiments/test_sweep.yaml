@@ -21,3 +21,7 @@ command:
   - ${env}
   - python3
   - ${program}
+early_terminate:
+  type: hyperband
+  max_iter: 30000
+  s: 3
