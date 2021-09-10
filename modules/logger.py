@@ -125,3 +125,6 @@ def setInDict(dataDict, mapList, value):
 
 
 # %%
+import gym
+env = gym.make("HalfCheetah-v2")
+# %%

@@ -8,7 +8,7 @@
   },
   "env_info":  {
     "type": "gym",
-    "name": "Halfcheetah-v2",
+    "name": "Pendulum-v0",
     "action_type": "continuous"
   },
   "agent_info":{
