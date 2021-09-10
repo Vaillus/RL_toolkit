@@ -116,6 +116,8 @@ class PPOAgent:
                     'Agent info/critic loss': value_loss,
                     'Agent info/actor loss': policy_loss,
                     'Agent info/policy entropy': entropy})
+            # the replay buffer is used only one (completely) and then 
+            # emptied out
             self.replay_buffer.reinit()
 
                 
