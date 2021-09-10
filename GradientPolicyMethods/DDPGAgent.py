@@ -21,7 +21,8 @@ class DDPGAgent:
         update_target_rate: Optional[int] = 50,
         discount_factor: Optional[float] = 0.995,
         target_policy_noise: Optional[float] = 0.2,
-        target_noise_clip: Optional[float] = 0.5
+        target_noise_clip: Optional[float] = 0.5,
+        her: Optional[bool] = False
     ):
         self.num_actions = num_actions
         self.state_dim = state_dim
@@ -38,6 +39,7 @@ class DDPGAgent:
         self.loss_func = torch.nn.MSELoss()
 
         self.γ = discount_factor
+        self.her = her
         self.replay_buffer = self.init_memory_buffer(memory_info)
         self.target_policy_noise = target_policy_noise
         self.target_noise_clip = target_noise_clip
@@ -108,6 +110,7 @@ class DDPGAgent:
 
     def step(self, obs, reward):
         # storing the transition in the function approximator memory for further use
+        # TODO: add HER option
         self.replay_buffer.store_transition(self.previous_obs, self.previous_action, 
                                             reward, obs, False)
         # getting the action values from the function approximator
