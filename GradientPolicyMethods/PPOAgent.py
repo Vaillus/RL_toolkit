@@ -4,7 +4,7 @@ import torch
 from torch.distributions import Categorical
 import wandb
 from typing import Optional, Type, Dict, Any
-from replay_buffer import PPOReplayBuffer
+from modules.replay_buffer import PPOReplayBuffer
 from modules.logger import Logger
 from utils import set_random_seed
 

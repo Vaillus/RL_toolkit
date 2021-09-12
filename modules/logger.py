@@ -100,12 +100,15 @@ class Logger:
         kwargs = wandb.config._as_dict()
         del kwargs['_wandb']
         final_kwargs = kwargs.copy()
-        
         for key in kwargs.keys():
             keys = key.split('.')
             if len(keys) > 1:
                 if keys[-1].isdigit():
                     id = int(keys.pop(-1))
+                    #print(f"kwargs:{kwargs},\n  keys: {keys}")
+                    # TODO: crashes with sweeps, when we try to access an id 
+                    # of a neural network that wasn't present in the original
+                    # parameters (e.g.: function_approximator_info.layers_info.sizes.0)
                     test_list = getFromDict(kwargs, keys)
                     test_list[id] = kwargs[key]
                     new_value = test_list
@@ -122,9 +125,3 @@ def getFromDict(dataDict, mapList):
 
 def setInDict(dataDict, mapList, value):
     getFromDict(dataDict, mapList[:-1])[mapList[-1]] = value
-
-
-# %%
-import gym
-env = gym.make("HalfCheetah-v2")
-# %%

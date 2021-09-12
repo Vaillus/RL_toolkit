@@ -5,7 +5,7 @@ from copy import deepcopy
 from typing import Any, Dict, Optional, Type
 
 from CustomNeuralNetwork import CustomNeuralNetwork
-from replay_buffer import ReplayBuffer
+from modules.replay_buffer import VanillaReplayBuffer
 from modules.logger import Logger
 
 #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -72,10 +72,10 @@ class DQNAgent:
             self.eval_net.set_seed(seed)
             # TODO: set memory buffer seed?
     
-    def init_memory_buffer(self, params) -> ReplayBuffer:
+    def init_memory_buffer(self, params) -> VanillaReplayBuffer:
         params["obs_dim"] = self.state_dim
         params["action_dim"] = self.num_actions
-        return ReplayBuffer(**params)
+        return VanillaReplayBuffer(**params)
     
     def set_logger(self, logger:Type[Logger]):
         self.logger = logger

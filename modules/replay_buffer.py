@@ -5,7 +5,7 @@ from collections import namedtuple
 
 #from torch._C import float32
 
-class ReplayBuffer:
+class VanillaReplayBuffer:
     def __init__(
         self,
         obs_dim:int,
@@ -48,7 +48,7 @@ VanillaReplayBufferSample = namedtuple('ReplayBufferSample', [
     'dones',
     'rewards'])
 
-class VanillaReplayBuffer(ReplayBuffer):
+class VanillaReplayBuffer(VanillaReplayBuffer):
     def __init__(
         self,
         obs_dim:int,
@@ -119,7 +119,7 @@ PPOReplayBufferSample = namedtuple('ReplayBufferSample', [
     'rewards',
     'returns'])
 
-class PPOReplayBuffer(ReplayBuffer):
+class PPOReplayBuffer(VanillaReplayBuffer):
     """I'm making this variant because the discounted reward can't be 
     computed until the episode is over. I therefore need a new way of 
     storing the rewards, with an external episode buffer. Furthermore,
@@ -252,7 +252,7 @@ class PPOReplayBuffer(ReplayBuffer):
 
 
 
-class HER(ReplayBuffer):
+class HER(VanillaReplayBuffer):
     def __init__(
         self,
         obs_dim:int,
@@ -300,9 +300,9 @@ class HER(ReplayBuffer):
             for i, reward in enumerate(reverse_rewards):
                 disc_reward = reward + self.discount_factor * disc_reward
                 self.ep_buffer.returns[self.ep_pos - i] = disc_reward
+                # TODO: add reward function for other objectives ; add the goals
             self._copy_to_buffer()
             self.pos += self.ep_pos + 1
-            
         else:
             self.ep_pos += 1
     

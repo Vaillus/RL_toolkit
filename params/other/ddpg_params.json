@@ -1,14 +1,14 @@
 {
   "session_info":{
-    "num_timestep": 60000,
+    "num_timestep": 80000,
     "plot": false,
-    "show": false,
+    "show": true,
     "show_every": 100,
     "return_results": true
   },
   "env_info":  {
     "type": "gym",
-    "name": "Halfcheetah-v2",
+    "name": "LunarLanderContinuous-v2",
     "action_type": "continuous"
   },
   "agent_info":{
@@ -26,7 +26,7 @@
         "layers_info": {
           "n_hidden_layers": 2,
           "types": "linear",
-          "sizes": 100,
+          "sizes": [100, 100],
           "activations": ["relu", "relu", "tanh"]
         },
         "optimizer_info": {
@@ -38,7 +38,7 @@
         "layers_info": {
           "n_hidden_layers": 2,
           "types": "linear",
-          "sizes": 100,
+          "sizes": [100, 100],
           "activations": ["relu", "relu", "none"]
         },
         "optimizer_info": {
@@ -49,7 +49,7 @@
     }
   },
   "logger_kwargs": {
-    "is_wandb": true,
+    "is_wandb": false,
     "wandb_kwargs": {
       "job_type": "test2"
     },

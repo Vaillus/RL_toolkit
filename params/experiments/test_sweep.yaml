@@ -13,15 +13,30 @@ parameters:
   policy_estimator_info.layers_info.sizes.1:
     min: 1
     max: 500
+  discount_factor:
+    min: 0.95
+    max: 0.999
+  memory_info.size: 
+    min: 10
+    max: 50000
+  memory_info.batch_size:
+    min: 8
+    max: 256
+  policy_estimator_info.optimizer_info.learning_rate:
+    min: 0.0001
+    max: 0.01
+  policy_estimator_info.optimizer_info.learning_rate:
+    min: 0.00001
+    max: 0.01
 
 metric:
-  name: actor loss
-  goal: minimize
+  name: rewards
+  goal: maximize
 command: 
   - ${env}
   - python3
   - ${program}
 early_terminate:
   type: hyperband
-  max_iter: 30000
+  max_iter: 35000
   s: 3

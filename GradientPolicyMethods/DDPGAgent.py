@@ -2,7 +2,7 @@ from CustomNeuralNetwork import CustomNeuralNetwork
 from utils import set_random_seed
 import numpy as np
 import torch
-from replay_buffer import ReplayBuffer
+from modules.replay_buffer import VanillaReplayBuffer
 from typing import Any, Dict, Optional, Type
 from copy import deepcopy
 from modules.logger import Logger
@@ -62,10 +62,10 @@ class DDPGAgent:
         self.critic = CustomNeuralNetwork(**params, input_dim=self.state_dim, output_dim=self.num_actions)
         self.critic_target = deepcopy(self.critic)
     
-    def init_memory_buffer(self, params) -> ReplayBuffer:
+    def init_memory_buffer(self, params) -> VanillaReplayBuffer:
         params["obs_dim"] = self.state_dim
         params["action_dim"] = self.num_actions
-        return ReplayBuffer(**params)
+        return VanillaReplayBuffer(**params)
 
     def init_seed(self, seed):
         if seed:

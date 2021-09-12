@@ -29,6 +29,7 @@ class EnvInterface:
     def _init_env(self, godot_kwargs, action_type):
         if self.type == "gym":
             env = gym.make(self.name)
+            
             env.seed(self.seed)
         elif self.type == "godot":
             env = GodotEnvironment(godot_kwargs)
@@ -71,6 +72,10 @@ class EnvInterface:
         elif self.name.startswith("Pendulum"):
             return "continuous"
         elif self.name.startswith("Acrobot"):
+            return "discrete"
+        elif self.name.startswith("LunarLanderContinuous"):
+            return "continuous"
+        elif self.name.startswith("LunarLander"):
             return "discrete"
         else:
             raise ValueError(f'{self.name} is not supported for action \
