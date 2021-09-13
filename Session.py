@@ -9,8 +9,14 @@ from modules.environment import EnvInterface
 from modules.logger import Logger
 
 from utils import get_params, set_random_seed
+import wandb
 
-
+def get_video_file():
+    files = os.listdir("./video/")
+    for file in files:
+        if file.endswith(".mp4"):
+            return file
+    return None
 
 class Session:
     def __init__(
@@ -98,6 +104,7 @@ class Session:
         
         # run the episodes and store the rewards
         while self.tot_timestep < self.max_timestep:
+            
             episode_reward, success, ep_len = self.episode(id_episode)
             self.environment.close()
             if self.show:
@@ -110,6 +117,7 @@ class Session:
                 "rewards": episode_reward,
                 "General/episode length": ep_len
             },log_freq= 5)
+            wandb.log({"gameplays": wandb.Video("./video/"+get_video_file(), caption='episode: '+str(id_episode), fps=4, format="mp4"), "step": id_episode})
             id_episode += 1
         
         # plot the rewards
@@ -167,7 +175,7 @@ class Session:
             episode_reward = self._save_reward(episode_reward, reward_data)
             # render environment (gym environments only)
             self.environment.render_gym(episode_id)
-
+            # TODO: register
             if not done:
                 # get the action if it's not the last step
                 action_data = self.get_agent_action(new_state_data, reward_data)

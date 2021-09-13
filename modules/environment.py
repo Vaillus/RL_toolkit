@@ -1,4 +1,5 @@
 import gym
+from gym.wrappers import Monitor
 from GodotEnvironment import GodotEnvironment
 from modules.probe_env import DiscreteProbeEnv, ContinuousProbeEnv
 from typing import Dict, Optional, Any
@@ -28,7 +29,7 @@ class EnvInterface:
 
     def _init_env(self, godot_kwargs, action_type):
         if self.type == "gym":
-            env = gym.make(self.name)
+            env = Monitor(gym.make(self.name), "./video/", video_callable=lambda x: x%100==0, force=True)
             
             env.seed(self.seed)
         elif self.type == "godot":
@@ -52,7 +53,7 @@ class EnvInterface:
         if self.type == "probe":
             self.env.set_logger(logger)
         elif self.type == "gym":
-            self.logger.gym_monitor()
+            self.logger.gym_init_recording(self.env)
 
     def get_action_type(self, action_type:str) -> str:
         if self.type == "probe":
@@ -63,6 +64,8 @@ class EnvInterface:
             return self.get_godot_action_type()
     
     def get_gym_action_type(self):
+        # TODO: Have I not done a file that contains this information? 
+        # I should probably use it instead.
         if self.name.startswith("MountainCarContinous"):
             return "continuous"
         elif self.name.startswith("MountainCar"):
@@ -91,7 +94,9 @@ class EnvInterface:
     def step(self, action_data):
         if self.name.startswith("Pendulum"):
             action_data *= 2.0
-        return self.env.step(action_data) # type problem somewhere # .detach().numpy()
+        stuff = self.env.step(action_data)
+        #self.logger.gym_capture_frame()
+        return stuff # type problem somewhere # .detach().numpy()
 
     def close(self):
         self.env.close()
@@ -101,6 +106,9 @@ class EnvInterface:
         """
         if self.type == "godot":
             state_data = self.godot_env_reset(episode_id)
+        elif self.type == "gym":
+            state_data = self.env.reset()
+            #self.logger.gym_capture_frame(episode_id)
         else:
             state_data = self.env.reset()
         return state_data
@@ -122,6 +130,7 @@ class EnvInterface:
         """
         if (self.show is True) and (episode_id % self.show_every == 0) and (self.type == "gym"):
             self.env.render()
+
     
     def unwrap_godot_state_data(self, state_data, reward_data, start):
         agent_name = ""

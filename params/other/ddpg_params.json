@@ -1,8 +1,8 @@
 {
   "session_info":{
-    "num_timestep": 80000,
+    "num_timestep": 10000,
     "plot": false,
-    "show": true,
+    "show": false,
     "show_every": 100,
     "return_results": true
   },
@@ -49,10 +49,13 @@
     }
   },
   "logger_kwargs": {
-    "is_wandb": false,
+    "is_wandb": true,
     "wandb_kwargs": {
-      "job_type": "test2"
+      "job_type": "test2",
+      "monitor_gym": true
     },
-    "log_every": 300
+    "log_every": 300,
+    "video_record": true,
+    "record_every": 100
   }
 }

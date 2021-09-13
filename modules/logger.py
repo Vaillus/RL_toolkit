@@ -3,6 +3,7 @@ from typing import Dict, Any, Optional, List
 from functools import reduce  # forward compatibility for Python 3
 import operator
 import re
+from gym.wrappers.monitoring.video_recorder import VideoRecorder
 
 
 class Logger:
@@ -11,12 +12,18 @@ class Logger:
         log_every: int = 50,
         is_wandb: bool = False,
         wandb_kwargs: Optional[Dict[str, Any]] = {}, 
+        video_record: Optional[bool] = False,
+        record_every: Optional[int] = 100
     ):
         self.log_counts = {}
         self.log_every = log_every
         self.wandb = is_wandb
         if self.wandb:
             wandb.init(**wandb_kwargs)
+        self.video_record = video_record
+        self.record_every = record_every
+        self.rec = None
+        self.n_ep = 0
     
     def init_wandb_project(
         self,
@@ -28,15 +35,29 @@ class Logger:
         wandb.init(job_type, notes=notes, tags=tags, config=config)
 
     def wandb_watch(self, models, log_freq:Optional[int] = None):
+        # TODO: it obviously doesn't work. Find out why.
         if log_freq is None:
             log_freq = 1000 # as in the wandb library.
         if bool(wandb.run):
             wandb.watch(models=models, log_freq=log_freq)
     
-    def gym_monitor(self):
-        # works only when gym generates a video, which it doesn't, for now.
-        if bool(wandb.run):
-            wandb.gym.monitor()
+    def gym_init_recording(self, env):
+        """ Called once after the gym environment has been created. 
+        Associates a recorder to the environment.
+        """
+        # plotting reward and stuff.
+        if bool(wandb.run) and self.video_record:
+            #self.rec = VideoRecorder(env, base_path="./video/test")
+            #wandb.gym.monitor()
+            pass
+        
+    """def gym_capture_frame(self, n_ep=None):
+        if n_ep is not None:
+            print(n_ep)
+            self.n_ep = n_ep
+        if self.n_ep % self.record_every == 0:
+            print("ye")
+            self.rec.capture_frame()"""
 
     def wandb_log(self, log_dict: Dict[str, Any], log_freq = None):
         # log only when a wandb session is launched.
