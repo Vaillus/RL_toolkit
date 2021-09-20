@@ -1,6 +1,6 @@
 {
   "session_info":{
-    "num_timestep": 10000,
+    "num_timestep": 1000000,
     "plot": false,
     "show": false,
     "show_every": 100,
@@ -8,7 +8,7 @@
   },
   "env_info":  {
     "type": "gym",
-    "name": "LunarLanderContinuous-v2",
+    "name": "HalfCheetah-v2",
     "action_type": "continuous"
   },
   "agent_info":{
@@ -52,10 +52,10 @@
     "is_wandb": true,
     "wandb_kwargs": {
       "job_type": "test2",
-      "monitor_gym": true
+      "monitor_gym": false
     },
-    "log_every": 300,
-    "video_record": true,
+    "log_every": 10000,
+    "video_record": false,
     "record_every": 100
   }
 }

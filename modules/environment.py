@@ -80,6 +80,8 @@ class EnvInterface:
             return "continuous"
         elif self.name.startswith("LunarLander"):
             return "discrete"
+        elif self.name.startswith("HalfCheetah"):
+            return "continuous"
         else:
             raise ValueError(f'{self.name} is not supported for action \
                 type checking')

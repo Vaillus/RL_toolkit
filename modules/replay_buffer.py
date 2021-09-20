@@ -5,7 +5,10 @@ from collections import namedtuple
 
 #from torch._C import float32
 
-class VanillaReplayBuffer:
+class BaseReplayBuffer:
+    """ This class is used as the base for the other classes. It has all
+    the basic components of a replay buffer.
+    """
     def __init__(
         self,
         obs_dim:int,
@@ -33,6 +36,11 @@ class VanillaReplayBuffer:
             self.pos = 0
 
 
+
+# === Vanilla replay buffer (as used in vanilla DQN) ===================
+
+
+
 class VanillaReplayBufferSamples(NamedTuple): # Not sure how I would use it.
     observations: torch.Tensor
     actions: torch.Tensor
@@ -48,7 +56,7 @@ VanillaReplayBufferSample = namedtuple('ReplayBufferSample', [
     'dones',
     'rewards'])
 
-class VanillaReplayBuffer(VanillaReplayBuffer):
+class VanillaReplayBuffer(BaseReplayBuffer):
     def __init__(
         self,
         obs_dim:int,
@@ -102,6 +110,9 @@ class VanillaReplayBuffer(VanillaReplayBuffer):
 
 
 
+# === Replay buffer used by PPO ========================================
+
+
 
 class PPOReplayBufferSamples(NamedTuple): # Not sure how I would use it.
     observations: torch.Tensor
@@ -119,7 +130,7 @@ PPOReplayBufferSample = namedtuple('ReplayBufferSample', [
     'rewards',
     'returns'])
 
-class PPOReplayBuffer(VanillaReplayBuffer):
+class PPOReplayBuffer(BaseReplayBuffer):
     """I'm making this variant because the discounted reward can't be 
     computed until the episode is over. I therefore need a new way of 
     storing the rewards, with an external episode buffer. Furthermore,
@@ -252,7 +263,11 @@ class PPOReplayBuffer(VanillaReplayBuffer):
 
 
 
-class HER(VanillaReplayBuffer):
+# === Hindisght Exprerience Replay Buffer ==============================
+
+
+
+class HER(BaseReplayBuffer):
     def __init__(
         self,
         obs_dim:int,

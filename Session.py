@@ -117,7 +117,7 @@ class Session:
                 "rewards": episode_reward,
                 "General/episode length": ep_len
             },log_freq= 5)
-            wandb.log({"gameplays": wandb.Video("./video/"+get_video_file(), caption='episode: '+str(id_episode), fps=4, format="mp4"), "step": id_episode})
+            #wandb.log({"gameplays": wandb.Video("./video/"+get_video_file(), caption='episode: '+str(id_episode), fps=4, format="mp4"), "step": id_episode})
             id_episode += 1
         
         # plot the rewards
@@ -280,15 +280,3 @@ if __name__ == "__main__":
     #print(sess.agent.policy_estimator.layers[0].weight)
     sess.run()  
     print("done")
-
-#%%
-import torch
-torch.cuda.is_available()
-
-
-
-# %%
-import torch
-print('Memory Usage:')
-print('Allocated:', round(torch.cuda.memory_allocated(0)/1024**3,1), 'GB')
-print('Cached:   ', round(torch.cuda.memory_reserved(0)/1024**3,1), 'GB')
