@@ -174,7 +174,7 @@ class Session:
             # save the reward
             episode_reward = self._save_reward(episode_reward, reward_data)
             # render environment (gym environments only)
-            self.environment.render_gym(episode_id)
+            self.environment.render(0)
             # TODO: register
             if not done:
                 # get the action if it's not the last step
@@ -266,10 +266,11 @@ class Session:
         
 
 if __name__ == "__main__":
+    print("yo")
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
-    data = get_params("other/ddpg_params")
+    data = get_params("other/minatar_test")
     session_parameters = data["session_info"]
     session_parameters["agent_kwargs"] = data["agent_info"]
     session_parameters["env_kwargs"] = data["env_info"]

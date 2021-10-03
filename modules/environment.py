@@ -1,6 +1,7 @@
 import gym
 from gym.wrappers import Monitor
 from GodotEnvironment import GodotEnvironment
+from minatar import Environment as MinatarEnv
 from modules.probe_env import DiscreteProbeEnv, ContinuousProbeEnv
 from typing import Dict, Optional, Any
 import re
@@ -28,9 +29,9 @@ class EnvInterface:
         self.logger = None
 
     def _init_env(self, godot_kwargs, action_type):
+        #TODO chenge godot_kwargs to env_kwargs? Because it doesn't work with MinAtar
         if self.type == "gym":
             env = Monitor(gym.make(self.name), "./video/", video_callable=lambda x: x%100==0, force=True)
-            
             env.seed(self.seed)
         elif self.type == "godot":
             env = GodotEnvironment(godot_kwargs)
@@ -40,6 +41,8 @@ class EnvInterface:
                 env = DiscreteProbeEnv(self.name)
             elif action_type == "continuous":
                 env = ContinuousProbeEnv(self.name)
+        elif self.type == "minatar":
+            env = MinatarEnv(self.name)
         return env
     
     def set_seed(self, seed:int):
@@ -59,11 +62,13 @@ class EnvInterface:
         if self.type == "probe":
             return action_type
         elif self.type == "gym":
-            return self.get_gym_action_type()
+            return self._get_gym_action_type()
         elif self.type == "godot":
-            return self.get_godot_action_type()
+            return self._get_godot_action_type()
+        elif self.type == "minatar":
+            return "discrete"
     
-    def get_gym_action_type(self):
+    def _get_gym_action_type(self):
         # TODO: Have I not done a file that contains this information? 
         # I should probably use it instead.
         if self.name.startswith("MountainCarContinous"):
@@ -86,7 +91,7 @@ class EnvInterface:
             raise ValueError(f'{self.name} is not supported for action \
                 type checking')
     
-    def get_godot_action_type(self):
+    def _get_godot_action_type(self):
         if self.name.startswith("Abaddon"):
             return "continuous" # TODO: that will change
         else:
@@ -94,14 +99,24 @@ class EnvInterface:
                 type checking')
 
     def step(self, action_data):
-        if self.name.startswith("Pendulum"):
-            action_data *= 2.0
-        stuff = self.env.step(action_data)
-        #self.logger.gym_capture_frame()
+        action_data = self.modify_action(action_data)
+        if self.type == "minatar":
+            reward, terminated = self.env.act(action_data)
+            state = self.env.state()
+            stuff = state, reward, terminated, None
+        else:
+            stuff = self.env.step(action_data)
+            state_data = stuff[0]
+            state_data = self.modify_state(state_data)
+            stuff[0] = state_data
+        
         return stuff # type problem somewhere # .detach().numpy()
 
     def close(self):
-        self.env.close()
+        if self.type == "minatar":
+            pass
+        else:
+            self.env.close()
     
     def reset(self, episode_id):
         """ Reset the environment, in both godot and gym case
@@ -111,8 +126,12 @@ class EnvInterface:
         elif self.type == "gym":
             state_data = self.env.reset()
             #self.logger.gym_capture_frame(episode_id)
+        elif self.type == "minatar":
+            self.env.reset()
+            state_data = self.env.state()
         else:
             state_data = self.env.reset()
+        state_data = self.modify_state(state_data)
         return state_data
 
     def godot_env_reset(self, episode_id):
@@ -125,14 +144,21 @@ class EnvInterface:
         return state_data
 
     def show_result(self, agent):
-        self.env.show_results(agent)
+        """ Only for probe environments."""
+        if self.type == "probe":
+            self.env.show_results(agent)
+        else:
+            raise ValueError(f"Environment of type {self.type} is not \
+             supported for results showing")
     
-    def render_gym(self, episode_id):
-        """ render environment (gym environments only) if specified so
-        """
-        if (self.show is True) and (episode_id % self.show_every == 0) and (self.type == "gym"):
-            self.env.render()
-
+    def render(self, episode_id):
+        if (self.show is True) and (episode_id % self.show_every == 0):
+            if self.type == "gym":
+                self.env.render()
+            elif self.type == "minatar":
+                self.env.display_state(50)
+            else:
+                pass
     
     def unwrap_godot_state_data(self, state_data, reward_data, start):
         agent_name = ""
@@ -208,7 +234,20 @@ class EnvInterface:
             env_data = dict_envs[self.type][re.split("-", self.name)[0]]
         elif self.type == "probe":
             env_data = dict_envs[self.type][self.action_type][self.name]
+        elif self.type == "minatar":
+            env_data = env_data = dict_envs[self.type][self.name]
         else:
             raise ValueError(f"{self.type} not supported for env-agent matching")
         return env_data
+
+    def modify_action(self, action):
+        if self.name.startswith("Pendulum"):
+            action *= 2.0
+        return action
+    
+    def modify_state(self, state):
+        if self.name == "breakout":
+            state = state.flatten()
+        return state
+
 

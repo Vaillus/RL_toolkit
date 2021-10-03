@@ -1,0 +1,58 @@
+{
+  "session_info":{
+    "num_timestep": 60000,
+    "plot": false,
+    "show": true,
+    "show_every": 100,
+    "return_results": true
+  },
+  "env_info":  {
+    "type": "minatar",
+    "name": "breakout",
+    "action_type": "discrete"
+  },
+  "agent_info":{
+    "type": "PPO",
+    "agent_kwargs":{
+      "discount_factor": 0.99,
+      "num_actions": 2,
+      "state_dim": 4,
+      "clipping": 0.2,
+      "n_epochs": 7,
+      "memory_info":{
+        "size": 20000
+      },
+      "policy_estimator_info": {
+        "layers_info": {
+          "n_hidden_layers": 2,
+          "types": "linear",
+          "sizes": 100,
+          "activations": ["relu", "relu", "softmax"]
+        },
+        "optimizer_info": {
+          "type": "adam",
+          "learning_rate": 0.00005
+        }
+      },
+      "function_approximator_info": {
+        "layers_info": {
+          "n_hidden_layers": 2,
+          "types": "linear",
+          "sizes": 100,
+          "activations": ["relu", "relu", "none"]
+        },
+        "optimizer_info": {
+          "type": "adam",
+          "learning_rate": 0.005
+        }
+      }
+    }
+  },
+  "logger_kwargs": {
+    "is_wandb": false,
+    "wandb_kwargs": {
+      "job_type": "test2"
+    },
+    "log_every": 300
+  }
+}

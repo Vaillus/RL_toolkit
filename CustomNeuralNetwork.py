@@ -62,7 +62,7 @@ class CustomNeuralNetwork(nn.Module):
             activations = layers_info["activations"]
         else:
             activations = [layers_info["activations"]] * (n_hid_layers + 1)
-
+        # TODO handle flatten when the input_size is a list.
         # layers initialization
         for i in range(n_hid_layers + 1):
             if types[i] == "linear":
