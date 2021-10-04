@@ -1,9 +1,9 @@
 {
   "session_info":{
-    "num_timestep": 60000,
+    "num_timestep": 1000000,
     "plot": false,
     "show": true,
-    "show_every": 100,
+    "show_every": 1000,
     "return_results": true
   },
   "env_info":  {
@@ -20,7 +20,7 @@
       "clipping": 0.2,
       "n_epochs": 7,
       "memory_info":{
-        "size": 20000
+        "size": 1000
       },
       "policy_estimator_info": {
         "layers_info": {
@@ -49,7 +49,7 @@
     }
   },
   "logger_kwargs": {
-    "is_wandb": false,
+    "is_wandb": true,
     "wandb_kwargs": {
       "job_type": "test2"
     },

@@ -118,7 +118,7 @@ class PPOAgent:
                     'Agent info/policy entropy': entropy})
             # the replay buffer is used only one (completely) and then 
             # emptied out
-            self.replay_buffer.reinit()
+            self.replay_buffer.erase()
 
                 
     def normalize(self, tensor):
@@ -167,11 +167,12 @@ class PPOAgent:
         else: 
             state_value = self.critic(state).data
         return state_value
-        
+
     def adjust_dims(self, state_dim, action_dim):
         self.state_dim = state_dim
         self.num_actions = action_dim
         self.actor.reinit_layers(state_dim, action_dim)
         self.critic.reinit_layers(state_dim, 1)
         self.replay_buffer.correct(state_dim, action_dim)
+        self.logger.wandb_watch([self.actor, self.critic])
 

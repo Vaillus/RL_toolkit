@@ -167,8 +167,8 @@ class PPOReplayBuffer(BaseReplayBuffer):
         sample.rewards = self.rewards.detach()
         sample.next_observations = self.next_observations.detach()
         sample.dones = self.dones.detach()
-        sample.disc_rewards = self.returns.detach()
-        self.erase()
+        sample.returns = self.returns.detach()
+        #self.episode_buffer = self._init_episode_buffer() # this deletes what is inside the sample, and nothing is learned.
 
         return sample
     
@@ -210,31 +210,29 @@ class PPOReplayBuffer(BaseReplayBuffer):
             # if this is the final transition, compute the expected return
             # and store the episode in the main buffer.
             disc_reward = 0.0
-            reverse_rewards = self.ep_buffer.rewards[:self.ep_pos+1].flip(1)
+            reverse_rewards = torch.flip(self.ep_buffer.rewards[:self.ep_pos+1], (0,1))
             for i, reward in enumerate(reverse_rewards):
                 disc_reward = reward + self.discount_factor * disc_reward
                 self.ep_buffer.returns[self.ep_pos - i] = disc_reward
             self._copy_to_buffer()
             self.pos += self.ep_pos + 1
-            
+            self.episode_buffer = self._init_episode_buffer()
         else:
             self.ep_pos += 1
 
     def _copy_to_buffer(self):
-        # for later: I don't need to put values at the beginning of the 
-        # buffer when I have too much experience, because the buffer is 
-        # going to be emptied out anyway after learning.
-        # TODO: I suspect that I fucked up with the indices. It should be diff 
-        # instead of diff + 1
+        # Might be diff+1 instead of diff? diff+1 did'nt work before.
+        # when there is more experience than needed, just cut the 
+        # experience and dump the rest.
         if self.pos + self.ep_pos >= self.size - 1:
             diff = self.size - self.pos
-            self.observations[self.pos:] = self.ep_buffer.observations[:diff+1]
-            self.actions[self.pos:] = self.ep_buffer.actions[:diff+1]
-            self.rewards[self.pos:] = self.ep_buffer.rewards[:diff+1]
+            self.observations[self.pos:] = self.ep_buffer.observations[:diff]
+            self.actions[self.pos:] = self.ep_buffer.actions[:diff]
+            self.rewards[self.pos:] = self.ep_buffer.rewards[:diff]
             self.next_observations[self.pos:] =\
-                self.ep_buffer.next_observations[:diff+1]
-            self.dones[self.pos:] = self.ep_buffer.dones[:diff+1]
-            self.returns[self.pos:] = self.ep_buffer.returns[:diff+1]
+                self.ep_buffer.next_observations[:diff]
+            self.dones[self.pos:] = self.ep_buffer.dones[:diff]
+            self.returns[self.pos:] = self.ep_buffer.returns[:diff]
             self.full = True
         else:
             self.observations[self.pos: self.pos + self.ep_pos+1] =\
@@ -251,7 +249,6 @@ class PPOReplayBuffer(BaseReplayBuffer):
                 self.ep_buffer.returns[:self.ep_pos+1]
 
     def erase(self):
-        self.episode_buffer = self._init_episode_buffer()
         self.observations = torch.zeros((self.size, self.obs_dim), dtype=torch.float32)
         self.actions = torch.zeros((self.size, self.action_dim)) # TODO: add type later
         self.rewards = torch.zeros((self.size,1), dtype=torch.float32)

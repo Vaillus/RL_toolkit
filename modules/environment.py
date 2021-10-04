@@ -7,6 +7,7 @@ from typing import Dict, Optional, Any
 import re
 from modules.logger import Logger
 from utils import get_params
+import numpy as np
 
 class EnvInterface:
     def __init__(
@@ -46,7 +47,7 @@ class EnvInterface:
         return env
     
     def set_seed(self, seed:int):
-        if self.type == "gym":
+        if self.type == "gym" or self.type == "minatar":
             self.env.seed(seed)
         else:
             self.env.set_seed(seed)
@@ -103,12 +104,11 @@ class EnvInterface:
         if self.type == "minatar":
             reward, terminated = self.env.act(action_data)
             state = self.env.state()
+            state = self.modify_state(state)
             stuff = state, reward, terminated, None
         else:
             stuff = self.env.step(action_data)
-            state_data = stuff[0]
-            state_data = self.modify_state(state_data)
-            stuff[0] = state_data
+            
         
         return stuff # type problem somewhere # .detach().numpy()
 
@@ -235,7 +235,11 @@ class EnvInterface:
         elif self.type == "probe":
             env_data = dict_envs[self.type][self.action_type][self.name]
         elif self.type == "minatar":
-            env_data = env_data = dict_envs[self.type][self.name]
+            env_data = {
+                "action_type" : "discrete",
+                "action_dim": self.env.num_actions(),
+                "state_dim" : np.prod(self.env.state_shape()) # for now
+            }
         else:
             raise ValueError(f"{self.type} not supported for env-agent matching")
         return env_data
@@ -247,7 +251,10 @@ class EnvInterface:
     
     def modify_state(self, state):
         if self.name == "breakout":
-            state = state.flatten()
+            if not isinstance(state,np.ndarray):
+                state = np.array(state) 
+            state = state.astype(np.float).flatten() - 0.5
+
         return state
 
 

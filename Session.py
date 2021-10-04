@@ -116,7 +116,7 @@ class Session:
             self.logger.wandb_log({
                 "rewards": episode_reward,
                 "General/episode length": ep_len
-            },log_freq= 5)
+            },log_freq= 500)
             #wandb.log({"gameplays": wandb.Video("./video/"+get_video_file(), caption='episode: '+str(id_episode), fps=4, format="mp4"), "step": id_episode})
             id_episode += 1
         
@@ -174,7 +174,7 @@ class Session:
             # save the reward
             episode_reward = self._save_reward(episode_reward, reward_data)
             # render environment (gym environments only)
-            self.environment.render(0)
+            self.environment.render(episode_id)
             # TODO: register
             if not done:
                 # get the action if it's not the last step
