@@ -1,6 +1,6 @@
 {
   "session_info":{
-    "num_timestep": 1000000,
+    "num_timestep": 10000000,
     "plot": false,
     "show": true,
     "show_every": 1000,

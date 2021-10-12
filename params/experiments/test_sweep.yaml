@@ -1,28 +1,19 @@
 program: Session.py
 method: bayes
 parameters:
-  function_approximator_info.layers_info.sizes.0:
-    min: 1
-    max: 500
-  function_approximator_info.layers_info.sizes.1:
-    min: 1
-    max: 500
-  policy_estimator_info.layers_info.sizes.0:
-    min: 1
-    max: 500
-  policy_estimator_info.layers_info.sizes.1:
-    min: 1
-    max: 500
+  function_approximator_info.layers_info.sizes:
+    min: 50
+    max: 1000
+  policy_estimator_info.layers_info.sizes:
+    min: 50
+    max: 1000
   discount_factor:
     min: 0.95
     max: 0.999
   memory_info.size: 
     min: 10
     max: 50000
-  memory_info.batch_size:
-    min: 8
-    max: 256
-  policy_estimator_info.optimizer_info.learning_rate:
+  function_approximator_info.optimizer_info.learning_rate:
     min: 0.0001
     max: 0.01
   policy_estimator_info.optimizer_info.learning_rate:
