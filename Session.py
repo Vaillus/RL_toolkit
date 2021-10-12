@@ -116,7 +116,7 @@ class Session:
             self.logger.wandb_log({
                 "rewards": episode_reward,
                 "General/episode length": ep_len
-            },log_freq= 500)
+            }, type="ep")
             #wandb.log({"gameplays": wandb.Video("./video/"+get_video_file(), caption='episode: '+str(id_episode), fps=4, format="mp4"), "step": id_episode})
             id_episode += 1
         

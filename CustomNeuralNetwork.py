@@ -27,7 +27,6 @@ class CustomNeuralNetwork(nn.Module):
         self.optimizer = None
         self.optimizer_info = optimizer_info
         self.seed = None
-        self.history = np.array([]) # TODO: get rid of it. Don't need it anymore.
         self.layers_info = layers_info # for reinit purposes
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -54,7 +53,7 @@ class CustomNeuralNetwork(nn.Module):
         n_hid_layers = layers_info["n_hidden_layers"]
         types = self._get_layers_types(layers_info["types"], n_hid_layers)
         sizes = self._get_layers_sizes(layers_info["sizes"], n_hid_layers)
-        activations = self._get_layers_sizes(
+        activations = self._get_layers_activations(
             layers_info["hidden_activations"],
             layers_info["output_activation"],
             n_hid_layers)

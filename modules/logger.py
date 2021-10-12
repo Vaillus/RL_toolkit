@@ -13,7 +13,10 @@ class Logger:
         is_wandb: bool = False,
         wandb_kwargs: Optional[Dict[str, Any]] = {}, 
         video_record: Optional[bool] = False,
-        record_every: Optional[int] = 100
+        record_every: Optional[int] = 100,
+        ep_freq: Optional[int] = 300,
+        agent_freq: Optional[int] = 300,
+        grad_freq: Optional[int] = 300
     ):
         self.log_counts = {}
         self.log_every = log_every
@@ -24,6 +27,9 @@ class Logger:
         self.record_every = record_every
         self.rec = None
         self.n_ep = 0
+        self.ep_freq = ep_freq
+        self.agent_freq = agent_freq
+        self.grad_freq = grad_freq
     
     def init_wandb_project(
         self,
@@ -34,8 +40,10 @@ class Logger:
     ):
         wandb.init(job_type, notes=notes, tags=tags, config=config)
 
-    def wandb_watch(self, models, log_freq:Optional[int] = None):
-        # TODO: it obviously doesn't work. Find out why.
+    def wandb_watch(self, models, log_freq:Optional[int] = None, type = None):
+        if type is not None:
+            attr_str = type + "_freq"
+            log_freq = getattr(self, attr_str)
         if log_freq is None:
             log_freq = 1000 # as in the wandb library.
         if bool(wandb.run):
@@ -59,12 +67,17 @@ class Logger:
             print("ye")
             self.rec.capture_frame()"""
 
-    def wandb_log(self, log_dict: Dict[str, Any], log_freq = None):
+    def wandb_log(self, log_dict: Dict[str, Any], log_freq = None, type = None):
         # log only when a wandb session is launched.
         actual_log_dict = {}
+        assert (log_freq is None) != (type is None)
         if bool(wandb.run):
             # increment the values associated with the keys that we want 
             # to log
+            if type is not None:
+                attr_str = type + "_freq"
+                log_freq = getattr(self, attr_str)
+        
             for key, value in log_dict.items():
                 can_log = self.incr_cnt(key, value, log_freq)
                 # if enough data has been accumulated for a key, log it

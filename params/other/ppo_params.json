@@ -54,6 +54,9 @@
     "wandb_kwargs": {
       "job_type": "test2"
     },
+    "ep_freq": 50,
+    "agent_freq": 50,
+    "grad_freq": 50,
     "log_every": 10
   }
 } 

@@ -84,7 +84,7 @@ class DDPGAgent:
     
     def set_logger(self, logger:Type[Logger]):
         self.logger = logger
-        self.logger.wandb_watch([self.actor, self.critic])
+        self.logger.wandb_watch([self.actor, self.critic], type="grad")
 
     def get_discount(self):
         return self.γ
@@ -180,7 +180,7 @@ class DDPGAgent:
             self.logger.wandb_log({
                 "critic loss": critic_loss,
                 "actor loss": actor_loss
-            })
+            }, type= "agent")
             
             self.actor.backpropagate(actor_loss)
 

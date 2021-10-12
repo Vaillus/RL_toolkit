@@ -74,7 +74,7 @@ class PPOAgent:
     
     def set_logger(self, logger:Type[Logger]):
         self.logger = logger
-        self.logger.wandb_watch([self.actor, self.critic], 1)
+        self.logger.wandb_watch([self.actor, self.critic], type="grad")
     
 
     def control(self):
@@ -115,7 +115,8 @@ class PPOAgent:
                 self.logger.wandb_log({
                     'Agent info/critic loss': value_loss,
                     'Agent info/actor loss': policy_loss,
-                    'Agent info/policy entropy': entropy})
+                    'Agent info/policy entropy': entropy},
+                    type= "agent")
             # the replay buffer is used only one (completely) and then 
             # emptied out
             self.replay_buffer.erase()
