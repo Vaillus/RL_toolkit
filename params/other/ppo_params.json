@@ -26,7 +26,8 @@
           "n_hidden_layers": 1,
           "types": "linear",
           "sizes": 64,
-          "activations": ["relu", "softmax"]
+          "hidden_activations": "relu",
+          "output_activation": "softmax"
         },
         "optimizer_info": {
           "type": "adam",
@@ -38,7 +39,8 @@
           "n_hidden_layers": 1,
           "types": "linear",
           "sizes": 64,
-          "activations": ["relu", "none"]
+          "hidden_activations": "relu",
+          "output_activation": "none"
         },
         "optimizer_info": {
           "type": "adam",
@@ -46,13 +48,12 @@
         }
       }
     }
-    
   },
   "logger_kwargs": {
-    "is_wandb": true,
+    "is_wandb": false,
     "wandb_kwargs": {
       "job_type": "test2"
     },
-    "log_every": 300
+    "log_every": 10
   }
 } 

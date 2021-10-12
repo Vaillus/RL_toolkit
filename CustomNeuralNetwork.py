@@ -47,22 +47,25 @@ class CustomNeuralNetwork(nn.Module):
     def _init_layers(self, layers_info):
         # check dimensions of parameters
         n_hid_layers = layers_info["n_hidden_layers"]
+        # types of the layers
         if isinstance(layers_info["types"], list):
             assert len(layers_info["types"]) == n_hid_layers + 1
             types = layers_info["types"]
         else:
             types = [layers_info["types"]] * (n_hid_layers + 1)
+        # sizes of the layers
         if isinstance(layers_info["sizes"], list):
             assert len(layers_info["sizes"]) == n_hid_layers
             sizes = layers_info["sizes"]
         else:
             sizes = [layers_info["sizes"]] * n_hid_layers
-        if isinstance(layers_info["activations"], list):
-            assert len(layers_info["activations"]) == n_hid_layers + 1
-            activations = layers_info["activations"]
+        # activation functions of the layers
+        if isinstance(layers_info["hidden_activations"], list):
+            assert len(layers_info["hidden_activations"]) == n_hid_layers
+            activations = layers_info["hidden_activations"]
         else:
-            activations = [layers_info["activations"]] * (n_hid_layers + 1)
-        # TODO handle flatten when the input_size is a list.
+            activations = [layers_info["hidden_activations"]] * (n_hid_layers)
+        activations += [layers_info["output_activation"]]
         # layers initialization
         for i in range(n_hid_layers + 1):
             if types[i] == "linear":
