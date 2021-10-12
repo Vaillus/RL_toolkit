@@ -247,6 +247,14 @@ class EnvInterface:
     def modify_action(self, action):
         if self.name.startswith("Pendulum"):
             action *= 2.0
+        if self.type == "MinAtar" and self.name == "breakout":
+            # 0 -> 1,  1 -> 0, 2 -> 3
+            if action == 0:
+                action = 1
+            if action == 1:
+                action = 0
+            if action == 2:
+                action = 3
         return action
     
     def modify_state(self, state):
