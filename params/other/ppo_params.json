@@ -1,50 +1,58 @@
 {
   "session_info":{
-    "session_type": "PPO",
-    "num_timesteps": 1000000,
+    "num_timestep": 1000000,
     "plot": false,
     "show": false,
     "show_every": 1000,
-    "environment_type": "gym",
-    "environment_name": "CartPole-v1",
-    "return_results": true,
-    "use_tensorboard": true
+    "return_results": true
+  },
+  "env_info": {
+    "type": "gym",
+    "name": "CartPole-v1"
   },
   "agent_info":{
-    "discount_factor": 0.99,
-    "num_actions": 2,
-    "state_dim": 4,
-    "clipping": 0.2,
-    "n_epochs": 7,
-
-    "memory_size": 1000,
-    "batch_size": 32,
-
-    "policy_estimator_info": {
-      "layers_info": [
-            {"type": "linear", "input_size": 4, "output_size": 64, 
-              "activation": "relu"},
-            {"type": "linear", "input_size": 64, "output_size": 2, 
-              "activation": "softmax"}
-        ],
+    "type": "PPO",
+    "agent_kwargs": {
+      "discount_factor": 0.99,
+      "num_actions": 2,
+      "state_dim": 4,
+      "clipping": 0.2,
+      "n_epochs": 7,
+      "memory_info":{
+        "size": 1000
+      },
+      "policy_estimator_info": {
+        "layers_info": {
+          "n_hidden_layers": 1,
+          "types": "linear",
+          "sizes": 64,
+          "activations": ["relu", "softmax"]
+        },
         "optimizer_info": {
-            "type": "adam",
-            "learning_rate": 0.0005
-            
+          "type": "adam",
+          "learning_rate": 0.0005
         }
-    },
-
-    "function_approximator_info": {
-      "layers_info": [
-            {"type": "linear", "input_size": 4, "output_size": 64, 
-              "activation": "relu"},
-            {"type": "linear", "input_size": 64, "output_size": 1, 
-              "activation": "none"}
-        ],
+      },
+      "function_approximator_info": {
+        "layers_info": {
+          "n_hidden_layers": 1,
+          "types": "linear",
+          "sizes": 64,
+          "activations": ["relu", "none"]
+        },
         "optimizer_info": {
-            "type": "adam",
-            "learning_rate": 0.0005
+          "type": "adam",
+          "learning_rate": 0.0005
         }
+      }
     }
+    
+  },
+  "logger_kwargs": {
+    "is_wandb": true,
+    "wandb_kwargs": {
+      "job_type": "test2"
+    },
+    "log_every": 300
   }
 } 

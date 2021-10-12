@@ -8,8 +8,7 @@
   },
   "env_info":  {
     "type": "gym",
-    "name": "Breakout-MinAtar-v1",
-    "action_type": "discrete"
+    "name": "Breakout-MinAtar-v1"
   },
   "agent_info":{
     "type": "PPO",

@@ -50,10 +50,10 @@ class PPOAgent:
     # ====== Initialization functions ==================================
      
     def initialize_policy_estimator(self, params: Dict) -> CustomNeuralNetwork:
-        return CustomNeuralNetwork(**params)
+        return CustomNeuralNetwork(**params, input_dim=self.state_dim, output_dim=self.num_actions)
 
     def initialize_function_approximator(self, params: Dict) -> CustomNeuralNetwork:
-        return CustomNeuralNetwork(**params)
+        return CustomNeuralNetwork(**params, input_dim=self.state_dim, output_dim=self.num_actions)
     
     def init_memory_buffer(self, params: Dict) -> PPOReplayBuffer:
         params["obs_dim"] = self.state_dim
