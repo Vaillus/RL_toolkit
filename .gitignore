@@ -133,5 +133,6 @@ dmypy.json
 
 #local params
 wandb/
-wandb/latest-run/
+wandb/latest-run
 video/
+test.py

@@ -39,6 +39,11 @@
             "action_type": "continuous",
             "action_dim": 6,
             "state_dim": 17
+        },
+        "Breakout-MinAtar": {
+            "action_type": "discrete",
+            "action_dim": 3,
+            "state_dim": 400
         }
     },
     "probe": {

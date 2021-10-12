@@ -1,7 +1,7 @@
 import gym
+import gym_minatar
 from gym.wrappers import Monitor
 from GodotEnvironment import GodotEnvironment
-from minatar import Environment as MinatarEnv
 from modules.probe_env import DiscreteProbeEnv, ContinuousProbeEnv
 from typing import Dict, Optional, Any
 import re
@@ -42,12 +42,10 @@ class EnvInterface:
                 env = DiscreteProbeEnv(self.name)
             elif action_type == "continuous":
                 env = ContinuousProbeEnv(self.name)
-        elif self.type == "minatar":
-            env = MinatarEnv(self.name)
         return env
     
     def set_seed(self, seed:int):
-        if self.type == "gym" or self.type == "minatar":
+        if self.type == "gym":
             self.env.seed(seed)
         else:
             self.env.set_seed(seed)
@@ -66,8 +64,6 @@ class EnvInterface:
             return self._get_gym_action_type()
         elif self.type == "godot":
             return self._get_godot_action_type()
-        elif self.type == "minatar":
-            return "discrete"
     
     def _get_gym_action_type(self):
         # TODO: Have I not done a file that contains this information? 
@@ -88,6 +84,8 @@ class EnvInterface:
             return "discrete"
         elif self.name.startswith("HalfCheetah"):
             return "continuous"
+        elif self.name.startswith("Breakout-MinAtar"):
+            return "discrete"
         else:
             raise ValueError(f'{self.name} is not supported for action \
                 type checking')
@@ -101,22 +99,12 @@ class EnvInterface:
 
     def step(self, action_data):
         action_data = self.modify_action(action_data)
-        if self.type == "minatar":
-            reward, terminated = self.env.act(action_data)
-            state = self.env.state()
-            state = self.modify_state(state)
-            stuff = state, reward, terminated, None
-        else:
-            stuff = self.env.step(action_data)
-            
-        
-        return stuff # type problem somewhere # .detach().numpy()
+        state, reward, terminated, other = self.env.step(action_data)
+        state = self.modify_state(state)
+        return state, reward, terminated, other # type problem somewhere # .detach().numpy()
 
     def close(self):
-        if self.type == "minatar":
-            pass
-        else:
-            self.env.close()
+        self.env.close()
     
     def reset(self, episode_id):
         """ Reset the environment, in both godot and gym case
@@ -126,9 +114,6 @@ class EnvInterface:
         elif self.type == "gym":
             state_data = self.env.reset()
             #self.logger.gym_capture_frame(episode_id)
-        elif self.type == "minatar":
-            self.env.reset()
-            state_data = self.env.state()
         else:
             state_data = self.env.reset()
         state_data = self.modify_state(state_data)
@@ -155,8 +140,6 @@ class EnvInterface:
         if (self.show is True) and (episode_id % self.show_every == 0):
             if self.type == "gym":
                 self.env.render()
-            elif self.type == "minatar":
-                self.env.display_state(50)
             else:
                 pass
     
@@ -231,15 +214,15 @@ class EnvInterface:
         """
         dict_envs = get_params("misc/env_data")
         if self.type == "gym":
-            env_data = dict_envs[self.type][re.split("-", self.name)[0]]
+            # getting the formatted environment name. 
+            arr_name = re.split("-", self.name)
+            if arr_name[1] == "MinAtar":
+                name = arr_name[0] + "-" + arr_name[1]
+            else:
+                name = arr_name[0]
+            env_data = dict_envs[self.type][name]
         elif self.type == "probe":
             env_data = dict_envs[self.type][self.action_type][self.name]
-        elif self.type == "minatar":
-            env_data = {
-                "action_type" : "discrete",
-                "action_dim": self.env.num_actions(),
-                "state_dim" : np.prod(self.env.state_shape()) # for now
-            }
         else:
             raise ValueError(f"{self.type} not supported for env-agent matching")
         return env_data
@@ -247,18 +230,10 @@ class EnvInterface:
     def modify_action(self, action):
         if self.name.startswith("Pendulum"):
             action *= 2.0
-        if self.type == "MinAtar" and self.name == "breakout":
-            # 0 -> 1,  1 -> 0, 2 -> 3
-            if action == 0:
-                action = 1
-            if action == 1:
-                action = 0
-            if action == 2:
-                action = 3
         return action
     
     def modify_state(self, state):
-        if self.name == "breakout":
+        if self.name.startswith("Breakout-MinAtar"):
             if not isinstance(state,np.ndarray):
                 state = np.array(state) 
             state = state.astype(np.float).flatten() - 0.5
