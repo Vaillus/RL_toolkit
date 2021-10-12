@@ -50,7 +50,7 @@
     }
   },
   "logger_kwargs": {
-    "is_wandb": false,
+    "is_wandb": true,
     "wandb_kwargs": {
       "job_type": "test2"
     },

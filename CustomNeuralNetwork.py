@@ -44,28 +44,20 @@ class CustomNeuralNetwork(nn.Module):
         for i in range(len(self.layers)):
             self.layers[i].weight.data.normal_(0, 0.1)
 
-    def _init_layers(self, layers_info):
-        # check dimensions of parameters
+    def _init_layers(self, layers_info: Dict[str, Any]):
+        """get and format the parameters from the layers info.
+        Init the layers from this.
+
+        Args:
+            layers_info (Dict[str, Any])
+        """
         n_hid_layers = layers_info["n_hidden_layers"]
-        # types of the layers
-        if isinstance(layers_info["types"], list):
-            assert len(layers_info["types"]) == n_hid_layers + 1
-            types = layers_info["types"]
-        else:
-            types = [layers_info["types"]] * (n_hid_layers + 1)
-        # sizes of the layers
-        if isinstance(layers_info["sizes"], list):
-            assert len(layers_info["sizes"]) == n_hid_layers
-            sizes = layers_info["sizes"]
-        else:
-            sizes = [layers_info["sizes"]] * n_hid_layers
-        # activation functions of the layers
-        if isinstance(layers_info["hidden_activations"], list):
-            assert len(layers_info["hidden_activations"]) == n_hid_layers
-            activations = layers_info["hidden_activations"]
-        else:
-            activations = [layers_info["hidden_activations"]] * (n_hid_layers)
-        activations += [layers_info["output_activation"]]
+        types = self._get_layers_types(layers_info["types"], n_hid_layers)
+        sizes = self._get_layers_sizes(layers_info["sizes"], n_hid_layers)
+        activations = self._get_layers_sizes(
+            layers_info["hidden_activations"],
+            layers_info["output_activation"],
+            n_hid_layers)
         # layers initialization
         for i in range(n_hid_layers + 1):
             if types[i] == "linear":
@@ -80,16 +72,40 @@ class CustomNeuralNetwork(nn.Module):
                 layer = nn.Linear(input_size, output_size)
                 self.layers.append(layer)
         self.activations = activations
-        # old way of doing it
-        """for layer_info in layers_info:
-            if layer_info["type"] == "linear":
-                layer = nn.Linear(layer_info["input_size"], layer_info["output_size"])
-                layer.weight.data.normal_(0, 0.1)  
-            
-            self.layers.append(layer)
-            # next line could work. It is useful mainly on a policy network, apparently.
-            #self.layers[-1].weight.data *= 0.01
-        """
+
+    def _get_layers_types(self, param_types, n_hid_layers):
+        # types of the layers
+        if isinstance(param_types, list):
+            assert len(param_types) == n_hid_layers + 1
+            types = param_types
+        else:
+            types = [param_types] * (n_hid_layers + 1)
+        return types
+    
+    def _get_layers_sizes(self, param_sizes, n_hid_layers):
+        # sizes of the layers
+        if isinstance(param_sizes, list):
+            assert len(param_sizes) == n_hid_layers
+            sizes = param_sizes
+        else:
+            sizes = [param_sizes] * n_hid_layers
+        return sizes
+
+    def _get_layers_activations(
+        self, 
+        hidden_activations, 
+        output_activation,
+        n_hid_layers
+    ):
+        # activation functions of the layers
+        if isinstance(hidden_activations, list):
+            assert len(hidden_activations) == n_hid_layers
+            activations = hidden_activations
+        else:
+            activations = [hidden_activations] * (n_hid_layers)
+        activations += [output_activation]
+        return activations
+
 
     def _init_optimizer(self, optimizer_info):
         if optimizer_info["type"] == "adam":
