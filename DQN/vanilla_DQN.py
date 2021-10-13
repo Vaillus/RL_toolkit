@@ -4,6 +4,8 @@ import torch
 import torch.nn
 from utils import set_random_seed
 
+# obsolete
+
 class vanilla_DQN:
     def __init__(self, params={}):
 

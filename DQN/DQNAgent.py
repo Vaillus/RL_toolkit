@@ -54,7 +54,10 @@ class DQNAgent:
     # ====== Initialization functions ==================================
     
     def init_nn(self, nn_params):
-        self.target_net = CustomNeuralNetwork(**nn_params)
+        self.target_net = CustomNeuralNetwork(
+            **nn_params,
+            input_dim=self.state_dim,
+            output_dim=self.num_actions)
         self.eval_net = deepcopy(self.target_net)
 
     def init_seed(self, seed):
@@ -168,7 +171,8 @@ class DQNAgent:
             self.eval_net.backpropagate(loss)
             self.logger.wandb_log({
                 "Agent info/loss": loss
-            })
+            },
+            type="agent")
 
 
     def update_target_net(self):
