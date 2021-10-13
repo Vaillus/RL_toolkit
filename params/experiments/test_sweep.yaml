@@ -1,24 +1,34 @@
 program: Session.py
 method: bayes
 parameters:
-  function_approximator_info.layers_info.sizes:
-    min: 50
-    max: 1000
-  policy_estimator_info.layers_info.sizes:
-    min: 50
-    max: 1000
   discount_factor:
     min: 0.95
     max: 0.999
   memory_info.size: 
     min: 10
     max: 50000
+  function_approximator_info.layers_info.sizes:
+    min: 50
+    max: 1000
+  policy_estimator_info.layers_info.sizes:
+    min: 50
+    max: 1000
   function_approximator_info.optimizer_info.learning_rate:
     min: 0.0001
     max: 0.01
   policy_estimator_info.optimizer_info.learning_rate:
     min: 0.00001
     max: 0.01
+  function_approximator_info.layers_info.n_hidden_layers:
+    values: [1,2,3]
+  policy_estimator_info.layers_info.n_hidden_layers:
+    values: [1,2,3]
+  clipping:
+    min: 0.1
+    max: 0.3
+  n_epochs:
+    min: 2
+    max: 9
 
 metric:
   name: rewards

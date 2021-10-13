@@ -1,6 +1,6 @@
 {
   "session_info":{
-    "num_timestep": 1000000,
+    "num_timestep": 2000000,
     "plot": false,
     "show": false,
     "show_every": 1000,
@@ -54,9 +54,9 @@
     "wandb_kwargs": {
       "job_type": "test2"
     },
-    "ep_freq": 50,
+    "ep_freq": 150,
     "agent_freq": 50,
-    "grad_freq": 50,
-    "log_every": 10
+    "grad_freq": 1000,
+    "log_every": 300
   }
 } 
