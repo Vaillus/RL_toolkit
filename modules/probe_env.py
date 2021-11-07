@@ -95,7 +95,7 @@ class DiscreteProbeEnv(ProbeEnv):
         if self.name == "one":
             state = torch.tensor([0])
             state_value = agent.get_state_value_eval(state)
-            self.logger.wandb_log({"Probe/Value of action at state 0": state_value})
+            self.logger.wandb_log({"Probe/Value of action at state 0": state_value}, 1)
         elif self.name == "two":
             state_pos = torch.tensor([1])
             state_neg = torch.tensor([-1])
@@ -104,7 +104,7 @@ class DiscreteProbeEnv(ProbeEnv):
             self.logger.wandb_log({
                 "Probe/Value of state -1": state_value_neg,
                 "Probe/Value of state 1": state_value_pos
-            })
+            },1)
         elif self.name == "three":
             first_state = torch.tensor([0])
             second_state = torch.tensor([1])
@@ -113,14 +113,14 @@ class DiscreteProbeEnv(ProbeEnv):
             self.logger.wandb_log({
                 "Probe/Value of state 0": first_state_value,
                 "Probe/Value of state 1": second_state_value
-            })
+            },1)
         elif self.name == "four":
             state = torch.tensor([0])
             actions_values = agent.get_state_value_eval(state)
             self.logger.wandb_log({
                 "Probe/state 0 action 0": actions_values[0],
                 "Probe/state 0 action 1": actions_values[1]
-            })
+            },1)
         elif self.name == "five":
             first_state = torch.tensor([-1])
             second_state = torch.tensor([1])
@@ -130,7 +130,7 @@ class DiscreteProbeEnv(ProbeEnv):
                 'Probe/state -1 action 0': first_state_value[0],
                 'Probe/state -1 action 1': first_state_value[1],
                 'Probe/state 1 action 0': second_state_value[0],
-                'Probe/state 1 action 1': second_state_value[1]})
+                'Probe/state 1 action 1': second_state_value[1]},1)
             
     
     def show_results(self, agent):
@@ -331,3 +331,16 @@ class ContinuousProbeEnv(ProbeEnv):
         plt.xlabel("Action value")
         plt.legend()
         self.logger.wandb_plot({f"Probe/actions values at state {state_value}": plt})
+
+class PerfoProbeEnv(ProbeEnv):
+    def __init__(self, name: str):
+        super(DiscreteProbeEnv, self).__init__(name)
+    
+    def reset(self):
+        if self.name == "one":
+            state_data = [0]
+        elif self.name == "two":
+            obs = np.random.choice([-1, 1])
+            self.init_obs = obs
+            state_data = [obs]
+        return state_data

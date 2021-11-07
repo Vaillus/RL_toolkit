@@ -168,7 +168,8 @@ class PPOReplayBuffer(BaseReplayBuffer):
         sample.next_observations = self.next_observations.detach()
         sample.dones = self.dones.detach()
         sample.returns = self.returns.detach()
-        #self.episode_buffer = self._init_episode_buffer() # this deletes what is inside the sample, and nothing is learned.
+        #self.episode_buffer = self._init_episode_buffer() 
+        # # this deletes what is inside the sample, and nothing is learned.
 
         return sample
     
@@ -350,6 +351,74 @@ class HER(BaseReplayBuffer):
                 self.ep_buffer.returns[:self.ep_pos+1]
 
 
+
+# === Performance testing Exprerience Replay Buffer ====================
+
+
+
+class PerfoReplayBuffer(BaseReplayBuffer):
+    """This class is only used for performance testing
+    i.e. comparison of performance between CPU and GPU for different 
+    buffer sizes.
+    """
+    def __init__(
+        self,
+        obs_dim:int,
+        action_dim:int,
+        size:Optional[int] = 10000,
+    ):
+        super(PerfoReplayBuffer, self).__init__(obs_dim, action_dim, size)
+
+    def fill(self, obs, action, reward, next_obs, done):
+        """ This function fills the buffer with one observation?"""
+        self.observations = torch.full(self.size,obs)
+        self.actions = torch.full(self.size,action)#.detach().cpu().numpy()  
+        self.rewards = torch.full(self.size,[reward])
+        self.next_observations = torch.full(self.size, next_obs)
+        self.dones = torch.full(self.size, done)
+
+    def noise_init(self, device):
+        """ Fills the buffer with noise"""
+        self.observations = self.noise_tensor(self.observations.to(device))
+        self.actions = torch.unsqueeze(torch.randint(self.action_dim, (self.size,), device=device), 1)
+        self.rewards = self.noise_tensor(self.rewards.to(device))
+        self.next_observations = self.noise_tensor(self.next_observations.to(device))
+        self.dones = torch.full((self.size,), 0, device=device)
+    
+    def noise_tensor(self, tensor):
+        with torch.no_grad():
+            return tensor.uniform_(-1.0, 1.0)
+
+
+    def sample(self) -> VanillaReplayBufferSamples:
+        """Sample whole buffer
+
+        Returns:
+            ReplayBufferSamples: observations, actions, rewards, 
+            next_observations, dones
+        """
+        sample = VanillaReplayBufferSample
+        sample.observations = self.observations.detach()
+        sample.actions = self.actions.detach()
+        sample.rewards = self.rewards.detach()
+        sample.next_observations = self.next_observations.detach()
+        sample.dones = self.dones.detach()
+
+        return sample
+    
+    def correct(self, state_dim: int, action_dim: int) -> None:
+        """Makes the necessary changes for one wants to modify action 
+        and observations dimensions
+
+        Args:
+            state_dim (int)
+            action_dim (int)
+        """
+        self.action_dim = action_dim
+        self.obs_dim = state_dim
+        self.observations = torch.zeros((self.size, self.obs_dim), dtype=torch.float32)
+        self.actions = torch.zeros((self.size, self.action_dim)) # TODO: add type later
+        self.next_observations = torch.zeros((self.size, self.obs_dim), dtype=torch.float32)
 
 
 #%%

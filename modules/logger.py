@@ -45,7 +45,7 @@ class Logger:
             attr_str = type + "_freq"
             log_freq = getattr(self, attr_str)
         if log_freq is None:
-            log_freq = 1000 # as in the wandb library.
+            log_freq = 1000  # as in the wandb library.
         if bool(wandb.run):
             wandb.watch(models=models, log_freq=log_freq)
     
@@ -68,9 +68,10 @@ class Logger:
             self.rec.capture_frame()"""
 
     def wandb_log(self, log_dict: Dict[str, Any], log_freq = None, type = None):
-        # log only when a wandb session is launched.
+        
         actual_log_dict = {}
         assert (log_freq is None) != (type is None)
+        # log only when a wandb session is launched.
         if bool(wandb.run):
             # increment the values associated with the keys that we want 
             # to log

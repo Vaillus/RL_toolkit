@@ -1,8 +1,6 @@
 from CustomNeuralNetwork import CustomNeuralNetwork
-import numpy as np
 import torch
 from torch.distributions import Categorical
-import wandb
 from typing import Optional, Type, Dict, Any
 from modules.replay_buffer import PPOReplayBuffer
 from modules.logger import Logger
@@ -45,7 +43,7 @@ class PPOAgent:
         self.previous_state = None
         self.previous_action = None
 
-        self.memory_size = memory_info.get("memory_size", 200)
+        self.memory_size = memory_info.get("size", 200) #why?
 
     # ====== Initialization functions ==================================
      

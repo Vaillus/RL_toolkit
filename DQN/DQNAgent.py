@@ -28,7 +28,7 @@ class DQNAgent:
         self.epsilon = epsilon
         self.discount_factor = discount_factor
         self.is_greedy = is_greedy
-        self.is_vanilla = is_vanilla
+        self.is_vanilla = is_vanilla # useless?
 
         # neural network parameters
         self.eval_net = None
@@ -82,7 +82,7 @@ class DQNAgent:
     
     def set_logger(self, logger:Type[Logger]):
         self.logger = logger
-        self.logger.wandb_watch(self.eval_net)
+        self.logger.wandb_watch(self.eval_net, type= "grad")
 
     # ====== Action choice related functions ===========================
 

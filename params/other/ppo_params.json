@@ -1,14 +1,14 @@
 {
   "session_info":{
-    "num_timestep": 2000000,
+    "num_timestep": 20000,
     "plot": false,
     "show": false,
     "show_every": 1000,
     "return_results": true
   },
   "env_info": {
-    "type": "gym",
-    "name": "CartPole-v1"
+    "type": "probe",
+    "name": "five"
   },
   "agent_info":{
     "type": "PPO",

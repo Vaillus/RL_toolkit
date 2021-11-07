@@ -1,11 +1,11 @@
-from TDAgent import TDAgent
+from other_agents.TDAgent import TDAgent
 from DQN.DQNAgent import DQNAgent
 from GradientPolicyMethods.REINFORCEAgent import REINFORCEAgent
 from GradientPolicyMethods.REINFORCEAgentWithBaseline import REINFORCEAgentWithBaseline
 from GradientPolicyMethods.ActorCriticAgent import ActorCriticAgent
 from GradientPolicyMethods.PPOAgent import PPOAgent
 from GradientPolicyMethods.DDPGAgent import DDPGAgent
-from AbaddonAgent import AbaddonAgent
+from other_agents.AbaddonAgent import AbaddonAgent
 from modules.logger import Logger
 
 from typing import List, Optional, Any, Dict

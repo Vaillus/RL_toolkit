@@ -1,15 +1,14 @@
 {
     "session_info":{
-        "num_timestep": 15000,
+        "num_timestep": 1500000,
         "plot": false,
-        "show": true,
+        "show": false,
         "show_every": 10,
         "return_results": false
     },
     "env_info": {
         "type": "gym",
-        "name": "CartPole-v1",
-        "action_type" : "discrete"
+        "name": "CartPole-v1"
     },
     "agent_info":{
         "type": "DQN",
@@ -22,11 +21,13 @@
                 "batch_size": 20},
             "epsilon": 0.9,
             "function_approximator_info": {
-                "layers_info": [
-                    {"type": "linear", "input_size": 4, "output_size": 24, "activation": "relu" },
-                    {"type": "linear", "input_size": 24, "output_size": 24, "activation": "relu"},
-                    {"type": "linear", "input_size": 24, "output_size": 2, "activation": "none"}
-                ],
+                "layers_info": {
+                    "n_hidden_layers": 1,
+                    "types": "linear",
+                    "sizes": 5,
+                    "hidden_activations": "relu",
+                    "output_activation": "none"
+                },
                 "optimizer_info": {
                     "type": "adam",
                     "learning_rate": 0.001
@@ -35,10 +36,13 @@
         }
     },
     "logger_kwargs": {
-        "wandb": false,
+        "is_wandb": true,
         "wandb_kwargs": {
           "job_type": "test2"
         },
+        "ep_freq": 100,
+        "agent_freq": 30000,
+        "grad_freq": 10000,
         "log_every": 300
     }
 }

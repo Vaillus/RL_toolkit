@@ -269,7 +269,7 @@ if __name__ == "__main__":
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
-    data = get_params("functional_examples/dqn_cartpole")
+    data = get_params("other/dqn_params")
     session_parameters = data["session_info"]
     session_parameters["agent_kwargs"] = data["agent_info"]
     session_parameters["env_kwargs"] = data["env_info"]
@@ -278,5 +278,5 @@ if __name__ == "__main__":
     sess = Session(**session_parameters)
     #sess.set_seed(1)
     #print(sess.agent.policy_estimator.layers[0].weight)
-    sess.run()  
+    sess.run()
     print("done")
