@@ -1,6 +1,6 @@
 {
     "session_info":{
-        "num_timestep": 1500000,
+        "num_timestep": 1000000,
         "plot": false,
         "show": false,
         "show_every": 10,
@@ -17,9 +17,9 @@
             "update_target_rate": 500,
             "is_vanilla": false,
             "memory_info":{
-                "size": 1000,
-                "batch_size": 20},
-            "epsilon": 0.9,
+                "size": 5000,
+                "batch_size": 128},
+            "epsilon": 0.925,
             "function_approximator_info": {
                 "layers_info": {
                     "n_hidden_layers": 1,
@@ -30,7 +30,7 @@
                 },
                 "optimizer_info": {
                     "type": "adam",
-                    "learning_rate": 0.001
+                    "learning_rate": 0.005
                 }
             }
         }
