@@ -1,21 +1,8 @@
 program: Session.py
 method: bayes
 parameters:
-  update_target_rate:
-    min: 300
-    max: 3000
-  function_approximator_info.layers_info.sizes:
-    min: 150
-    max: 500
-  function_approximator_info.optimizer_info.learning_rate:
-    min: 0.0001
-    max: 0.01
-  epsilon:
-    min: 0.9
-    max: 0.995
-  memory_info.size:
-    min: 5000
-    max: 50000
+  use_schedule:
+    values: [true, false]
 
 metric:
   name: rewards

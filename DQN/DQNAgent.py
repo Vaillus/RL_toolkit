@@ -22,10 +22,21 @@ class DQNAgent:
         state_dim: Optional[int] = 0,
         num_actions: Optional[int] = 0,
         seed: Optional[int] = 0,
-        is_greedy: Optional[bool] = False
+        is_greedy: Optional[bool] = False,
+        epsilon_min: Optional[float] = 0.0,
+        epsilon_max: Optional[float] = 1.0,
+        sched_timestep: Optional[int] = 1000,
+        use_schedule: Optional[bool] = False
     ):
         # parameters to be set from params dict
         self.epsilon = epsilon
+        self.epsilon_min = epsilon_min
+        if self.epsilon_min == 0.0:
+            self.epsilon_min = self.epsilon
+        self.epsilon_max = epsilon_max
+        self.sched_timestep = sched_timestep
+        self.use_schedule = use_schedule
+
         self.discount_factor = discount_factor
         self.is_greedy = is_greedy
         self.is_vanilla = is_vanilla # useless?
@@ -101,12 +112,26 @@ class DQNAgent:
             action_chosen = self.choose_epsilon_greedy_action(action_values)
         return action_chosen
 
+    def set_epsilon(self, tot_timestep):
+        """
+        set the value for epsilon depending of the portion of the 
+        experiment that has been executed
+        """ 
+        if self.use_schedule:
+            epsilon_diff = self.epsilon_max - self.epsilon_min
+            sched_ratio = tot_timestep / self.sched_timestep
+            self.epsilon =  min(self.epsilon_min + epsilon_diff * sched_ratio, 1)
+        self.logger.wandb_log({
+                    'Agent info/epsilon': self.epsilon},
+                    type= "agent")
+
     
 
     # ====== Agent core functions ======================================
 
-    def start(self, obs):
+    def start(self, obs, tot_timestep):
         # getting actions
+        self.set_epsilon(tot_timestep)
         action_values = self.get_action_value(obs)
         # choosing the action to take
         numpy_action_values = action_values.clone().detach().numpy() # TODO : check if still relevant
@@ -118,7 +143,8 @@ class DQNAgent:
 
         return current_action
 
-    def step(self, obs, reward):
+    def step(self, obs, reward, tot_timestep):
+        self.set_epsilon(tot_timestep)
         # storing the transition in the function approximator memory for further use
         one_hot_action = torch.zeros(self.num_actions)
         one_hot_action[self.previous_action] = 1

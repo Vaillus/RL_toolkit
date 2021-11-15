@@ -14,23 +14,27 @@
         "type": "DQN",
         "agent_kwargs": {
             "discount_factor": 0.95,
-            "update_target_rate": 500,
+            "update_target_rate": 400,
             "is_vanilla": false,
             "memory_info":{
-                "size": 5000,
+                "size": 25000,
                 "batch_size": 128},
-            "epsilon": 0.925,
+            "epsilon": 0.9304,
+            "use_schedule": true,
+            "epsilon_min": 0.75,
+            "epsilon_max": 1.0,
+            "sched_timestep": 500000,
             "function_approximator_info": {
                 "layers_info": {
                     "n_hidden_layers": 1,
                     "types": "linear",
-                    "sizes": 5,
+                    "sizes": 393,
                     "hidden_activations": "relu",
                     "output_activation": "none"
                 },
                 "optimizer_info": {
                     "type": "adam",
-                    "learning_rate": 0.005
+                    "learning_rate": 0.0005
                 }
             }
         }

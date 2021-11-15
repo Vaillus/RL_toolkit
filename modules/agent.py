@@ -88,7 +88,13 @@ class AgentInterface(ABC):
          
         return agent
       
-    def _get_single_agent_action(self, state_data, reward_data=None, start=False):
+    def _get_single_agent_action(
+        self, 
+        state_data, 
+        reward_data=None, 
+        start=False,
+        tot_timestep=0
+    ):
         """if this is the first state of the episode, get the first 
         action of the agent else, also give reward of the previous 
         action to complete the previous transition.
@@ -104,9 +110,15 @@ class AgentInterface(ABC):
             int : id of action taken
         """
         if start is True:
-            action_data = self.agent.start(state_data)
+            if self.type == "DQN":
+                action_data = self.agent.start(state_data, tot_timestep)
+            else:
+                action_data = self.agent.start(state_data)
         else:
-            action_data = self.agent.step(state_data, reward_data)
+            if self.type == "DQN":
+                action_data = self.agent.step(state_data, reward_data, tot_timestep)
+            else:
+                action_data = self.agent.step(state_data, reward_data)
         return action_data
     
     def get_state_value_eval(self, state):
@@ -139,10 +151,11 @@ class SingleAgentInterface(AgentInterface):
     def set_seed(self, seed):
         self.agent.set_seed(seed)
 
-    def get_action(self, state_data, reward_data=None, start=False):
+    def get_action(self, state_data, reward_data=None, start=False,
+        tot_timestep: Optional[int] = 0):
 
         action_data = self._get_single_agent_action(
-            state_data, reward_data, start)
+            state_data, reward_data, start, tot_timestep)
 
         return action_data
 
@@ -206,7 +219,8 @@ class MultiAgentInterface(AgentInterface):
         self, 
         state_data: List[dict],
         reward_data: Optional[List[dict]] = [],
-        start: Optional[bool] = False
+        start: Optional[bool] = False,
+        tot_timestep: Optional[int] = 0
     ):
         """ distribute states to all agents and get their actions back.
 
@@ -234,7 +248,8 @@ class MultiAgentInterface(AgentInterface):
             action = self._get_single_agent_action(agent=self.agent[agent_name], 
                                                     state_data=agent_state, 
                                                     reward_data=agent_reward, 
-                                                    start=start)
+                                                    start=start,
+                                                    tot_timestep=tot_timestep)
             action_data.append({"name": agent_name, "action": action})
         return action_data
     

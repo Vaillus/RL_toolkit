@@ -205,7 +205,8 @@ class Session:
             self.environment.unwrap_godot_state_data(
                 state_data, reward_data, start)
 
-        action_data = self.agent.get_action(state_data, reward_data, start)
+        action_data = self.agent.get_action(state_data, reward_data, start, 
+                                            self.tot_timestep)
 
         # in the case of an Abaddon environment, wrap the state data in a certain way.
         action_data = self.environment.wrap_godot_action_data(action_data, agent_name)
