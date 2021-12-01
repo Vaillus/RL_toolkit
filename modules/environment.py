@@ -1,6 +1,6 @@
 import gym
-import gym_minatar
-from gym.wrappers import Monitor
+import minatar
+#from gym.wrappers import Monitor
 from GodotEnvironment import GodotEnvironment
 from modules.probe_env import DiscreteProbeEnv, ContinuousProbeEnv
 from typing import Dict, Optional, Any
@@ -17,7 +17,8 @@ class EnvInterface:
         godot_kwargs: Optional[dict] = {},
         show: Optional[bool] = True,
         show_every: Optional[int] = 10,
-        action_type: Optional[str] = "discrete"
+        action_type: Optional[str] = "discrete",
+        monitor: Optional[bool] = False
     ):
         self.type = type
         self.name = name
@@ -25,6 +26,7 @@ class EnvInterface:
         self.show = show
         self.show_every = show_every
         self.seed = 0
+        self.monitor = monitor
         self.env = self._init_env(godot_kwargs, action_type)
         self.action_type = self.get_action_type(action_type)
         self.logger = None
@@ -32,7 +34,9 @@ class EnvInterface:
     def _init_env(self, godot_kwargs, action_type):
         #TODO chenge godot_kwargs to env_kwargs? Because it doesn't work with MinAtar
         if self.type == "gym":
-            env = Monitor(gym.make(self.name), "./video/", video_callable=lambda x: x%100==0, force=True)
+            env = gym.make(self.name)
+            if self.monitor:
+                env = gym.wrappers.RecordVideo(env, "./video/", episode_trigger=lambda x: x%100==0, video_length=100)
             env.seed(self.seed)
         elif self.type == "godot":
             env = GodotEnvironment(godot_kwargs)
@@ -84,7 +88,7 @@ class EnvInterface:
             return "discrete"
         elif self.name.startswith("HalfCheetah"):
             return "continuous"
-        elif self.name.startswith("Breakout-MinAtar"):
+        elif self.name.startswith("MinAtar/Breakout"):
             return "discrete"
         else:
             raise ValueError(f'{self.name} is not supported for action \
@@ -216,10 +220,7 @@ class EnvInterface:
         if self.type == "gym":
             # getting the formatted environment name. 
             arr_name = re.split("-", self.name)
-            if arr_name[1] == "MinAtar":
-                name = arr_name[0] + "-" + arr_name[1]
-            else:
-                name = arr_name[0]
+            name = arr_name[0]
             env_data = dict_envs[self.type][name]
         elif self.type == "probe":
             env_data = dict_envs[self.type][self.action_type][self.name]
@@ -233,7 +234,7 @@ class EnvInterface:
         return action
     
     def modify_state(self, state):
-        if self.name.startswith("Breakout-MinAtar"):
+        if self.name.startswith("MinAtar/Breakout"):
             if not isinstance(state,np.ndarray):
                 state = np.array(state) 
             state = state.astype(np.float).flatten() - 0.5

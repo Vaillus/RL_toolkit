@@ -98,7 +98,7 @@ class PPOAgent:
                 policy_loss = - policy_loss.mean() # OK
                 
                 entropy = -(torch.sum(probs_new * torch.log(probs_new), dim=1, keepdim=True).mean())
-                entropy_loss = entropy * self.entropy_coeff
+                entropy_loss = - entropy * self.entropy_coeff
                 self.actor.backpropagate(policy_loss + entropy_loss)
 
                 # TODO: clip the state value variation. nb: only openai does that.
@@ -113,6 +113,7 @@ class PPOAgent:
                 self.logger.wandb_log({
                     'Agent info/critic loss': value_loss,
                     'Agent info/actor loss': policy_loss,
+                    'Agent info/entropy loss': entropy_loss,
                     'Agent info/policy entropy': entropy},
                     type= "agent")
             # the replay buffer is used only one (completely) and then 

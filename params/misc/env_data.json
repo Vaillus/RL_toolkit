@@ -40,7 +40,7 @@
             "action_dim": 6,
             "state_dim": 17
         },
-        "Breakout-MinAtar": {
+        "MinAtar/Breakout": {
             "action_type": "discrete",
             "action_dim": 3,
             "state_dim": 400

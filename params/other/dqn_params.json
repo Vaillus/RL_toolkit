@@ -16,7 +16,7 @@
             "discount_factor": 0.95,
             "update_target_rate": 400,
             "is_vanilla": false,
-            "memory_info":{
+            "memory_info": {
                 "size": 25000,
                 "batch_size": 128},
             "epsilon": 0.9304,

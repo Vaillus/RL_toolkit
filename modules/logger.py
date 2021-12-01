@@ -22,7 +22,7 @@ class Logger:
         self.log_every = log_every
         self.wandb = is_wandb
         if self.wandb:
-            wandb.init(**wandb_kwargs)
+            wandb.init(**wandb_kwargs, monitor_gym=True)
         self.video_record = video_record
         self.record_every = record_every
         self.rec = None
@@ -38,7 +38,7 @@ class Logger:
         tags: Optional[List[str]] = None,
         config: Optional[Dict[str, Any]] = None
     ):
-        wandb.init(job_type, notes=notes, tags=tags, config=config)
+        wandb.init(job_type, notes=notes, tags=tags, config=config, monitor_gym=True)
 
     def wandb_watch(self, models, log_freq:Optional[int] = None, type = None):
         if type is not None:

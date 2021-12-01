@@ -1,14 +1,15 @@
 {
   "session_info":{
-    "num_timestep": 20000,
+    "num_timestep": 4000000,
     "plot": false,
     "show": false,
-    "show_every": 1000,
+    "show_every": 100,
     "return_results": true
   },
   "env_info": {
-    "type": "probe",
-    "name": "five"
+    "type": "gym",
+    "name": "MinAtar/Breakout-v1",
+    "monitor": true
   },
   "agent_info":{
     "type": "PPO",
@@ -25,13 +26,13 @@
         "layers_info": {
           "n_hidden_layers": 1,
           "types": "linear",
-          "sizes": 64,
+          "sizes": 100,
           "hidden_activations": "relu",
           "output_activation": "softmax"
         },
         "optimizer_info": {
           "type": "adam",
-          "learning_rate": 0.005
+          "learning_rate": 0.0005
         }
       },
       "function_approximator_info": {
@@ -44,7 +45,7 @@
         },
         "optimizer_info": {
           "type": "adam",
-          "learning_rate": 0.0005
+          "learning_rate": 0.005
         }
       }
     }
