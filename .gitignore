@@ -135,4 +135,7 @@ dmypy.json
 wandb/
 wandb/latest-run
 video/
+videos/
+runs/
 test.py
+models/

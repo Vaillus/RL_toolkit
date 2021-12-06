@@ -112,6 +112,25 @@ class CustomNeuralNetwork(nn.Module):
 
     def forward(self, x):
         # format the input data
+        x = self.format_input(x)
+        num_layers = len(self.layers)
+        for i in range(num_layers):
+            x = self.forward_layer(x,i)
+
+        return x
+
+    def embedding(self, x):
+        x = self.format_input(x)
+        num_layers = len(self.layers)
+        # get the point associated with the input in the latent space of the last layer
+        for i in range(num_layers-1):
+            x = self.forward_layer(x,i)
+        return x
+    
+    def get_embedding_size(self):
+        return self.layers[-2].out_features
+
+    def format_input(self, x):
         if isinstance(x, np.ndarray):
             x = torch.from_numpy(x)
         elif isinstance(x, list):
@@ -119,19 +138,19 @@ class CustomNeuralNetwork(nn.Module):
         elif isinstance(x, tuple):
             x = torch.Tensor(x)
         x = x.float()
-        num_layers = len(self.layers)
-        for i in range(num_layers):
-            if self.activations[i] == "relu":
-                x = torch.relu(self.layers[i](x))
-            elif self.activations[i] == "tanh":
-                x = torch.tanh(self.layers[i](x))
-            elif self.activations[i] == "softmax":
-                x = F.softmax(self.layers[i](x))
-            elif self.activations[i] == "none":
-                x = self.layers[i](x)
-            else:
-                x = self.layers[i](x)
+        return x
 
+    def forward_layer(self, x, i):
+        if self.activations[i] == "relu":
+            x = torch.relu(self.layers[i](x))
+        elif self.activations[i] == "tanh":
+            x = torch.tanh(self.layers[i](x))
+        elif self.activations[i] == "softmax":
+            x = F.softmax(self.layers[i](x), dim= -1)
+        elif self.activations[i] == "none":
+            x = self.layers[i](x)
+        else:
+            x = self.layers[i](x)
         return x
 
     def backpropagate(self, loss):
