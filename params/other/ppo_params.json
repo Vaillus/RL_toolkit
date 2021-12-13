@@ -17,7 +17,7 @@
       "discount_factor": 0.99,
       "num_actions": 2,
       "state_dim": 4,
-      "clipping": 0.2,
+      "clipping": 0.3,
       "n_epochs": 7,
       "entropy_coeff": 0.1,
       "memory_info":{
@@ -28,28 +28,28 @@
       },
       "policy_estimator_info": {
         "layers_info": {
-          "n_hidden_layers": 1,
+          "n_hidden_layers": 2,
           "types": "linear",
           "sizes": 100,
-          "hidden_activations": "relu",
+          "hidden_activations": "tanh",
           "output_activation": "softmax"
         },
         "optimizer_info": {
           "type": "adam",
-          "learning_rate": 0.005
+          "learning_rate": 0.001
         }
       },
       "function_approximator_info": {
         "layers_info": {
-          "n_hidden_layers": 1,
+          "n_hidden_layers": 2,
           "types": "linear",
           "sizes": 64,
-          "hidden_activations": "relu",
+          "hidden_activations": "tanh",
           "output_activation": "none"
         },
         "optimizer_info": {
           "type": "adam",
-          "learning_rate": 0.05
+          "learning_rate": 0.01
         }
       }
     }
