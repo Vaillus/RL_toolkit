@@ -21,7 +21,8 @@
       "n_epochs": 7,
       "entropy_coeff": 0.1,
       "memory_info":{
-        "size": 1000
+        "size": 2048,
+        "batch_size": 64
       },
       "curiosity_info": {
         "embedding_size": 64

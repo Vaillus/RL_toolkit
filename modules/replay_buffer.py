@@ -142,13 +142,15 @@ class PPOReplayBuffer(BaseReplayBuffer):
         obs_dim:int,
         action_dim:int,
         discount_factor:float,
-        size:Optional[int] = 200
+        size:Optional[int] = 200,
+        batch_size:Optional[int] = 64
     ):
         super(PPOReplayBuffer, self).__init__(obs_dim, action_dim, size)
         self.ep_pos = 0
         self.returns = torch.zeros((self.size,1), dtype=torch.float32)
         self.ep_buffer = self._init_episode_buffer()
         self.discount_factor = discount_factor
+        self.batch_size = batch_size
 
     def store_transition(self, obs, action, reward, next_obs, done):
         self._store_in_episode_buffer(obs, action, reward, next_obs, done)
@@ -160,6 +162,9 @@ class PPOReplayBuffer(BaseReplayBuffer):
             ReplayBufferSamples: observations, actions, rewards, 
             next_observations, dones
         """
+
+        # TODO: make mini batches
+        # TODO: return an iterator
 
         sample = PPOReplayBufferSample
         sample.observations = self.observations.detach()
@@ -207,6 +212,7 @@ class PPOReplayBuffer(BaseReplayBuffer):
         self.ep_buffer.next_observations[self.ep_pos] = torch.Tensor(next_obs)
         self.ep_buffer.dones[self.ep_pos] = done
         
+        # TODO: do this in the agent?
         if done == True:
             # if this is the final transition, compute the expected return
             # and store the episode in the main buffer.
@@ -215,16 +221,22 @@ class PPOReplayBuffer(BaseReplayBuffer):
             for i, reward in enumerate(reverse_rewards):
                 disc_reward = reward + self.discount_factor * disc_reward
                 self.ep_buffer.returns[self.ep_pos - i] = disc_reward
-            self._copy_to_buffer()
+            self._copy_ep_to_buffer()
             self.pos += self.ep_pos + 1
             self.episode_buffer = self._init_episode_buffer()
         else:
             self.ep_pos += 1
 
-    def _copy_to_buffer(self):
+    def _copy_ep_to_buffer(self):
         # Might be diff+1 instead of diff? diff+1 did'nt work before.
         # when there is more experience than needed, just cut the 
         # experience and dump the rest.
+         # TODO: advantage must be computed before this step because 
+        # if the end of the episode is missing, there might be a problem
+        #  in the case the reward is only located at the end.
+
+        # in the case the episode length is larger than the remaining 
+        # size in the memory, only add the beginning of the episode.
         if self.pos + self.ep_pos >= self.size - 1:
             diff = self.size - self.pos
             self.observations[self.pos:] = self.ep_buffer.observations[:diff]

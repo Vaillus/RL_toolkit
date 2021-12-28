@@ -90,8 +90,9 @@ class PPOAgent:
 
     def control(self):
         if self.replay_buffer.full:
-            batch = self.replay_buffer.sample()
-            
+            batch = self.replay_buffer.sample() # TODO :change sampling method here
+
+            # TODO: move the advantage computation in the memory buffer.
             # computing state values, advantage
             prev_state_value = self.critic(batch.observations)
             advantage = batch.returns - prev_state_value.detach()
@@ -107,6 +108,7 @@ class PPOAgent:
             intrinsic_rewards = []
 
             for _ in range(self.n_epochs):
+                # TODO: sample minibatches here and iterate over them.
                 probs_new = self.actor(batch.observations)
                 #ratio = probs_new / probs_old
                 # in stable baselines 3, they write it this way but I 
@@ -193,6 +195,7 @@ class PPOAgent:
         intrinsic_reward = self.curiosity.get_intrinsic_reward(self.actor, self.previous_state, state, self.previous_action)
         # storing the transition in the function approximator memory for further use
         self.replay_buffer.store_transition(self.previous_state, self.previous_action, reward + intrinsic_reward, state, True)
+        self.compute_ep_advantages()
         self.control()
 
     def get_state_value_eval(self, state):
@@ -210,3 +213,6 @@ class PPOAgent:
         self.replay_buffer.correct(state_dim, action_dim)
         self.logger.wandb_watch([self.actor, self.critic])
 
+    def compute_ep_advantage(self):
+        """compute the GAE advantages for the episode buffer"""
+        self.replay_buffer.compute_ep_advantages(self.critic)
