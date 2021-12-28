@@ -95,6 +95,7 @@ class PPOAgent:
             # TODO: move the advantage computation in the memory buffer.
             # computing state values, advantage
             prev_state_value = self.critic(batch.observations)
+
             advantage = batch.returns - prev_state_value.detach()
             self.normalize(advantage) # is it really a good idea?
             # get probabilities of actions from policy estimator
@@ -131,7 +132,7 @@ class PPOAgent:
                 
                 self.actor.backpropagate(policy_loss + entropy_loss + intrinsic_reward)
 
-                # TODO: clip the state value variation. nb: only openai does that.
+                # TODO: clip the state value variation. nb: only openai does that. nb2: It is not recommended anyway.
                 # delta_state_value = self.function_approximator_eval(batch_state) - prev_state_value
                 # new_prev_state_value = prev_state_value + delta_state_value
                 # state_value_error = 
