@@ -336,7 +336,7 @@ class HER(BaseReplayBuffer):
         # buffer when I have too much experience, because the buffer is 
         # going to be emptied out anyway after learning.
         # if the episode is too long, put nly part of it in the buffer.
-        # TODO: I suspect that I fucked up with the indices. It should be diff 
+        # TODO: I suspect that I fucked up the indices. It may be diff 
         # instead of diff + 1
         if self.pos + self.ep_pos >= self.size - 1:
             diff = self.size - self.pos
@@ -419,7 +419,7 @@ class PerfoReplayBuffer(BaseReplayBuffer):
         return sample
     
     def correct(self, state_dim: int, action_dim: int) -> None:
-        """Makes the necessary changes for one wants to modify action 
+        """Makes the necessary changes when one wants to modify action 
         and observations dimensions
 
         Args:
