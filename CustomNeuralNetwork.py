@@ -3,8 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
-import math
-import matplotlib.pyplot as plt
 from utils import set_random_seed
 from typing import Optional, Any, Dict
 
@@ -37,19 +35,56 @@ class CustomNeuralNetwork(nn.Module):
         if self.seed is not None:
             torch.manual_seed(self.seed)
     
-    def set_seed(self, seed):
+
+
+    # === initialization functions =====================================
+
+
+
+    def set_seed(self, seed:int) -> None:
+        """ Set a seed for the neural net and reinit layers with the new 
+        seed"""
         self.seed = seed
         set_random_seed(seed)
+        # reinit the layers initial values
         for i in range(len(self.layers)):
             self.layers[i].weight.data.normal_(0, 0.1)
 
-    def _init_layers(self, layers_info: Dict[str, Any]):
+    def _init_layers(self, layers_info:Dict[str, Any]) -> None:
         """get and format the parameters from the layers info.
         Init the layers from this.
 
         Args:
             layers_info (Dict[str, Any])
         """
+        # extract variables from the input dictionary
+        n_hid_layers, types, sizes, activations = self._extract_layer_var(layers_info)
+        # initialize the layers with the variables
+        for i in range(n_hid_layers + 1):
+            if types[i] == "linear":
+                # initialize the layer with the correct size and add it 
+                # to the list
+                input_size = self._get_input_size(i, sizes)
+                output_size = self._get_output_size(i, sizes, n_hid_layers)
+                layer = nn.Linear(input_size, output_size)
+                self.layers.append(layer)
+        self.activations = activations
+
+    def _get_input_size(self, i, sizes):
+        if i == 0:
+            return self.input_dim
+        else:
+            return sizes[i-1]
+
+    def _get_output_size(self, i, sizes, n_hid_layers):
+        if i == n_hid_layers:
+            return self.output_dim
+        else:
+            return sizes[i]
+
+    def _extract_layer_var(self,layers_info):
+        """make a tuple of variables from a dictionary containing layers 
+        information"""
         n_hid_layers = layers_info["n_hidden_layers"]
         types = self._get_layers_types(layers_info["types"], n_hid_layers)
         sizes = self._get_layers_sizes(layers_info["sizes"], n_hid_layers)
@@ -57,20 +92,8 @@ class CustomNeuralNetwork(nn.Module):
             layers_info["hidden_activations"],
             layers_info["output_activation"],
             n_hid_layers)
-        # layers initialization
-        for i in range(n_hid_layers + 1):
-            if types[i] == "linear":
-                if i == 0:
-                    input_size = self.input_dim
-                else:
-                    input_size = sizes[i-1]
-                if i == n_hid_layers:
-                    output_size = self.output_dim
-                else:
-                    output_size = sizes[i]
-                layer = nn.Linear(input_size, output_size)
-                self.layers.append(layer)
-        self.activations = activations
+        
+        return n_hid_layers, types, sizes, activations
 
     def _get_layers_types(self, param_types, n_hid_layers):
         # types of the layers
@@ -105,32 +128,38 @@ class CustomNeuralNetwork(nn.Module):
         activations += [output_activation]
         return activations
 
-
     def _init_optimizer(self, optimizer_info):
         if optimizer_info["type"] == "adam":
             self.optimizer = optim.Adam(self.parameters(), lr=optimizer_info["learning_rate"])
 
+
+
+    # === other functions ==============================================
+
+
+
     def forward(self, x):
         # format the input data
-        x = self.format_input(x)
+        x = self._format_input(x)
         num_layers = len(self.layers)
         for i in range(num_layers):
             x = self.forward_layer(x,i)
 
         return x
 
-    def embedding(self, x):
-        x = self.format_input(x)
-        num_layers = len(self.layers)
-        # get the point associated with the input in the latent space of the last layer
-        for i in range(num_layers-1):
-            x = self.forward_layer(x,i)
-        return x
+    # TODO: If I don't get in trouble for commenting this, delete it.
+    #def embedding(self, x):
+    #    x = self._format_input(x)
+    #    num_layers = len(self.layers)
+    #    # get the point associated with the input in the latent space of the last layer
+    #    for i in range(num_layers-1):
+    #        x = self.forward_layer(x,i)
+    #    return x
     
-    def get_embedding_size(self):
-        return self.layers[-2].out_features
+    #def get_embedding_size(self):
+    #    return self.layers[-2].out_features
 
-    def format_input(self, x):
+    def _format_input(self, x):
         if isinstance(x, np.ndarray):
             x = torch.from_numpy(x)
         elif isinstance(x, list):
@@ -154,6 +183,7 @@ class CustomNeuralNetwork(nn.Module):
         return x
 
     def backpropagate(self, loss):
+        """update the weight with the gradients and step the optimizer"""
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()

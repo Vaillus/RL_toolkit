@@ -26,9 +26,10 @@ class Curiosity():
         self.init_models(inverse_model_params, forward_model_params)
     
     def init_models(self, inverse_model_params, forward_model_params):
+        # here, I apparently intialize my models with one neuron on one 
+        # layer by default, which makes absolutely no sense. wtf.
         if inverse_model_params is None:
-            if inverse_model_params is None:
-                inverse_model_params = {
+            inverse_model_params = {
                 "layers_info": {
                     "n_hidden_layers": 1,
                     "types": "linear",
@@ -105,17 +106,17 @@ class Curiosity():
 
         return icm_loss.detach()
         
-    def check_models(self, nn):
-        """function that check that the models have the good dimensions 
-        by comparing them with the nn's dimensions. If the dimensions 
-        don't match, the models are reinitialized with dimensions 
-        mathing the nn's dimensions.
+    def check_models(self, nn:CustomNeuralNetwork) -> None:
+        """Check that the curiosity NNs have the good dimensions 
+        by comparing them with the [...]'s NN dimensions. If the dimensions 
+        don't match, the curiosity NNs are reinitialized with dimensions 
+        matching the nn's dimensions.
 
         Args:
             nn (CustomNeuralNetwork): the neural network that will be used
         """
-        action_size = nn.output_dim
-        observation_size = nn.input_dim
+        action_size:int = nn.output_dim
+        observation_size:int = nn.input_dim
         if self.inverse_model.input_dim != self.embedding_size * 2 or \
             self.inverse_model.output_dim != action_size:
             self.inverse_model.reinit_layers(self.embedding_size * 2, action_size)
