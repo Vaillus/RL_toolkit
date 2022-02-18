@@ -179,9 +179,10 @@ class PPOAgent:
         return current_action
 
     def step(self, state, reward):
-        # storing the transition in the function approximator memory for further use
+        # storing the transition in the memory for further use
         intrinsic_reward = self.curiosity.get_intrinsic_reward(self.actor, self.previous_state, state, self.previous_action)
-        self.replay_buffer.store_transition(self.previous_state, self.previous_action, reward + intrinsic_reward, state, False)
+        reward += intrinsic_reward
+        self.replay_buffer.store_transition(self.previous_state, self.previous_action, reward, state, False)
         # getting the action values from the function approximator
         current_action = self.choose_action(state)
         self.control()
@@ -193,20 +194,27 @@ class PPOAgent:
         return current_action
 
     def end(self, state, reward):
+        """ receive the terminal state and reward to stor the final transition. 
+        Apparently I also compute the advantage at the end of the episode... """
         intrinsic_reward = self.curiosity.get_intrinsic_reward(self.actor, self.previous_state, state, self.previous_action)
         # storing the transition in the function approximator memory for further use
         self.replay_buffer.store_transition(self.previous_state, self.previous_action, reward + intrinsic_reward, state, True)
         self.compute_ep_advantages()
         self.control()
 
-    def get_state_value_eval(self, state):
+    def get_state_value_eval(self, state:np.ndarray):
+        """ Used in the probe environmnents to test the agent."""
         if self.num_actions > 1:
             state_value = self.actor(state).data
         else: 
             state_value = self.critic(state).data
         return state_value
 
-    def adjust_dims(self, state_dim, action_dim):
+    def adjust_dims(self, state_dim:int, action_dim:int):
+        """ Called when the agent dimension doesn't fit the environment 
+        dimension. Reinitialize some parts of the agent so they fit the 
+        environment.
+        """
         self.state_dim = state_dim
         self.num_actions = action_dim
         self.actor.reinit_layers(state_dim, action_dim)
