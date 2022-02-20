@@ -63,6 +63,7 @@ class PPOAgent:
         params["obs_dim"] = self.state_dim
         params["action_dim"] = self.num_actions
         params["discount_factor"] = self.γ
+        params["critic"] = self.critic
         return PPOReplayBuffer(**params)
 
     def init_curiosity(self, params: Dict) -> Curiosity:
@@ -91,11 +92,12 @@ class PPOAgent:
     def control(self):
         if self.replay_buffer.full:
             batch = self.replay_buffer.sample() # TODO :change sampling method here
-
+            batch = self.replay_buffer.sample(self.critic) # GAE way
             # TODO: move the advantage computation in the memory buffer.
+            self.replay_buffer.compute_advantages(batch)
             # computing state values, advantage
             prev_state_value = self.critic(batch.observations)
-
+            # TODO: do the GAE stuff here
             advantage = batch.returns - prev_state_value.detach()
             self.normalize(advantage) # is it really a good idea?
             # get probabilities of actions from policy estimator
@@ -180,8 +182,8 @@ class PPOAgent:
 
     def step(self, state, reward):
         # storing the transition in the memory for further use
-        intrinsic_reward = self.curiosity.get_intrinsic_reward(self.actor, self.previous_state, state, self.previous_action)
-        reward += intrinsic_reward
+        #intrinsic_reward = self.curiosity.get_intrinsic_reward(self.actor, self.previous_state, state, self.previous_action)
+        #reward += intrinsic_reward
         self.replay_buffer.store_transition(self.previous_state, self.previous_action, reward, state, False)
         # getting the action values from the function approximator
         current_action = self.choose_action(state)
@@ -196,7 +198,8 @@ class PPOAgent:
     def end(self, state, reward):
         """ receive the terminal state and reward to stor the final transition. 
         Apparently I also compute the advantage at the end of the episode... """
-        intrinsic_reward = self.curiosity.get_intrinsic_reward(self.actor, self.previous_state, state, self.previous_action)
+        #intrinsic_reward = self.curiosity.get_intrinsic_reward(self.actor, self.previous_state, state, self.previous_action)
+        #reward += intrinsic_reward
         # storing the transition in the function approximator memory for further use
         self.replay_buffer.store_transition(self.previous_state, self.previous_action, reward + intrinsic_reward, state, True)
         self.compute_ep_advantages()

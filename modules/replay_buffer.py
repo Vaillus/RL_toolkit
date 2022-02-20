@@ -3,6 +3,8 @@ import torch
 from typing import NamedTuple, Optional
 from collections import namedtuple
 
+from CustomNeuralNetwork import CustomNeuralNetwork
+
 #from torch._C import float32
 
 class BaseReplayBuffer:
@@ -121,6 +123,7 @@ class PPOReplayBufferSamples(NamedTuple): # Not sure how I would use it.
     dones: torch.Tensor
     rewards: torch.Tensor
     returns: torch.Tensor
+    advantages: torch.Tensor
 
 PPOReplayBufferSample = namedtuple('ReplayBufferSample', [
     'observations',
@@ -128,7 +131,8 @@ PPOReplayBufferSample = namedtuple('ReplayBufferSample', [
     'next_observations',
     'dones',
     'rewards',
-    'returns'])
+    'returns',
+    'advantages'])
 
 class PPOReplayBuffer(BaseReplayBuffer):
     """I'm making this variant because the discounted reward can't be 
@@ -143,19 +147,24 @@ class PPOReplayBuffer(BaseReplayBuffer):
         action_dim:int,
         discount_factor:float,
         size:Optional[int] = 200,
-        batch_size:Optional[int] = 64
+        batch_size:Optional[int] = 64,
+        critic:Optional[CustomNeuralNetwork] = None,
+        gae_lambda:Optional[float] = 0.95
     ):
         super(PPOReplayBuffer, self).__init__(obs_dim, action_dim, size)
         self.ep_pos = 0
         self.returns = torch.zeros((self.size,1), dtype=torch.float32)
+        self.advantages = torch.zeros((self.size,1), dtype=torch.float32) # GAE stuff
         self.ep_buffer = self._init_episode_buffer()
         self.discount_factor = discount_factor
         self.batch_size = batch_size
+        self.critic = critic # addition to compute the GAE stuff
+        self.gae_lambda = gae_lambda
 
     def store_transition(self, obs, action, reward, next_obs, done):
         self._store_in_episode_buffer(obs, action, reward, next_obs, done)
 
-    def sample(self) -> PPOReplayBufferSamples:
+    def sample(self, critic:CustomNeuralNetwork) -> PPOReplayBufferSamples:
         """Here, all sample are selected
 
         Returns:
@@ -163,6 +172,7 @@ class PPOReplayBuffer(BaseReplayBuffer):
             next_observations, dones
         """
 
+        # TODO: compute advantage and returns
         # TODO: make mini batches
         # TODO: return an iterator
 
@@ -188,19 +198,24 @@ class PPOReplayBuffer(BaseReplayBuffer):
         """
         self.action_dim = action_dim
         self.obs_dim = state_dim
-        self.observations = torch.zeros((self.size, self.obs_dim), dtype=torch.float32)
+        self.observations = torch.zeros(
+            (self.size, self.obs_dim), dtype=torch.float32)
         self.actions = torch.zeros((self.size, self.action_dim)) # TODO: add type later
-        self.next_observations = torch.zeros((self.size, self.obs_dim), dtype=torch.float32)
+        self.next_observations = torch.zeros(
+            (self.size, self.obs_dim), dtype=torch.float32)
         self._init_episode_buffer()
 
     def _init_episode_buffer(self) -> PPOReplayBufferSample:
         episode_buffer = PPOReplayBufferSample
-        episode_buffer.observations = torch.zeros((self.size, self.obs_dim), dtype=torch.float32)
+        episode_buffer.observations = torch.zeros(
+            (self.size, self.obs_dim), dtype=torch.float32)
         episode_buffer.actions = torch.zeros((self.size, self.action_dim))
         episode_buffer.rewards = torch.zeros((self.size,1), dtype=torch.float32)
-        episode_buffer.next_observations = torch.zeros((self.size, self.obs_dim), dtype=torch.float32)
+        episode_buffer.next_observations = torch.zeros(
+            (self.size, self.obs_dim), dtype=torch.float32)
         episode_buffer.dones = torch.zeros((self.size,1), dtype=torch.bool)
         episode_buffer.returns = torch.zeros((self.size,1), dtype=torch.float32)
+        episode_buffer.advantages = torch.zeros((self.size,1), dtype=torch.float32)
         self.ep_pos = 0
         return episode_buffer
 
@@ -212,20 +227,64 @@ class PPOReplayBuffer(BaseReplayBuffer):
         self.ep_buffer.next_observations[self.ep_pos] = torch.Tensor(next_obs)
         self.ep_buffer.dones[self.ep_pos] = done
         
-        # TODO: do this in the agent?
         if done == True:
-            # if this is the final transition, compute the expected return
-            # and store the episode in the main buffer.
-            disc_reward = 0.0
-            reverse_rewards = torch.flip(self.ep_buffer.rewards[:self.ep_pos+1], (0,1))
-            for i, reward in enumerate(reverse_rewards):
-                disc_reward = reward + self.discount_factor * disc_reward
-                self.ep_buffer.returns[self.ep_pos - i] = disc_reward
+            # compute advantages for each transition
+            self._compute_advantages_gae()
+            # send the episode to the main buffer
             self._copy_ep_to_buffer()
+            # update the buffer position
             self.pos += self.ep_pos + 1
+            # reinitialize the episode buffer
             self.episode_buffer = self._init_episode_buffer()
         else:
+            # else, just update the episode buffer position
             self.ep_pos += 1
+    
+    def _compute_advantages_gae(self):
+        # Commpute preliminatory variables to comp
+        prev_state_value = self.critic(
+            self.ep_buffer.observations[:self.ep_pos+1])
+        disc_vec = [
+            self.discount_factor ** i for i in range(self.ep_pos+1)]
+        k_step_adv = torch.zeros(
+            (self.ep_pos+1, self.ep_pos+1), dtype=torch.float32)
+        # first step of GAE computation: compute the k-step estimates of 
+        # the advantage for each possible k, for each state
+        # t is the intex for the state we compute the advantage for,
+        # and n is the index for the horizon of the advantage estimate 
+        for t in range(self.ep_pos+1):
+            for k in range(t, self.ep_pos+1):
+                k_step_adv[t, k] = self._compute_k_step_adv(
+                    self, t, k, disc_vec, prev_state_value)
+        # for each state, combine the k-step estimates of the advantage 
+        # into one single advantage estimate.
+        for t in range(self.ep_pos+1):
+            # get the advantages vector for the currrent t
+            adv_vec = k_step_adv[t, t:] 
+            for i in range(adv_vec.shape[0]):
+                self.ep_buffer.advantages[t] += adv_vec[i] * self.gae_lambda ** i
+    
+    def _compute_k_step_adv(self, t, k, disc_vec, prev_state_value):
+        # compute the k-step estimate of the advantage at state t
+        # compute the discounted reward from t to t+k.
+        disc_rew = self.ep_buffer.rewards[t:k+1]
+        disc_rew *= disc_vec[:disc_rew.shape[0]]
+        disc_rew = sum(disc_rew)
+        # compute the state value at t+k
+        last_state_value = self.critic(self.ep_buffer.next_observations[k]) # detach?
+        # combine them in the k-step estimate of the advantage at time t
+        adv = - prev_state_value[t] + disc_rew + last_state_value
+        return adv
+    
+    def _compute_advantages(self):
+        reverse_rewards = torch.flip(self.ep_buffer.rewards[:self.ep_pos+1], (0,1))
+        prev_state_value = self.critic(self.ep_buffer.observations[:self.ep_pos+1])
+        for i, reward in enumerate(reverse_rewards):
+            disc_reward = reward + self.discount_factor * disc_reward
+            self.ep_buffer.returns[self.ep_pos - i] = disc_reward
+        self.ep_buffer.advantages = self.ep_buffer.returns - prev_state_value.detach()
+        #self.normalize(advantage) # is it really a good idea?
+
 
     def _copy_ep_to_buffer(self):
         # Might be diff+1 instead of diff? diff+1 did'nt work before.
@@ -246,6 +305,7 @@ class PPOReplayBuffer(BaseReplayBuffer):
                 self.ep_buffer.next_observations[:diff]
             self.dones[self.pos:] = self.ep_buffer.dones[:diff]
             self.returns[self.pos:] = self.ep_buffer.returns[:diff]
+            self.advantages[self.pos:] = self.ep_buffer.advantages[:diff]
             self.full = True
         else:
             self.observations[self.pos: self.pos + self.ep_pos+1] =\
@@ -260,14 +320,19 @@ class PPOReplayBuffer(BaseReplayBuffer):
                 self.ep_buffer.dones[:self.ep_pos+1]
             self.returns[self.pos: self.pos + self.ep_pos+1] =\
                 self.ep_buffer.returns[:self.ep_pos+1]
+            self.advantages[self.pos: self.pos + self.ep_pos+1] =\
+                self.advantages.returns[:self.ep_pos+1]
 
     def erase(self):
-        self.observations = torch.zeros((self.size, self.obs_dim), dtype=torch.float32)
+        self.observations = torch.zeros(
+            (self.size, self.obs_dim), dtype=torch.float32)
         self.actions = torch.zeros((self.size, self.action_dim)) # TODO: add type later
         self.rewards = torch.zeros((self.size,1), dtype=torch.float32)
-        self.next_observations = torch.zeros((self.size, self.obs_dim), dtype=torch.float32)
+        self.next_observations = torch.zeros(
+            (self.size, self.obs_dim), dtype=torch.float32)
         self.dones = torch.zeros((self.size,1), dtype=torch.bool)
         self.returns = torch.zeros((self.size,1), dtype=torch.float32)
+        self.advantages = torch.zeros((self.size,1), dtype=torch.float32)
         self.pos = 0
         self.full = False
 
@@ -300,10 +365,12 @@ class HER(BaseReplayBuffer):
     
     def _init_episode_buffer(self) -> PPOReplayBufferSample:
         episode_buffer = PPOReplayBufferSample
-        episode_buffer.observations = torch.zeros((self.size, self.obs_dim), dtype=torch.float32)
+        episode_buffer.observations = torch.zeros(
+            (self.size, self.obs_dim), dtype=torch.float32)
         episode_buffer.actions = torch.zeros((self.size, self.action_dim))
         episode_buffer.rewards = torch.zeros((self.size,1), dtype=torch.float32)
-        episode_buffer.next_observations = torch.zeros((self.size, self.obs_dim), dtype=torch.float32)
+        episode_buffer.next_observations = torch.zeros(
+            (self.size, self.obs_dim), dtype=torch.float32)
         episode_buffer.dones = torch.zeros((self.size,1), dtype=torch.bool)
         episode_buffer.returns = torch.zeros((self.size,1), dtype=torch.float32)
         self.ep_pos = 0
@@ -392,9 +459,11 @@ class PerfoReplayBuffer(BaseReplayBuffer):
     def noise_init(self, device):
         """ Fills the buffer with noise"""
         self.observations = self.noise_tensor(self.observations.to(device))
-        self.actions = torch.unsqueeze(torch.randint(self.action_dim, (self.size,), device=device), 1)
+        self.actions = torch.unsqueeze(
+            torch.randint(self.action_dim, (self.size,), device=device), 1)
         self.rewards = self.noise_tensor(self.rewards.to(device))
-        self.next_observations = self.noise_tensor(self.next_observations.to(device))
+        self.next_observations = self.noise_tensor(
+            self.next_observations.to(device))
         self.dones = torch.full((self.size,), 0, device=device)
     
     def noise_tensor(self, tensor):
@@ -428,9 +497,11 @@ class PerfoReplayBuffer(BaseReplayBuffer):
         """
         self.action_dim = action_dim
         self.obs_dim = state_dim
-        self.observations = torch.zeros((self.size, self.obs_dim), dtype=torch.float32)
+        self.observations = torch.zeros(
+            (self.size, self.obs_dim), dtype=torch.float32)
         self.actions = torch.zeros((self.size, self.action_dim)) # TODO: add type later
-        self.next_observations = torch.zeros((self.size, self.obs_dim), dtype=torch.float32)
+        self.next_observations = torch.zeros(
+            (self.size, self.obs_dim), dtype=torch.float32)
 
 
 #%%
