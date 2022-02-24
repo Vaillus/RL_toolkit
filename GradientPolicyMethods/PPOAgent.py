@@ -57,7 +57,7 @@ class PPOAgent:
         return CustomNeuralNetwork(**params, input_dim=self.state_dim, output_dim=self.num_actions)
 
     def initialize_function_approximator(self, params: Dict) -> CustomNeuralNetwork:
-        return CustomNeuralNetwork(**params, input_dim=self.state_dim, output_dim=self.num_actions)
+        return CustomNeuralNetwork(**params, input_dim=self.state_dim, output_dim=1)#self.num_actions)
     
     def init_memory_buffer(self, params: Dict) -> PPOReplayBuffer:
         params["obs_dim"] = self.state_dim
@@ -92,14 +92,14 @@ class PPOAgent:
     def control(self):
         if self.replay_buffer.full:
             batch = self.replay_buffer.sample() # TODO :change sampling method here
-            batch = self.replay_buffer.sample(self.critic) # GAE way
+            #batch = self.replay_buffer.sample(self.critic) # GAE way
             # TODO: move the advantage computation in the memory buffer.
-            self.replay_buffer.compute_advantages(batch)
+            #self.replay_buffer.compute_advantages(batch)
             # computing state values, advantage
-            prev_state_value = self.critic(batch.observations)
+            #prev_state_value = self.critic(batch.observations)
             # TODO: do the GAE stuff here
-            advantage = batch.returns - prev_state_value.detach()
-            self.normalize(advantage) # is it really a good idea?
+            #advantage = batch.returns - prev_state_value.detach()
+            #batch.advantages = self.normalize(batch.advantages) # is it really a good idea?
             # get probabilities of actions from policy estimator
             probs_old = self.actor(batch.observations).detach()
 
@@ -119,7 +119,7 @@ class PPOAgent:
                 ratio = torch.exp(torch.log(probs_new) - torch.log(probs_old)) # ok
                 ratio = torch.gather(ratio, 1, batch.actions.long()) #ok 
                 clipped_ratio = torch.clamp(ratio, min = 1 - self.clipping, max = 1 + self.clipping) # OK
-                policy_loss = torch.min(advantage.detach() * ratio, advantage.detach() * clipped_ratio) # OK
+                policy_loss = torch.min(batch.advantages.detach() * ratio, batch.advantages.detach() * clipped_ratio) # OK
                 policy_loss = - policy_loss.mean() # OK
                 policy_losses.append(policy_loss.item())
                 
@@ -129,10 +129,10 @@ class PPOAgent:
                 entropy_losses.append(entropy_loss.item())
 
                 # computing ICM loss
-                intrinsic_reward = self.compute_icm_loss(batch, self.actor)
-                intrinsic_rewards.append(intrinsic_reward.item())
+                #intrinsic_reward = self.compute_icm_loss(batch, self.actor)
+                #intrinsic_rewards.append(intrinsic_reward.item())
                 
-                self.actor.backpropagate(policy_loss + entropy_loss + intrinsic_reward)
+                self.actor.backpropagate(policy_loss + entropy_loss) #+ intrinsic_reward)
 
                 # TODO: clip the state value variation. nb: only openai does that. nb2: It is not recommended anyway.
                 # delta_state_value = self.function_approximator_eval(batch_state) - prev_state_value
@@ -201,8 +201,8 @@ class PPOAgent:
         #intrinsic_reward = self.curiosity.get_intrinsic_reward(self.actor, self.previous_state, state, self.previous_action)
         #reward += intrinsic_reward
         # storing the transition in the function approximator memory for further use
-        self.replay_buffer.store_transition(self.previous_state, self.previous_action, reward + intrinsic_reward, state, True)
-        self.compute_ep_advantages()
+        self.replay_buffer.store_transition(self.previous_state, self.previous_action, reward, state, True) #+ intrinsic_reward, state, True)
+        #self.compute_ep_advantages()
         self.control()
 
     def get_state_value_eval(self, state:np.ndarray):
@@ -225,6 +225,6 @@ class PPOAgent:
         self.replay_buffer.correct(state_dim, action_dim)
         self.logger.wandb_watch([self.actor, self.critic])
 
-    def compute_ep_advantage(self):
+    def compute_ep_advantages(self):
         """compute the GAE advantages for the episode buffer"""
-        self.replay_buffer.compute_ep_advantages(self.critic)
+        self.replay_buffer._compute_advantages_gae()

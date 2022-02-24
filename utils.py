@@ -13,8 +13,12 @@ from typing import Dict, Any, Optional, List
 def get_params(file_name):
     complete_path = make_full_params_path(file_name)
     # load params
-    with open(complete_path) as json_file:
-        params = json.load(json_file)
+    try:
+        with open(complete_path) as json_file:
+            params = json.load(json_file)
+    except FileNotFoundError:
+        print(f"the file {complete_path} does not exist")
+
     return params
 
 def set_params(file_name, params):

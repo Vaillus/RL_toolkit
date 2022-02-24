@@ -104,7 +104,6 @@ class Session:
         
         # run the episodes and store the rewards
         while self.tot_timestep < self.max_timestep:
-            
             episode_reward, success, ep_len = self.episode(id_episode)
             self.environment.close()
             if self.show:
@@ -217,8 +216,7 @@ class Session:
 
     def print_episode_count(self, episode_id):
         if ((self.show is True) and (episode_id % self.show_every == 0)):
-            pass
-            #print(f'EPISODE: {episode_id}')
+            print(f'EPISODE: {episode_id}')
     
     def _save_reward(self, episode_reward, reward_data):
         """add the reward earned at the last step to the reward 
@@ -270,7 +268,7 @@ if __name__ == "__main__":
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
-    data = get_params("other/ppo_params")
+    data = get_params("functional_examples/ppo_cartpole")
     session_parameters = data["session_info"]
     session_parameters["agent_kwargs"] = data["agent_info"]
     session_parameters["env_kwargs"] = data["env_info"]

@@ -2,8 +2,8 @@
     "session_info":{
       "num_timestep": 2000000,
       "plot": false,
-      "show": false,
-      "show_every": 1000,
+      "show": true,
+      "show_every": 10,
       "return_results": true
     },
     "env_info": {
@@ -50,7 +50,7 @@
       }
     },
     "logger_kwargs": {
-      "is_wandb": true,
+      "is_wandb": false,
       "wandb_kwargs": {
         "job_type": "test2"
       },
