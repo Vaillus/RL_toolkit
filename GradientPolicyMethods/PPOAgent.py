@@ -144,7 +144,7 @@ class PPOAgent:
                 value_loss *= self.value_coeff
                 self.critic.backpropagate(value_loss)
                 
-            self.logger.wandb_log({
+            self.logger.log({
                 'Agent info/critic loss': np.mean(value_losses),
                 'Agent info/actor loss': np.mean(policy_losses),
                 'Agent info/entropy': np.mean(entropies),

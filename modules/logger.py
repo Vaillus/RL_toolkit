@@ -16,13 +16,15 @@ class Logger:
         record_every: Optional[int] = 100,
         ep_freq: Optional[int] = 300,
         agent_freq: Optional[int] = 300,
-        grad_freq: Optional[int] = 300
+        grad_freq: Optional[int] = 300,
+        is_print: Optional[bool] = False
     ):
         self.log_counts = {}
         self.log_every = log_every
         self.wandb = is_wandb
         if self.wandb:
             wandb.init(**wandb_kwargs, monitor_gym=True)
+        self.is_print = is_print
         self.video_record = video_record
         self.record_every = record_every
         self.rec = None
@@ -67,28 +69,39 @@ class Logger:
             print("ye")
             self.rec.capture_frame()"""
 
-    def wandb_log(self, log_dict: Dict[str, Any], log_freq = None, type = None):
-        
+    def log(self, log_dict: Dict[str, Any], log_freq = None, type = None):
         actual_log_dict = {}
         assert (log_freq is None) != (type is None)
+        # increment the values associated with the keys that we want 
+        # to log
+        if type is not None:
+            attr_str = type + "_freq"
+            log_freq = getattr(self, attr_str)
+        for key, value in log_dict.items():
+            can_log = self.incr_cnt(key, value, log_freq)
+            # if enough data has been accumulated for a key, log it
+            # and reset it.
+            if can_log:
+                actual_log_dict[key] = self.log_counts[key]["value"]
+                self.log_counts[key]["n_logs"] += 1
+                self.empty_log_count(key)
+        if self.wandb:
+            self.wandb_log(actual_log_dict)
+        if type == "ep":
+            self.regular_print(actual_log_dict)
+
+    def regular_print(self, log_dict: Dict[str, Any]):
+        # if the log dict is not empty
+        if bool(log_dict):
+            print("EPISODE: ", self.n_ep)
+            for key, value in log_dict.items():
+                key = key.split("/")[-1]
+                print(f"{key}: {value}")
+
+    def wandb_log(self, log_dict: Dict[str, Any]):
         # log only when a wandb session is launched.
         if bool(wandb.run):
-            # increment the values associated with the keys that we want 
-            # to log
-            if type is not None:
-                attr_str = type + "_freq"
-                log_freq = getattr(self, attr_str)
-        
-            for key, value in log_dict.items():
-                can_log = self.incr_cnt(key, value, log_freq)
-                # if enough data has been accumulated for a key, log it
-                # and reset it.
-                if can_log:
-                    actual_log_dict[key] = self.log_counts[key]["value"]
-                    self.log_counts[key]["n_logs"] += 1
-                    self.empty_log_count(key)
-
-            wandb.log(actual_log_dict)
+            wandb.log(log_dict)
 
     def wandb_plot(self, plot_dict):
         if bool(wandb.run):

@@ -112,7 +112,8 @@ class Session:
                 #print(f'reward: {episode_reward}')
                 #print(f'success: {success}')
             rewards = np.append(rewards, episode_reward)
-            self.logger.wandb_log({
+            self.logger.n_ep = id_episode
+            self.logger.log({
                 "rewards": episode_reward,
                 "General/episode length": ep_len
             }, type="ep")
@@ -152,7 +153,7 @@ class Session:
                         episode was a success.
         """
         # get the first env state and the action that takes the agent
-        self.print_episode_count(episode_id=episode_id)
+        #self.print_episode_count(episode_id=episode_id)
         state_data = self.environment.reset(episode_id=episode_id)
         action_data = self.get_agent_action(state_data, start=True)
         # declaration of variables useful in the loop

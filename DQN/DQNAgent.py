@@ -121,7 +121,7 @@ class DQNAgent:
             epsilon_diff = self.epsilon_max - self.epsilon_min
             sched_ratio = tot_timestep / self.sched_timestep
             self.epsilon =  min(self.epsilon_min + epsilon_diff * sched_ratio, 1)
-        self.logger.wandb_log({
+        self.logger.log({
                     'Agent info/epsilon': self.epsilon},
                     type= "agent")
 
@@ -195,7 +195,7 @@ class DQNAgent:
             # Compute and backpropagate loss
             loss = self.compute_loss(batch)
             self.eval_net.backpropagate(loss)
-            self.logger.wandb_log({
+            self.logger.log({
                 "Agent info/loss": loss
             },
             type="agent")

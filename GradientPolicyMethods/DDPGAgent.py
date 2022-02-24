@@ -177,7 +177,7 @@ class DDPGAgent:
             test_oa = self._concat_obs_action(batch.observations, actor_eval)
             actor_loss = self.critic(test_oa)
             actor_loss = - actor_loss.mean()
-            self.logger.wandb_log({
+            self.logger.log({
                 "critic loss": critic_loss,
                 "actor loss": actor_loss
             }, type= "agent")
