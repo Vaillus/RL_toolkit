@@ -9,6 +9,9 @@ from utils import set_random_seed
 from modules.curiosity import Curiosity
 import numpy as np
 
+import cProfile
+import pstats
+
 
 MSELoss = torch.nn.MSELoss()
 
@@ -201,7 +204,11 @@ class PPOAgent:
         #intrinsic_reward = self.curiosity.get_intrinsic_reward(self.actor, self.previous_state, state, self.previous_action)
         #reward += intrinsic_reward
         # storing the transition in the function approximator memory for further use
-        self.replay_buffer.store_transition(self.previous_state, self.previous_action, reward, state, True) #+ intrinsic_reward, state, True)
+        
+        # measure time spent executing the next line with cstats and print it
+        with cProfile.Profile() as pr:
+            self.replay_buffer.store_transition(self.previous_state, self.previous_action, reward, state, True) #+ intrinsic_reward, state, True)
+        stats = pstats.Stats(pr)
         #self.compute_ep_advantages()
         self.control()
 

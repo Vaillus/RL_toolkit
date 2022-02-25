@@ -7,7 +7,7 @@
   },
   "env_info":{
     "type": "probe",
-    "name": "five",
+    "name": "three",
     "action_type": "discrete"
   },
   "agent_info":{
@@ -35,7 +35,8 @@
         },
         "optimizer_info": {
           "type": "adam",
-          "learning_rate": 0.1  
+          "learning_rate": 0.1,
+          "eps": 1e-5 
         }
       },
       "function_approximator_info": {
@@ -54,7 +55,8 @@
     }
   },
   "logger_kwargs": {
-    "is_wandb": true,
+    "is_print": true,
+    "is_wandb": false,
       "wandb_kwargs": {
         "job_type": "test2"
       },

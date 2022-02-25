@@ -130,7 +130,11 @@ class CustomNeuralNetwork(nn.Module):
 
     def _init_optimizer(self, optimizer_info):
         if optimizer_info["type"] == "adam":
-            self.optimizer = optim.Adam(self.parameters(), lr=optimizer_info["learning_rate"])
+            self.optimizer = optim.Adam(
+                self.parameters(), 
+                lr=optimizer_info["learning_rate"],
+                eps=optimizer_info.get("eps", 1e-8)
+            )
 
 
 

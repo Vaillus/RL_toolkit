@@ -231,6 +231,7 @@ class PPOReplayBuffer(BaseReplayBuffer):
         if done == True:
             # compute advantages for each transition
             self._compute_advantages_gae()
+            #self._compute_advantages()
             # send the episode to the main buffer
             self._copy_ep_to_buffer()
             # update the buffer position
@@ -242,8 +243,21 @@ class PPOReplayBuffer(BaseReplayBuffer):
             self.ep_pos += 1
     
     def _compute_advantages_gae(self):
-        # TODO: test the time of execution
-        prev_state_value = self.critic(
+        # TODO: The execution is 50 times slower. Fix that.
+        prev_state_values = self.critic(
+            self.ep_buffer.observations[:self.ep_pos+1]).detach()
+        state_values = self.critic(
+            self.ep_buffer.next_observations[:self.ep_pos+1]).detach()
+        last_gae_lam = 0
+        for step in reversed(range(self.ep_pos+1)): # +1 or not?
+            delta = self.ep_buffer.rewards[step] + self.discount_factor\
+                 * state_values[step] * (1.0 - float(self.ep_buffer.dones[step])) - prev_state_values[step]
+            last_gae_lam = delta + self.discount_factor * self.gae_lambda * last_gae_lam * (1.0 - float(self.ep_buffer.dones[step]))
+            self.ep_buffer.advantages[step] = last_gae_lam
+        self.ep_buffer.returns[:self.ep_pos+1] = self.ep_buffer.advantages[
+            :self.ep_pos+1] + state_values # last value as well
+
+        """ prev_state_value = self.critic(
             self.ep_buffer.observations[:self.ep_pos+1])
         # sample the value of the action chosen in the previous state
 
@@ -265,7 +279,7 @@ class PPOReplayBuffer(BaseReplayBuffer):
             # get the advantages vector for the currrent t
             adv_vec = k_step_adv[t, t:] 
             for i in range(adv_vec.shape[0]):
-                self.ep_buffer.advantages[t] += adv_vec[i] * self.gae_lambda ** i
+                self.ep_buffer.advantages[t] += adv_vec[i] * self.gae_lambda ** i"""
     
     def _compute_k_step_adv(
         self, 
@@ -293,7 +307,7 @@ class PPOReplayBuffer(BaseReplayBuffer):
     def _compute_advantages(self):
         self._compute_ep_returns()
         prev_state_value = self.critic(self.ep_buffer.observations[:self.ep_pos+1])
-        self.ep_buffer.advantages = self.ep_buffer.returns - prev_state_value.detach()
+        self.ep_buffer.advantages = self.ep_buffer.returns[:self.ep_pos+1] - prev_state_value.detach()
         #self.normalize(advantage) # is it really a good idea?
 
     def _compute_ep_returns(self):
@@ -301,6 +315,7 @@ class PPOReplayBuffer(BaseReplayBuffer):
         them in the episode buffer
         """
         reverse_rewards = torch.flip(self.ep_buffer.rewards[:self.ep_pos+1], (0,1))
+        disc_reward:float = 0.0
         for i, reward in enumerate(reverse_rewards):
             disc_reward = reward + self.discount_factor * disc_reward
             self.ep_buffer.returns[self.ep_pos - i] = disc_reward

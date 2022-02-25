@@ -1,63 +1,64 @@
 {
-    "session_info":{
-      "num_timestep": 2000000,
-      "plot": false,
-      "show": true,
-      "show_every": 10,
-      "return_results": true
-    },
-    "env_info": {
-      "type": "gym",
-      "name": "CartPole-v1"
-    },
-    "agent_info":{
-      "type": "PPO",
-      "agent_kwargs": {
-        "discount_factor": 0.99,
-        "num_actions": 2,
-        "state_dim": 4,
-        "clipping": 0.12,
-        "n_epochs": 7,
-        "memory_info":{
-          "size": 1000
+  "session_info":{
+    "num_timestep": 2000000,
+    "plot": false,
+    "show": true,
+    "show_every": 10,
+    "return_results": true
+  },
+  "env_info": {
+    "type": "gym",
+    "name": "CartPole-v1"
+  },
+  "agent_info":{
+    "type": "PPO",
+    "agent_kwargs": {
+      "discount_factor": 0.99,
+      "num_actions": 2,
+      "state_dim": 4,
+      "clipping": 0.12,
+      "n_epochs": 7,
+      "memory_info":{
+        "size": 1000
+      },
+      "policy_estimator_info": {
+        "layers_info": {
+          "n_hidden_layers": 1,
+          "types": "linear",
+          "sizes": 64,
+          "hidden_activations": "relu",
+          "output_activation": "softmax"
         },
-        "policy_estimator_info": {
-          "layers_info": {
-            "n_hidden_layers": 1,
-            "types": "linear",
-            "sizes": 64,
-            "hidden_activations": "relu",
-            "output_activation": "softmax"
-          },
-          "optimizer_info": {
-            "type": "adam",
-            "learning_rate": 0.005
-          }
+        "optimizer_info": {
+          "type": "adam",
+          "learning_rate": 0.005
+        }
+      },
+      "function_approximator_info": {
+        "layers_info": {
+          "n_hidden_layers": 1,
+          "types": "linear",
+          "sizes": 64,
+          "hidden_activations": "relu",
+          "output_activation": "none"
         },
-        "function_approximator_info": {
-          "layers_info": {
-            "n_hidden_layers": 1,
-            "types": "linear",
-            "sizes": 64,
-            "hidden_activations": "relu",
-            "output_activation": "none"
-          },
-          "optimizer_info": {
-            "type": "adam",
-            "learning_rate": 0.0005
-          }
+        "optimizer_info": {
+          "type": "adam",
+          "learning_rate": 0.0005,
+          "eps": 1e-5
         }
       }
-    },
-    "logger_kwargs": {
-      "is_wandb": false,
-      "wandb_kwargs": {
-        "job_type": "test2"
-      },
-      "is_print": true,
-      "ep_freq": 10,
-      "agent_freq": 50,
-      "grad_freq": 1000,
-      "log_every": 300
     }
-  } 
+  },
+  "logger_kwargs": {
+    "is_wandb": false,
+    "wandb_kwargs": {
+      "job_type": "test2"
+    },
+    "is_print": true,
+    "ep_freq": 10,
+    "agent_freq": 50,
+    "grad_freq": 1000,
+    "log_every": 300
+  }
+} 
