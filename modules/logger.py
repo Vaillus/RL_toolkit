@@ -2,7 +2,7 @@ import wandb
 from typing import Dict, Any, Optional, List
 from functools import reduce  # forward compatibility for Python 3
 import operator
-import re
+import numpy as np
 from gym.wrappers.monitoring.video_recorder import VideoRecorder
 
 
@@ -17,7 +17,8 @@ class Logger:
         ep_freq: Optional[int] = 300,
         agent_freq: Optional[int] = 300,
         grad_freq: Optional[int] = 300,
-        is_print: Optional[bool] = False
+        is_print: Optional[bool] = False,
+        use_auc: Optional[bool] = False
     ):
         self.log_counts = {}
         self.log_every = log_every
@@ -32,6 +33,8 @@ class Logger:
         self.ep_freq = ep_freq
         self.agent_freq = agent_freq
         self.grad_freq = grad_freq
+        self.use_auc = use_auc
+        self.reward_auc = []
     
     def init_wandb_project(
         self,
@@ -69,22 +72,46 @@ class Logger:
             print("ye")
             self.rec.capture_frame()"""
 
-    def log(self, log_dict: Dict[str, Any], log_freq = None, type = None):
-        actual_log_dict = {}
+    def log(
+        self, 
+        log_dict: Dict[str, Any], 
+        log_freq:int = None, 
+        type:str = None
+    ) -> None : 
+        """_summary_
+
+        Args:
+            log_dict (Dict[str, Any]): contains the values to logs
+            log_freq (int, optional): Specify at which frequency (of 
+            number of log attempts) The value must be actually logged. 
+            Defaults to None.
+            type (str, optional): Sepcifies what type of log it is. It 
+            is used in case the log goes into a main category (e.g. "agent")
+            for which there is already a log frequency specified in the 
+            logger parameters. Defaults to None.
+        """
+        # there must be at least one type of logging frequency specified.
         assert (log_freq is None) != (type is None)
-        # increment the values associated with the keys that we want 
-        # to log
+        actual_log_dict = {} # contain the values that will be actually 
+        # logged.
+        # if the type is pecified, get the log freq in the logger parameters.
         if type is not None:
             attr_str = type + "_freq"
             log_freq = getattr(self, attr_str)
+        # increment the counters associated with the keys that we want 
+        # to log
         for key, value in log_dict.items():
-            can_log = self.incr_cnt(key, value, log_freq)
+            # increment the counter associated with the key, and compute 
+            # the mean since last time it was logged.
+            can_log = self._incr_cnt_compute_mean(key, value, log_freq)
             # if enough data has been accumulated for a key, log it
             # and reset it.
             if can_log:
                 actual_log_dict[key] = self.log_counts[key]["value"]
                 self.log_counts[key]["n_logs"] += 1
-                self.empty_log_count(key)
+                self._reset_counter(key)
+        if self.use_auc:
+            actual_log_dict = self._reward_to_auc(actual_log_dict)
         if self.wandb:
             self.wandb_log(actual_log_dict)
         if type == "ep":
@@ -92,11 +119,12 @@ class Logger:
 
     def regular_print(self, log_dict: Dict[str, Any]):
         # if the log dict is not empty
-        if bool(log_dict):
-            print("EPISODE: ", self.n_ep)
-            for key, value in log_dict.items():
-                key = key.split("/")[-1]
-                print(f"{key}: {value}")
+        if self.is_print:
+            if bool(log_dict):
+                print("EPISODE: ", self.n_ep)
+                for key, value in log_dict.items():
+                    key = key.split("/")[-1]
+                    print(f"{key}: {value}")
 
     def wandb_log(self, log_dict: Dict[str, Any]):
         # log only when a wandb session is launched.
@@ -107,7 +135,11 @@ class Logger:
         if bool(wandb.run):
             wandb.log(plot_dict)
     
-    def incr_cnt(self, key: str, value: float, log_freq=None):
+    def _incr_cnt_compute_mean(self, key:str, value:float, log_freq:int=None) -> bool:
+        """ Increments the count associated with the key. If the counter
+        has reached the log_freq, return true. The value can be logged.
+        Also keep compute the mean of the value since the last time it 
+        was logged."""
         if not key in self.log_counts:
             self.log_counts[key] = self.create_log_cnt(log_freq)
         self.log_counts[key]["count"] += 1
@@ -130,7 +162,7 @@ class Logger:
         
         return log_cnt
     
-    def empty_log_count(self, key):
+    def _reset_counter(self, key):
         self.log_counts[key]["count"] = 0
         self.log_counts[key]["value"] = 0
 
@@ -166,6 +198,13 @@ class Logger:
                 del final_kwargs[key]
             
         return final_kwargs
+    
+    def _reward_to_auc(self, actual_log_dict:dict) -> dict:
+        if "rewards" in actual_log_dict.keys():
+            self.reward_auc += [actual_log_dict["rewards"]]
+            actual_log_dict["rewards_auc"] = np.sum(self.reward_auc)
+        return actual_log_dict
+
     
 
 def getFromDict(dataDict, mapList):

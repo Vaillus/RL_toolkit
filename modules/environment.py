@@ -1,6 +1,5 @@
 import gym
 import minatar
-#from gym.wrappers import Monitor
 from GodotEnvironment import GodotEnvironment
 from modules.probe_env import DiscreteProbeEnv, ContinuousProbeEnv
 from typing import Dict, Optional, Any

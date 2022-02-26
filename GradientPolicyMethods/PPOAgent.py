@@ -26,14 +26,22 @@ class PPOAgent:
         discount_factor: Optional[float] = 0.9,
         num_actions: Optional[int] = 1,
         state_dim: Optional[int] = 1, 
-        clipping: Optional[float] = 0.2,
+        clip_range: Optional[float] = 0.2,
         value_coeff: Optional[float] = 1.0,
         entropy_coeff: Optional[float] = 0.01,
-        n_epochs: Optional[int] = 8
+        n_epochs: Optional[int] = 8,
+        use_gae: Optional[bool] = True,
+        gae_lambda: Optional[float] = 0.95,
+        normalize_advantages: Optional[bool] = True
     ):
         self.γ = discount_factor
         self.state_dim = state_dim
         self.num_actions = num_actions
+
+        self.use_gae = use_gae
+        self.gae_lambda = gae_lambda
+        self.normalize_advantages = normalize_advantages
+
 
         self.actor: CustomNeuralNetwork =\
             self.initialize_policy_estimator(policy_estimator_info)
@@ -44,7 +52,7 @@ class PPOAgent:
         self.curiosity = self.init_curiosity(curiosity_info)
 
         self.seed = seed
-        self.clipping = clipping
+        self.clip_range = clip_range
         self.value_coeff = value_coeff
         self.entropy_coeff = entropy_coeff
         self.n_epochs = n_epochs
@@ -52,7 +60,7 @@ class PPOAgent:
         self.previous_state = None
         self.previous_action = None
 
-        self.memory_size = memory_info.get("size", 200) #why?
+        # self.memory_size = memory_info.get("size", 200) #why?
 
     # ====== Initialization functions ==================================
      
@@ -67,6 +75,9 @@ class PPOAgent:
         params["action_dim"] = self.num_actions
         params["discount_factor"] = self.γ
         params["critic"] = self.critic
+        params["use_gae"] = self.use_gae
+        params["gae_lambda"] = self.gae_lambda
+        params["normalize_advantages"] = self.normalize_advantages
         return PPOReplayBuffer(**params)
 
     def init_curiosity(self, params: Dict) -> Curiosity:
@@ -95,17 +106,7 @@ class PPOAgent:
     def control(self):
         if self.replay_buffer.full:
             batch = self.replay_buffer.sample() # TODO :change sampling method here
-            #batch = self.replay_buffer.sample(self.critic) # GAE way
-            # TODO: move the advantage computation in the memory buffer.
-            #self.replay_buffer.compute_advantages(batch)
-            # computing state values, advantage
-            #prev_state_value = self.critic(batch.observations)
-            # TODO: do the GAE stuff here
-            #advantage = batch.returns - prev_state_value.detach()
-            #batch.advantages = self.normalize(batch.advantages) # is it really a good idea?
-            # get probabilities of actions from policy estimator
             probs_old = self.actor(batch.observations).detach()
-
             # initializing the lists containing the metrics to be logged
             value_losses = []
             policy_losses = []
@@ -121,7 +122,7 @@ class PPOAgent:
                 # don't know why.
                 ratio = torch.exp(torch.log(probs_new) - torch.log(probs_old)) # ok
                 ratio = torch.gather(ratio, 1, batch.actions.long()) #ok 
-                clipped_ratio = torch.clamp(ratio, min = 1 - self.clipping, max = 1 + self.clipping) # OK
+                clipped_ratio = torch.clamp(ratio, min = 1 - self.clip_range, max = 1 + self.clip_range) # OK
                 policy_loss = torch.min(batch.advantages.detach() * ratio, batch.advantages.detach() * clipped_ratio) # OK
                 policy_loss = - policy_loss.mean() # OK
                 policy_losses.append(policy_loss.item())
@@ -160,11 +161,7 @@ class PPOAgent:
 
     def compute_icm_loss(self, batch, actor):
         return self.curiosity.compute_icm_loss(batch=batch, nn=actor)
-                
-    def normalize(self, tensor):
-        tensor = (tensor - tensor.mean()) / (tensor.std() + 1e-8)
-        return tensor
-
+    
     # ====== Action choice related functions ===========================
 
     def choose_action(self, state) -> int:

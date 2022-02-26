@@ -1,11 +1,29 @@
 program: Session.py
 method: bayes
 parameters:
-  use_schedule:
-    values: [true, false]
+  gae_lambda:
+    distribution: categorical
+    values: 
+    - 0.8
+    - 0.9
+    - 0.95
+    - 0.99
+  clip_range:
+    distribution: uniform
+    min: 0.1
+    max: 0.2
+  normalize_advantages:
+    values:
+    - true
+    - false
+  use_gae:
+    values:
+    - true
+    - false
+    
 
 metric:
-  name: rewards
+  name: rewards_auc
   goal: maximize
 command: 
   - ${env}

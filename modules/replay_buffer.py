@@ -5,7 +5,9 @@ from collections import namedtuple
 
 from CustomNeuralNetwork import CustomNeuralNetwork
 
-#from torch._C import float32
+import cProfile
+import pstats
+
 
 class BaseReplayBuffer:
     """ This class is used as the base for the other classes. It has all
@@ -149,7 +151,9 @@ class PPOReplayBuffer(BaseReplayBuffer):
         size:Optional[int] = 200,
         batch_size:Optional[int] = 64,
         critic:Optional[CustomNeuralNetwork] = None,
-        gae_lambda:Optional[float] = 0.95
+        use_gae:Optional[bool] = True,
+        gae_lambda:Optional[float] = 0.95,
+        normalize_advantages:Optional[bool] = True
     ):
         super(PPOReplayBuffer, self).__init__(obs_dim, action_dim, size)
         self.ep_pos = 0
@@ -159,7 +163,9 @@ class PPOReplayBuffer(BaseReplayBuffer):
         self.discount_factor = discount_factor
         self.batch_size = batch_size
         self.critic = critic # addition to compute the GAE stuff
+        self.use_gae = use_gae
         self.gae_lambda = gae_lambda
+        self.normalize_advantages = normalize_advantages
 
     def store_transition(self, obs, action, reward, next_obs, done):
         self._store_in_episode_buffer(obs, action, reward, next_obs, done)
@@ -172,7 +178,6 @@ class PPOReplayBuffer(BaseReplayBuffer):
             next_observations, dones
         """
 
-        # TODO: compute advantage and returns
         # TODO: make mini batches
         # TODO: return an iterator
 
@@ -184,6 +189,10 @@ class PPOReplayBuffer(BaseReplayBuffer):
         sample.dones = self.dones.detach()
         sample.returns = self.returns.detach()
         sample.advantages = self.advantages
+        # normalize advantages
+        if self.normalize_advantages:
+            sample.advantages = self._normalize(sample.advantages)
+
         #self.episode_buffer = self._init_episode_buffer() 
         # # this deletes what is inside the sample, and nothing is learned.
 
@@ -230,8 +239,10 @@ class PPOReplayBuffer(BaseReplayBuffer):
         
         if done == True:
             # compute advantages for each transition
-            self._compute_advantages_gae()
-            #self._compute_advantages()
+            if self.use_gae:
+                self._compute_advantages_gae()
+            else:
+                self._compute_advantages()
             # send the episode to the main buffer
             self._copy_ep_to_buffer()
             # update the buffer position
@@ -243,72 +254,35 @@ class PPOReplayBuffer(BaseReplayBuffer):
             self.ep_pos += 1
     
     def _compute_advantages_gae(self):
-        # TODO: The execution is 50 times slower. Fix that.
-        prev_state_values = self.critic(
+        """Compute the advantages for each state in the episode with the 
+        GAE method.
+        """
+        obs_values = self.critic(
             self.ep_buffer.observations[:self.ep_pos+1]).detach()
-        state_values = self.critic(
+        next_obs_values = self.critic(
             self.ep_buffer.next_observations[:self.ep_pos+1]).detach()
         last_gae_lam = 0
         for step in reversed(range(self.ep_pos+1)): # +1 or not?
             delta = self.ep_buffer.rewards[step] + self.discount_factor\
-                 * state_values[step] * (1.0 - float(self.ep_buffer.dones[step])) - prev_state_values[step]
+                * next_obs_values[step] * (1.0 - float(self.ep_buffer.dones[step])) - obs_values[step]
             last_gae_lam = delta + self.discount_factor * self.gae_lambda * last_gae_lam * (1.0 - float(self.ep_buffer.dones[step]))
             self.ep_buffer.advantages[step] = last_gae_lam
+        # compute the returns and store them in the eisode buffer.
         self.ep_buffer.returns[:self.ep_pos+1] = self.ep_buffer.advantages[
-            :self.ep_pos+1] + state_values # last value as well
-
-        """ prev_state_value = self.critic(
-            self.ep_buffer.observations[:self.ep_pos+1])
-        # sample the value of the action chosen in the previous state
-
-        disc_vec = torch.Tensor([
-            self.discount_factor ** i for i in range(self.ep_pos+1)])
-        k_step_adv = torch.zeros(
-            (self.ep_pos+1, self.ep_pos+1), dtype=torch.float32)
-        # first step of GAE computation: compute the k-step estimates of 
-        # the advantage for each possible k, for each state
-        # t is the intex for the state we compute the advantage for,
-        # and n is the index for the horizon of the advantage estimate 
-        for t in range(self.ep_pos+1):
-            for k in range(t, self.ep_pos+1):
-                k_step_adv[t, k] = self._compute_k_step_adv(
-                    t, k, disc_vec, prev_state_value)
-        # for each state, combine the k-step estimates of the advantage 
-        # into one single advantage estimate.
-        for t in range(self.ep_pos+1):
-            # get the advantages vector for the currrent t
-            adv_vec = k_step_adv[t, t:] 
-            for i in range(adv_vec.shape[0]):
-                self.ep_buffer.advantages[t] += adv_vec[i] * self.gae_lambda ** i"""
-    
-    def _compute_k_step_adv(
-        self, 
-        t:int, 
-        k:int, 
-        disc_vec:torch.Tensor, 
-        prev_state_value:torch.Tensor
-    ) -> torch.Tensor:
-        # compute the k-step estimate of the advantage at state t
-        # compute the discounted reward from t to t+k.
-        disc_rew = self.ep_buffer.rewards[t:k+1].detach().clone()
-        disc_rew *= disc_vec[:disc_rew.shape[0]].unsqueeze(-1)
-        disc_rew = sum(disc_rew)
-
-        #if k goes until the end, add the value to the vector of episode returns.
-        if k == self.ep_pos:
-            self.ep_buffer.returns[t] = disc_rew
-
-        # compute the state value at t+k
-        last_state_value = self.critic(self.ep_buffer.next_observations[k]).detach() # detach? not sure
-        # combine them in the k-step estimate of the advantage at time t
-        adv = - prev_state_value[t] + disc_rew + last_state_value
-        return adv
-    
+            :self.ep_pos+1] + obs_values
+        
     def _compute_advantages(self):
         self._compute_ep_returns()
         prev_state_value = self.critic(self.ep_buffer.observations[:self.ep_pos+1])
-        self.ep_buffer.advantages = self.ep_buffer.returns[:self.ep_pos+1] - prev_state_value.detach()
+        self.ep_buffer.advantages[:self.ep_pos+1] = self.ep_buffer.returns[:self.ep_pos+1] - prev_state_value.detach()
         #self.normalize(advantage) # is it really a good idea?
+    
+    def _normalize(self, input: torch.Tensor):
+        """Normalize the input with the mean and std of the buffer
+        """
+        mean = input.mean().detach()
+        std = input.std().detach()
+        return (input - mean) / std
 
     def _compute_ep_returns(self):
         """ Compute the returns at each step of the episode and store 
@@ -320,7 +294,6 @@ class PPOReplayBuffer(BaseReplayBuffer):
             disc_reward = reward + self.discount_factor * disc_reward
             self.ep_buffer.returns[self.ep_pos - i] = disc_reward
         
-
     def _copy_ep_to_buffer(self):
         # Might be diff+1 instead of diff? diff+1 did'nt work before.
         # when there is more experience than needed, just cut the 
