@@ -16,10 +16,6 @@ parameters:
     values:
     - true
     - false
-  use_gae:
-    values:
-    - true
-    - false
     
 
 metric:

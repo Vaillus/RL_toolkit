@@ -17,10 +17,9 @@
       "discount_factor": 0.99,
       "num_actions": 2,
       "state_dim": 4,
-      "clip_range": 0.12,
+      "clip_range": 0.19,
       "n_epochs": 7,
-      "use_gae": true,
-      "gae_lambda": 0.95,
+      "gae_lambda": 0.99,
       "memory_info":{
         "size": 1000
       },

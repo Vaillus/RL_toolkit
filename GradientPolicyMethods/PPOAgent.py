@@ -30,7 +30,6 @@ class PPOAgent:
         value_coeff: Optional[float] = 1.0,
         entropy_coeff: Optional[float] = 0.01,
         n_epochs: Optional[int] = 8,
-        use_gae: Optional[bool] = True,
         gae_lambda: Optional[float] = 0.95,
         normalize_advantages: Optional[bool] = True
     ):
@@ -38,7 +37,6 @@ class PPOAgent:
         self.state_dim = state_dim
         self.num_actions = num_actions
 
-        self.use_gae = use_gae
         self.gae_lambda = gae_lambda
         self.normalize_advantages = normalize_advantages
 
@@ -75,7 +73,6 @@ class PPOAgent:
         params["action_dim"] = self.num_actions
         params["discount_factor"] = self.γ
         params["critic"] = self.critic
-        params["use_gae"] = self.use_gae
         params["gae_lambda"] = self.gae_lambda
         params["normalize_advantages"] = self.normalize_advantages
         return PPOReplayBuffer(**params)

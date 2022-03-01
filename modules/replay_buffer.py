@@ -151,7 +151,6 @@ class PPOReplayBuffer(BaseReplayBuffer):
         size:Optional[int] = 200,
         batch_size:Optional[int] = 64,
         critic:Optional[CustomNeuralNetwork] = None,
-        use_gae:Optional[bool] = True,
         gae_lambda:Optional[float] = 0.95,
         normalize_advantages:Optional[bool] = True
     ):
@@ -163,7 +162,6 @@ class PPOReplayBuffer(BaseReplayBuffer):
         self.discount_factor = discount_factor
         self.batch_size = batch_size
         self.critic = critic # addition to compute the GAE stuff
-        self.use_gae = use_gae
         self.gae_lambda = gae_lambda
         self.normalize_advantages = normalize_advantages
 
@@ -239,10 +237,7 @@ class PPOReplayBuffer(BaseReplayBuffer):
         
         if done == True:
             # compute advantages for each transition
-            if self.use_gae:
-                self._compute_advantages_gae()
-            else:
-                self._compute_advantages()
+            self._compute_advantages_gae()
             # send the episode to the main buffer
             self._copy_ep_to_buffer()
             # update the buffer position
@@ -271,11 +266,11 @@ class PPOReplayBuffer(BaseReplayBuffer):
         self.ep_buffer.returns[:self.ep_pos+1] = self.ep_buffer.advantages[
             :self.ep_pos+1] + obs_values
         
-    def _compute_advantages(self):
+    """def _compute_advantages(self):
         self._compute_ep_returns()
         prev_state_value = self.critic(self.ep_buffer.observations[:self.ep_pos+1])
         self.ep_buffer.advantages[:self.ep_pos+1] = self.ep_buffer.returns[:self.ep_pos+1] - prev_state_value.detach()
-        #self.normalize(advantage) # is it really a good idea?
+        #self.normalize(advantage) # is it really a good idea?"""
     
     def _normalize(self, input: torch.Tensor):
         """Normalize the input with the mean and std of the buffer
