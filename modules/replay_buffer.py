@@ -74,7 +74,7 @@ class VanillaReplayBuffer(BaseReplayBuffer):
     def store_transition(self, obs, action, reward, next_obs, done):
         # store a transition (SARS' + is_terminal) in the memory
         self.observations[self.pos] = torch.Tensor(obs)
-        self.actions[self.pos] = action#.detach().cpu().numpy()
+        self.actions[self.pos] = torch.Tensor(action) #.detach().cpu().numpy()
         self.rewards[self.pos] = torch.Tensor([reward])
         self.next_observations[self.pos] = torch.Tensor(next_obs)
         self.dones[self.pos] = done

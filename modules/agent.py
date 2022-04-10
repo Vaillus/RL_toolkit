@@ -177,9 +177,12 @@ class SingleAgentInterface(AgentInterface):
             bool: is the agent compatible with the environment?
         """
         agent_action_type = get_params("misc/agent_action_type")
-        assert action_type == agent_action_type[self.type], "env and agent\
-         action types don't match"
-        is_ok = self.agent.num_actions == action_dim and self.agent.state_dim == state_dim
+        #assert action_type == agent_action_type[self.type], "env and agent\
+        # action types don't match"
+        is_ok = (
+            (self.agent.num_actions == action_dim) and 
+            (self.agent.state_dim == state_dim)
+        )
         return is_ok
     
     def fix(self, action_dim:int, state_dim:int):

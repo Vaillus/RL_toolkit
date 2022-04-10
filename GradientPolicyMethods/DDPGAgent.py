@@ -172,17 +172,21 @@ class DDPGAgent:
             
             self.critic.backpropagate(critic_loss)
 
+            # one action for each state
             actor_eval = self.actor(batch.observations)
             #with torch.no_grad():
+            # evaluate the actions values
             test_oa = self._concat_obs_action(batch.observations, actor_eval)
             actor_loss = self.critic(test_oa)
             actor_loss = - actor_loss.mean()
+            self.actor.backpropagate(actor_loss)
+
             self.logger.log({
                 "critic loss": critic_loss,
                 "actor loss": actor_loss
             }, type= "agent")
             
-            self.actor.backpropagate(actor_loss)
+            
 
 
 
@@ -200,7 +204,7 @@ class DDPGAgent:
         return action_value
     
     def get_action_values_eval(self, state:torch.Tensor, actions:torch.Tensor):
-        """ for plotting purposes only?
+        """ for plotting purposes only in continuous probe environment. 
         """
         #state = torch.cat((state, state)).unsqueeze(1)
         state = (state.unsqueeze(1) * torch.ones(len(actions))).T

@@ -189,7 +189,7 @@ class ContinuousProbeEnv(ProbeEnv):
         return state_data
     
     def step(self, action:float):
-        self.logger.log({"Probe/Action value": action})
+        self.logger.log({"Probe/Action value": action}, 1)
         if self.name == "one":
             new_state_data = [0]
             done = True
@@ -231,7 +231,7 @@ class ContinuousProbeEnv(ProbeEnv):
             state = torch.tensor([0])
             action =torch.tensor([0])
             action_value = agent.get_action_values_eval(state, action).item()
-            self.logger.log({"Probe/Value of action 0 at state 0": action_value})
+            self.logger.log({"Probe/Value of action 0 at state 0": action_value},1)
         elif self.name == "two":
             state_pos = torch.tensor([1])
             state_neg = torch.tensor([-1])
@@ -240,7 +240,7 @@ class ContinuousProbeEnv(ProbeEnv):
             self.logger.log({
                 "Probe/Value of action 0 at  state -1": state_value_neg,
                 "Probe/Value of action 0 at state 1": state_value_pos
-            })
+            },1)
         elif self.name == "three":
             first_state = torch.tensor([0])
             second_state = torch.tensor([1])
@@ -249,12 +249,12 @@ class ContinuousProbeEnv(ProbeEnv):
             self.logger.log({
                 "Probe/Value of action 0 at state 0": state_value_pos,
                 "Probe/Value of action 0 at state 1": state_value_neg
-            })
+            },1)
         elif self.name == "four":
             state = torch.tensor([0])
             action =torch.tensor([0])
             action_value = agent.get_action_values_eval(state, action).item()
-            self.logger.log({"Probe/Value of action 0 at state 0": action_value})
+            self.logger.log({"Probe/Value of action 0 at state 0": action_value}, 1)
             
         elif self.name == "five":
             state_pos = torch.tensor([1])
@@ -264,7 +264,7 @@ class ContinuousProbeEnv(ProbeEnv):
             self.logger.log({
                 "Probe/Value of action -0.5 at  state -1": state_value_neg,
                 "Probe/Value of action 0.5 at state 1": state_value_pos
-            })
+            }, 1)
 
     def show_results(self, agent):
         if self.name == "one":
@@ -330,7 +330,7 @@ class ContinuousProbeEnv(ProbeEnv):
         plt.plot(x, baseline, 'r', label='reward')
         plt.xlabel("Action value")
         plt.legend()
-        self.logger.wandb_plot({f"Probe/actions values at state {state_value}": plt})
+        self.logger.wandb_plot({f"Probe/actions values at state {state_value}": plt},1)
 
 class PerfoProbeEnv(ProbeEnv):
     def __init__(self, name: str):

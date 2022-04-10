@@ -269,7 +269,7 @@ if __name__ == "__main__":
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
-    data = get_params("functional_examples/ppo_cartpole")
+    data = get_params("probe/actor_critic_params")
     session_parameters = data["session_info"]
     session_parameters["agent_kwargs"] = data["agent_info"]
     session_parameters["env_kwargs"] = data["env_info"]

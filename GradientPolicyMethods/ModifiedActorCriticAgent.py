@@ -3,6 +3,8 @@ from DQN.DQN import *
 from #GradientPolicyMethods.BaselineNetwork import *
 from CustomNeuralNetwork import *
 
+
+# TODO : I think this one is to be thrown away
 class ActorCriticAgent:
     def __init__(self, params={}):
         # parameters to be set from params dict

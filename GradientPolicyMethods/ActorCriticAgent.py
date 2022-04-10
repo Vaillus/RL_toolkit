@@ -2,115 +2,103 @@ from CustomNeuralNetwork import CustomNeuralNetwork
 import numpy as np
 import torch
 from torch.distributions import Categorical
-import wandb
+
+from modules.replay_buffer import VanillaReplayBuffer
+from typing import Optional, Type, Dict, Any
+from modules.logger import Logger
+from utils import set_random_seed
 
 class ActorCriticAgent:
-    def __init__(self, params={}):
+    def __init__(
+        self, 
+        discount_factor: float = 0.9,
+        num_actions: int = 1,
+        is_continuous: bool = False,
+        policy_estimator_info: dict = {},
+        function_approximator_info: dict = {},
+        memory_info: dict = {},
+        update_target_rate: int = 50,
+        state_dim: int = 4,
+        seed: int = None,
+        is_vanilla: bool = True,
+    ):
         # parameters to be set from params dict
-        self.γ = None
-        self.num_actions = None
+        self.γ = discount_factor
+        self.num_actions = num_actions
+        self.is_continuous = is_continuous
 
-        self.policy_estimator = None
+        self.actor = self.initialize_policy_estimator(
+            policy_estimator_info)
 
-        self.function_approximator_eval = None
-        self.function_approximator_target = None
+        self.critic_eval = self.initialize_function_approximator(
+            function_approximator_info)
+        self.critic_target = self.initialize_function_approximator(
+            function_approximator_info)
 
         self.previous_state = None
         self.previous_action = None
         #self.rewards = []
-        self.is_continuous = None
-
-        # memory parameters
-        self.memory_size = None
-        self.memory = []
-        self.memory_counter = 0
-        self.batch_size = None
+        
 
         self.update_target_counter = 0
-        self.update_target_rate = None
-        self.state_dim = None
+        self.update_target_rate = update_target_rate
+        self.state_dim = state_dim
 
-        self.seed = None
+        # memory parameters
+        self.replay_buffer: VanillaReplayBuffer = self.init_memory_buffer(memory_info)
 
+        self.seed = seed
         self.tot_timestep = 0
+        self.is_vanilla = is_vanilla
 
-        self.set_params_from_dict(params)
-        self.set_other_params()
+
 
     # ====== Initialization functions ==================================
 
-    def set_params_from_dict(self, params={}):
-        self.γ = params.get("discount_factor", 0.9)
-        self.num_actions = params.get("num_actions", 1)
-        self.is_continuous = params.get("is_continuous", False)
 
-        self.initialize_policy_estimator(params.get("policy_estimator_info"))
-        self.initialize_function_approximator(params.get(
-            "function_approximator_info"))
-
-        self.memory_size = params.get("memory_size", 200)
-        self.update_target_rate = params.get("update_target_rate", 50)
-        self.state_dim = params.get("state_dim", 4)
-        self.batch_size = params.get("batch_size", 32)
-
-        self.seed = params.get("seed", None)
-
-    def set_other_params(self):
-        # two slots for the states, + 1 for the reward an the last for 
-        # the action (per memory slot)
-        self.memory = np.zeros((self.memory_size, 2 * self.state_dim + 3))
-        
 
     def initialize_policy_estimator(self, params):
-        self.policy_estimator = CustomNeuralNetwork(params)
+        return CustomNeuralNetwork(**params)
 
     def initialize_function_approximator(self, params):
-        #self.function_approximator = DQN(params)
-        self.function_approximator_eval = CustomNeuralNetwork(params)
-        self.function_approximator_target = CustomNeuralNetwork(params)
+
+        return CustomNeuralNetwork(**params)
+        #self.critic = DQN(params)
+
+    def init_memory_buffer(self, params: Dict) -> VanillaReplayBuffer:
+        params["obs_dim"] = self.state_dim
+        params["action_dim"] = self.num_actions
+        return VanillaReplayBuffer(**params)
+
+    def init_seed(self, seed):
+        if seed:
+            self.seed = seed
+            set_random_seed(self.seed)
+
+    def set_seed(self, seed):
+        if seed:
+            self.seed = seed
+            set_random_seed(self.seed)
+            self.critic_eval.set_seed(seed)
+            self.critic_target.set_seed(seed)
+    
+    def set_logger(self, logger:Type[Logger]):
+        self.logger = logger
+        self.logger.wandb_watch([self.actor, self.critic_eval], type="grad")
+
 
     # ====== Memory functions ==========================================
-
-    def store_transition(self, state, action, reward, next_state, is_terminal):
-        # store a transition (SARS') in the memory
-        is_terminal = [is_terminal]
-        transition = np.hstack((state, [action, reward], next_state, is_terminal))
-        self.memory[self.memory_counter % self.memory_size, :] = transition
-        self.incr_mem_cnt()
-        
-    def incr_mem_cnt(self):
-        # increment the memory counter and resets it to 0 when reached 
-        # the memory size value to avoid a too large value
-        self.memory_counter += 1
-        #if self.memory_counter == self.memory_size:
-        #    self.memory_counter = 0
-
-    def sample_memory(self):
-        # Sampling some indices from memory
-        sample_index = np.random.choice(self.memory_size, self.batch_size)
-        # Getting the batch of samples corresponding to those indices 
-        # and dividing it into state, action, reward and next state
-        batch_memory = self.memory[sample_index, :]
-        batch_state = torch.tensor(batch_memory[:, :self.state_dim]).float()
-        batch_action = torch.tensor(batch_memory[:, 
-            self.state_dim:self.state_dim + 1].astype(int)).float()
-        batch_reward = torch.tensor(batch_memory[:, 
-            self.state_dim + 1:self.state_dim + 2]).float()
-        batch_next_state = torch.tensor(batch_memory[:, -self.state_dim-1:-1]).float()
-        batch_is_terminal = torch.tensor(batch_memory[:, -1:]).bool()
-
-        return batch_state, batch_action, batch_reward, batch_next_state, batch_is_terminal
 
     def update_target_net(self):
         # every n learning cycle, the target networks will be replaced 
         # with the eval networks
         if self.update_target_counter % self.update_target_rate == 0:
-            self.function_approximator_target.load_state_dict(
-                self.function_approximator_eval.state_dict())
+            self.critic_target.load_state_dict(
+                self.critic_eval.state_dict())
         self.update_target_counter += 1
 
-    def control(self, state, reward):
-        """
+    def control(self):
+        """ DO NOT USE!!! 
 
         :param state:
         :param reward:
@@ -120,85 +108,109 @@ class ActorCriticAgent:
         # with the eval network
         self.update_target_net()
 
-        if self.memory_counter > self.memory_size:
+        if self.replay_buffer.full:
             # getting batch data
-            batch_state, batch_action, batch_reward, batch_next_state, batch_is_terminal = self.sample_memory()
-            
-            prev_state_value = self.function_approximator_eval(batch_state)
-            state_value = self.function_approximator_target(batch_next_state)
-            nu_state_value = torch.zeros(state_value.shape)
-            nu_state_value = torch.masked_fill(state_value, batch_is_terminal, 0.0)
+            batch = self.replay_buffer.sample()
+            if self.is_continuous:
+                cur_oa = self._concat_obs_action(batch.observations, batch.actions)
+                target_actions = self.actor(batch.next_observations).detach()
+                next_oa = self._concat_obs_action(batch.next_observations, target_actions)
+                q_next = self.critic_target(next_oa).detach()
+                q_next = (1.0 - batch.dones.float()) * q_next
+                y = batch.rewards + self.γ * q_next
+            else:
+                prev_state_value = self.critic_eval(batch.observations)
+                state_value = self.critic_target(batch.next_observations)
+                nu_state_value = torch.zeros(state_value.shape)
+                nu_state_value = torch.masked_fill(state_value, batch.dones, 0.0)
 
-            δ = batch_reward + self.γ * nu_state_value.detach() - prev_state_value.detach()
+                δ = batch.rewards + self.γ * nu_state_value.detach() - prev_state_value.detach()
+                value_loss = - prev_state_value * δ 
+                value_loss = value_loss.mean()
+                self.critic_eval.backpropagate(value_loss)
 
-            value_loss = - prev_state_value * δ 
-            value_loss = value_loss.mean()
-            self.function_approximator_eval.optimizer.zero_grad()
-            value_loss.backward()
-            self.function_approximator_eval.optimizer.step()
+                # plot the policy entropy
+                probs = self.actor(batch.observations)
+                #entropy = -(np.sum(probs * np.log(probs)))
+                entropy = -(
+                    torch.sum(
+                        probs * torch.log(probs), dim=1, keepdim=True
+                    ).mean()
+                )
+                
+                # compute actor loss
+                logprob = - torch.log(self.actor(
+                    batch.observations).gather(1, batch.actions.long()))
+                loss = logprob * δ 
+                loss = loss.mean()
+                self.actor.backpropagate(loss)
 
-            # plot the policy entropy
-            probs = self.policy_estimator(state).detach().numpy()
-            entropy = -(np.sum(probs * np.log(probs)))
-            
-            logprob = - torch.log(self.policy_estimator(
-                batch_state).gather(1, batch_action.long()))
-            loss = logprob * δ 
-            loss = loss.mean()
-            self.policy_estimator.optimizer.zero_grad()
-            loss.backward()
-            self.policy_estimator.optimizer.step()
-
-            wandb.log({
-                "Agent info/critic loss": value_loss,
-                "Agent info/policy entropy": entropy,
-                "Agent info/actor loss": loss
-            })
+            self.logger.log({
+                'Agent info/critic loss': value_loss,
+                'Agent info/actor loss': loss,
+                'Agent info/entropy': entropy},
+                type= "agent")
 
     def vanilla_control(self, state, reward, is_terminal_state):
-        prev_state_value = self.function_approximator_eval(self.previous_state)
+        
+        obs_val = self.critic_eval(self.previous_state)
         if is_terminal_state:
-            cur_state_value = torch.tensor([0])
+            next_obs_val = torch.tensor([0])
         else:
-            cur_state_value = self.function_approximator_eval(state)
-        δ = reward + self.γ * cur_state_value.detach() - prev_state_value.detach()
+            next_obs_val = self.critic_eval(state)
+        advantage = reward + self.γ * next_obs_val.detach() - obs_val.detach()
 
-        value_loss = - prev_state_value * δ 
-        self.function_approximator_eval.optimizer.zero_grad()
+        value_loss = - obs_val * advantage 
+        self.critic_eval.optimizer.zero_grad()
         value_loss.backward()
-        self.function_approximator_eval.optimizer.step()
-        
+        self.critic_eval.optimizer.step()
+            
+        if self.is_continuous:
+            mu, std = self.actor(self.previous_state)
+            action = mu + torch.randn(mu.shape) * std
+            action = action.clamp(-1, 1)
+            action = action.detach()
+            # TODO: compute the loss.
+        else:
+            # plot the policy entropy
+            probs = self.actor(state).detach().numpy()
+            entropy = -(np.sum(probs * np.log(probs)))
+            
 
-        # plot the policy entropy
-        probs = self.policy_estimator(state).detach().numpy()
-        entropy = -(np.sum(probs * np.log(probs)))
+            logprob = - torch.log(self.actor(self.previous_state)[self.previous_action])
+            loss = logprob * advantage 
+            self.actor.optimizer.zero_grad()
+            loss.backward()
+            self.actor.optimizer.step()
         
+        self.logger.log({
+                'Agent info/critic loss': value_loss,
+                'Agent info/actor loss': loss,
+                'Agent info/entropy': entropy},
+                type= "agent")
 
-        logprob = - torch.log(self.policy_estimator(self.previous_state)[self.previous_action])
-        loss = logprob * δ 
-        self.policy_estimator.optimizer.zero_grad()
-        loss.backward()
-        self.policy_estimator.optimizer.step()
-        
-        wandb.log({
-                "Agent info/critic loss": value_loss,
-                "Agent info/policy entropy": entropy,
-                "Agent info/actor loss": loss
-            })
 
 
     # ====== Action choice related functions ===========================
 
+
+
     def choose_action(self, state): # TODO fix first if
         if self.is_continuous:  
-            action_chosen = self.policy_estimator(state).detach().numpy()
+            mu = self.actor(state)
+            std = torch.tensor([0.1]).expand_as(mu)
+            action_chosen = torch.normal(mu, std)
             return action_chosen
         else:
-            action_probs = Categorical(self.policy_estimator(state))
+            action_probs = Categorical(self.actor(state))
             action_chosen = action_probs.sample()
             return action_chosen.item()
 
+
+
     # ====== Agent core functions ======================================
+
+
 
     def start(self, state):
         # choosing the action to take
@@ -212,13 +224,15 @@ class ActorCriticAgent:
     def step(self, state, reward):
 
         # storing the transition in the function approximator memory for further use
-        self.store_transition(self.previous_state, self.previous_action, reward, state, False)
+        self.replay_buffer.store_transition(self.previous_state, self.previous_action, reward, state, False)
 
         # getting the action values from the function approximator
         current_action = self.choose_action(state)
 
-        #self.control(state, reward)
-        self.vanilla_control(state, reward, False)
+        if self.is_vanilla:
+            self.vanilla_control(state, reward, False)
+        else:
+            self.control()
 
         self.previous_action = current_action
         self.previous_state = state
@@ -227,13 +241,46 @@ class ActorCriticAgent:
 
     def end(self, state, reward):
         # storing the transition in the function approximator memory for further use
-        self.store_transition(self.previous_state, self.previous_action, reward, state, True)
-        #self.control(state, reward)
-        self.vanilla_control(state, reward, True)
+        self.replay_buffer.store_transition(self.previous_state, self.previous_action.tolist(), reward, state, True)
+        if self.is_vanilla:
+            self.vanilla_control(state, reward, True)
+        else:
+            self.control()
+        
 
     def get_state_value_eval(self, state):
         if self.num_actions > 1:
-            state_value = self.policy_estimator(state).data
+            state_value = self.actor(state).data
         else: 
-            state_value = self.function_approximator_eval(state).data
+            state_value = self.critic_eval(state).data
         return state_value
+    
+    def adjust_dims(self, state_dim:int, action_dim:int):
+        """ Called when the agent dimension doesn't fit the environment 
+        dimension. Reinitialize some parts of the agent so they fit the 
+        environment.
+        """
+        self.state_dim = state_dim
+        self.num_actions = action_dim
+        self.actor.reinit_layers(state_dim, action_dim)
+        if self.is_continuous:
+            self.critic_eval.reinit_layers(state_dim+action_dim, 1)
+            self.critic_target.reinit_layers(state_dim+action_dim, 1)
+        else:
+            self.critic_eval.reinit_layers(state_dim, 1)
+            self.critic_target.reinit_layers(state_dim, 1)
+        self.replay_buffer.correct(state_dim, action_dim)
+        self.logger.wandb_watch([self.actor, self.critic_eval])
+
+    def get_action_values_eval(self, state:torch.Tensor, actions:torch.Tensor):
+        """ for plotting purposes only in continuous probe environment. 
+        """
+        #state = torch.cat((state, state)).unsqueeze(1)
+        state = (state.unsqueeze(1) * torch.ones(len(actions))).T
+        state_action = torch.cat((state, actions.unsqueeze(1)),1)
+        action_values = self.critic_eval(state_action).data
+        return action_values
+
+    def _concat_obs_action(self, obs:torch.Tensor, action:torch.Tensor) -> torch.Tensor:
+        obs_action = torch.cat((obs, action), 1)#.unsqueeze(1)),1)
+        return obs_action

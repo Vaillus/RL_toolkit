@@ -58,10 +58,16 @@ class PPOAgent:
         self.previous_state = None
         self.previous_action = None
 
+        self.logger = None
+
         # self.memory_size = memory_info.get("size", 200) #why?
 
+
+
     # ====== Initialization functions ==================================
-     
+
+
+
     def initialize_policy_estimator(self, params: Dict) -> CustomNeuralNetwork:
         return CustomNeuralNetwork(**params, input_dim=self.state_dim, output_dim=self.num_actions)
 
@@ -72,7 +78,7 @@ class PPOAgent:
         params["obs_dim"] = self.state_dim
         params["action_dim"] = self.num_actions
         params["discount_factor"] = self.γ
-        params["critic"] = self.critic
+        params["critic"] = self.critic # to compute the values of the states
         params["gae_lambda"] = self.gae_lambda
         params["normalize_advantages"] = self.normalize_advantages
         return PPOReplayBuffer(**params)
@@ -119,12 +125,23 @@ class PPOAgent:
                 # don't know why.
                 ratio = torch.exp(torch.log(probs_new) - torch.log(probs_old)) # ok
                 ratio = torch.gather(ratio, 1, batch.actions.long()) #ok 
-                clipped_ratio = torch.clamp(ratio, min = 1 - self.clip_range, max = 1 + self.clip_range) # OK
-                policy_loss = torch.min(batch.advantages.detach() * ratio, batch.advantages.detach() * clipped_ratio) # OK
+                clipped_ratio = torch.clamp(
+                    ratio, 
+                    min = 1 - self.clip_range, 
+                    max = 1 + self.clip_range
+                ) # OK
+                policy_loss = torch.min(
+                    batch.advantages.detach() * ratio, 
+                    batch.advantages.detach() * clipped_ratio
+                ) # OK
                 policy_loss = - policy_loss.mean() # OK
                 policy_losses.append(policy_loss.item())
                 
-                entropy = -(torch.sum(probs_new * torch.log(probs_new), dim=1, keepdim=True).mean())
+                entropy = -(
+                    torch.sum(
+                        probs_new * torch.log(probs_new), dim=1, keepdim=True
+                    ).mean()
+                )
                 entropies.append(entropy.item())
                 entropy_loss = - entropy * self.entropy_coeff
                 entropy_losses.append(entropy_loss.item())
@@ -178,9 +195,10 @@ class PPOAgent:
         return current_action
 
     def step(self, state, reward):
-        # storing the transition in the memory for further use
+
         #intrinsic_reward = self.curiosity.get_intrinsic_reward(self.actor, self.previous_state, state, self.previous_action)
         #reward += intrinsic_reward
+        # storing the transition in the memory for further use
         self.replay_buffer.store_transition(self.previous_state, self.previous_action, reward, state, False)
         # getting the action values from the function approximator
         current_action = self.choose_action(state)
@@ -200,9 +218,9 @@ class PPOAgent:
         # storing the transition in the function approximator memory for further use
         
         # measure time spent executing the next line with cstats and print it
-        with cProfile.Profile() as pr:
-            self.replay_buffer.store_transition(self.previous_state, self.previous_action, reward, state, True) #+ intrinsic_reward, state, True)
-        stats = pstats.Stats(pr)
+        #with cProfile.Profile() as pr:
+        self.replay_buffer.store_transition(self.previous_state, self.previous_action, reward, state, True) #+ intrinsic_reward, state, True)
+        #stats = pstats.Stats(pr)
         #self.compute_ep_advantages()
         self.control()
 
