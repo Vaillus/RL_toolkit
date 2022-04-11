@@ -1,13 +1,13 @@
 {
   "session_info":{
-    "num_timestep": 3000,
+    "num_timestep": 10000,
     "plot": false,
     "show": false,
     "return_results": true
   },
   "env_info":{
     "type": "probe",
-    "name": "three",
+    "name": "four",
     "action_type": "continuous"
   },
   "agent_info":{
@@ -52,7 +52,7 @@
   },
   "logger_kwargs": {
     "is_print": true,
-    "is_wandb": false,
+    "is_wandb": true,
       "wandb_kwargs": {
         "job_type": "test2"
       },

@@ -256,11 +256,15 @@ class ContinuousProbeEnv(ProbeEnv):
                 "Probe/Value of second state": second_state_value
             },1)
         elif self.name == "four":
-            self.plot_final_result(agent, 0)
-            """state = torch.tensor([0])
-            action = torch.tensor([0])
+            pass
+            #self.plot_final_result(agent, 0)
+            state = torch.tensor([0])
+            x = agent.actor(state)
+            mu = x[0] #TODO: is wrong as soon as there are more than one action
+            """action = torch.tensor([0])
             action_value = agent.get_action_values_eval(state, action).item()
             self.logger.log({"Probe/Value of action 0 at state 0": action_value}, 1)"""
+            self.logger.log({"Probe/Mean action": mu}, 1)
         elif self.name == "five":
             self.plot_final_result(agent, -1, -0.5, 0.5)
             self.plot_final_result(agent, 1, 0.5, 0.5)
@@ -304,14 +308,14 @@ class ContinuousProbeEnv(ProbeEnv):
         elif self.name == "four":
             state = torch.tensor([0])
             action = torch.tensor([0])
-            action_value = agent.get_action_values_eval(state, action).item()
+            action_value = agent.get_state_value_eval(state).item()
             print(f'Value of action 0 at state 0: {action_value}')
             self.plot_final_result(agent, 0)
         elif self.name == "five":
             state_pos = torch.tensor([1])
             state_neg = torch.tensor([-1])
-            state_value_pos = agent.get_action_value_eval(state_pos)
-            state_value_neg = agent.get_action_value_eval(state_neg)
+            state_value_pos = agent.get_state_value_eval(state_pos)
+            state_value_neg = agent.get_state_value_eval(state_neg)
             print(f'value of state {state_pos.data}: {state_value_pos}')
             print(f'value of state {state_neg.data}: {state_value_neg}')
             self.plot_final_result(agent, -1, -0.5, 0.5)
@@ -330,7 +334,8 @@ class ContinuousProbeEnv(ProbeEnv):
         the two line should overlap.
         """
         x = np.arange(-1,1, 0.1)
-        y = agent.get_action_values_eval(torch.tensor([state_value]), torch.tensor(x))
+        y = agent.get_action_values_eval(
+            torch.tensor([state_value]), torch.tensor(x))
         if mode == "gaussian":
             baseline = ContinuousProbeEnv.gaussian(x, mu, sigma)
         elif mode == "constant":

@@ -8,6 +8,7 @@ from typing import Optional, Type, Dict, Any
 from modules.logger import Logger
 from utils import set_random_seed
 from scipy.stats import norm
+import math
 
 class ActorCriticAgent:
     def __init__(
@@ -162,17 +163,18 @@ class ActorCriticAgent:
         advantage = reward + self.γ * next_obs_val.detach() - obs_val.detach()
 
         value_loss = - obs_val * advantage 
-        self.critic_eval.optimizer.zero_grad()
-        value_loss.backward()
-        self.critic_eval.optimizer.step()
+        self.critic_eval.backpropagate(value_loss)
             
         if self.is_continuous:
             # TODO make that work for multidimensional actions when necessary.
             comp_action = self.actor(self.previous_state)
             mu = comp_action[0]
             std = comp_action[1]
-            logprob = torch.distributions.normal.Normal(mu, std).log_prob(
-                self.previous_action)
+            prob = 1 / (math.sqrt(math.pi * 2) * std) * \
+                torch.exp(-((mu - self.previous_action) ** 2) / (2 * std ** 2))
+            logprob = - torch.log(prob)
+            #logprob = torch.normal(mu, std).log_prob(
+            #    self.previous_action)
             #action = mu + torch.randn(mu.shape) * std
             #action = action.clamp(-1, 1)
             #action = action.detach()
@@ -183,9 +185,8 @@ class ActorCriticAgent:
             entropy = -(np.sum(probs * np.log(probs)))
             logprob = - torch.log(self.actor(self.previous_state)[self.previous_action])
         loss = logprob * advantage 
-        self.actor.optimizer.zero_grad()
-        loss.backward()
-        self.actor.optimizer.step()
+        self.actor.backpropagate(loss)
+        
         
         self.logger.log({
                 'Agent info/critic loss': value_loss,
@@ -206,7 +207,7 @@ class ActorCriticAgent:
             mu = comp_action[0]
             std = comp_action[1]
             action_chosen = torch.normal(mu, std).clamp(-1, 1)
-            return action_chosen
+            return action_chosen.item()
         else:
             action_probs = Categorical(self.actor(state))
             action_chosen = action_probs.sample()

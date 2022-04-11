@@ -130,7 +130,7 @@ class AgentInterface(ABC):
         return self.agent.get_action_values_eval(state, actions)
     
     def get_discount(self):
-        return self.agent.get_discount()
+        return self.agent.γ
         
     
     
