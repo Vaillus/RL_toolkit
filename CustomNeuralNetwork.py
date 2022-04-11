@@ -151,18 +151,6 @@ class CustomNeuralNetwork(nn.Module):
 
         return x
 
-    # TODO: If I don't get in trouble for commenting this, delete it.
-    #def embedding(self, x):
-    #    x = self._format_input(x)
-    #    num_layers = len(self.layers)
-    #    # get the point associated with the input in the latent space of the last layer
-    #    for i in range(num_layers-1):
-    #        x = self.forward_layer(x,i)
-    #    return x
-    
-    #def get_embedding_size(self):
-    #    return self.layers[-2].out_features
-
     def _format_input(self, x):
         if isinstance(x, np.ndarray):
             x = torch.from_numpy(x)

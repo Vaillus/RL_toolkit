@@ -134,6 +134,8 @@ class Logger:
     def wandb_plot(self, plot_dict):
         if bool(wandb.run):
             wandb.log(plot_dict)
+        else:
+            [i for i in plot_dict.values()][0].show()
     
     def _incr_cnt_compute_mean(self, key:str, value:float, log_freq:int=None) -> bool:
         """ Increments the count associated with the key. If the counter

@@ -7,7 +7,7 @@
   },
   "env_info":{
     "type": "probe",
-    "name": "one",
+    "name": "three",
     "action_type": "continuous"
   },
   "agent_info":{
@@ -15,7 +15,7 @@
     "agent_kwargs": {
       "discount_factor": 0.99,
       "update_target_rate": 100,
-      "is_vanilla":false,
+      "is_vanilla":true,
       "is_continuous":true,
       "memory_info":{
         "size": 100,

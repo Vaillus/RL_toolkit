@@ -229,56 +229,65 @@ class ContinuousProbeEnv(ProbeEnv):
     def plot(self, episode_id, agent):
         if self.name == "one":
             state = torch.tensor([0])
-            action =torch.tensor([0])
-            action_value = agent.get_action_values_eval(state, action).item()
-            self.logger.log({"Probe/Value of action 0 at state 0": action_value},1)
+            action = torch.tensor([0])
+            #action_value = agent.get_action_values_eval(state, action).item()
+            state_value = agent.get_state_value_eval(state)
+            self.logger.log({"Probe/Value of state 0": state_value},1)
         elif self.name == "two":
             state_pos = torch.tensor([1])
             state_neg = torch.tensor([-1])
-            state_value_pos = agent.get_action_values_eval(state_pos, torch.tensor([0.0]))
-            state_value_neg = agent.get_action_values_eval(state_neg, torch.tensor([0.0]))
+            state_value_pos = agent.get_state_value_eval(state_pos)
+            state_value_neg = agent.get_state_value_eval(state_neg)
+            #state_value_pos = agent.get_action_values_eval(state_pos, torch.tensor([0.0]))
+            #state_value_neg = agent.get_action_values_eval(state_neg, torch.tensor([0.0]))
             self.logger.log({
-                "Probe/Value of action 0 at  state -1": state_value_neg,
-                "Probe/Value of action 0 at state 1": state_value_pos
+                "Probe/Value of state -1": state_value_neg,
+                "Probe/Value of state 1": state_value_pos
             },1)
         elif self.name == "three":
             first_state = torch.tensor([0])
             second_state = torch.tensor([1])
-            state_value_pos = agent.get_action_values_eval(first_state, torch.tensor([0.0]))
-            state_value_neg = agent.get_action_values_eval(second_state, torch.tensor([0.0]))
+            first_state_value = agent.get_state_value_eval(first_state)
+            second_state_value = agent.get_state_value_eval(second_state)
+            #state_value_pos = agent.get_action_values_eval(first_state, torch.tensor([0.0]))
+            #state_value_neg = agent.get_action_values_eval(second_state, torch.tensor([0.0]))
             self.logger.log({
-                "Probe/Value of action 0 at state 0": state_value_pos,
-                "Probe/Value of action 0 at state 1": state_value_neg
+                "Probe/Value of first state": first_state_value,
+                "Probe/Value of second state": second_state_value
             },1)
         elif self.name == "four":
-            state = torch.tensor([0])
-            action =torch.tensor([0])
+            self.plot_final_result(agent, 0)
+            """state = torch.tensor([0])
+            action = torch.tensor([0])
             action_value = agent.get_action_values_eval(state, action).item()
-            self.logger.log({"Probe/Value of action 0 at state 0": action_value}, 1)
-            
+            self.logger.log({"Probe/Value of action 0 at state 0": action_value}, 1)"""
         elif self.name == "five":
-            state_pos = torch.tensor([1])
+            self.plot_final_result(agent, -1, -0.5, 0.5)
+            self.plot_final_result(agent, 1, 0.5, 0.5)
+            """state_pos = torch.tensor([1])
             state_neg = torch.tensor([-1])
             state_value_pos = agent.get_action_values_eval(state_pos, torch.tensor([0.5]))
             state_value_neg = agent.get_action_values_eval(state_neg, torch.tensor([-0.5]))
             self.logger.log({
                 "Probe/Value of action -0.5 at  state -1": state_value_neg,
                 "Probe/Value of action 0.5 at state 1": state_value_pos
-            }, 1)
+            }, 1)"""
 
     def show_results(self, agent):
         if self.name == "one":
             state = torch.tensor([0])
             action = torch.tensor([0])
-            action_value = agent.get_action_values_eval(state, action).item()
-            print(f'Value of action 0 at state 0: {action_value}')
+            #action_value = agent.get_action_values_eval(state, action).item()
+            state_value = agent.get_state_value_eval(state)
+            #self.logger.log({"Probe/Value of state 0": state_value},1)
+            print(f'value of state {state.data}: {state_value}')
 
             self.plot_final_result(agent, 0, mu= 1, mode="constant")
         elif self.name == "two":
             state_pos = torch.tensor([1])
             state_neg = torch.tensor([-1])
-            state_value_pos = agent.get_action_value_eval(state_pos)
-            state_value_neg = agent.get_action_value_eval(state_neg)
+            state_value_pos = agent.get_state_value_eval(state_pos)
+            state_value_neg = agent.get_state_value_eval(state_neg)
             print(f'value of state {state_pos.data}: {state_value_pos}')
             print(f'value of state {state_neg.data}: {state_value_neg}')
             self.plot_final_result(agent, -1,  mu= -1, mode="constant")
@@ -286,8 +295,8 @@ class ContinuousProbeEnv(ProbeEnv):
         elif self.name == "three":
             first_state = torch.tensor([0])
             second_state = torch.tensor([1])
-            first_state_value = agent.get_action_values_eval(first_state, torch.tensor([-0.5]))
-            second_state_value = agent.get_action_values_eval(second_state, torch.tensor([0.5]))
+            first_state_value = agent.get_state_value_eval(first_state)
+            second_state_value = agent.get_state_value_eval(second_state)
             print(f'value of state {first_state.data}: {first_state_value}')
             print(f'value of state {second_state.data}: {second_state_value}')
             self.plot_final_result(agent, 0, agent.get_discount() , mode="constant")
@@ -330,7 +339,7 @@ class ContinuousProbeEnv(ProbeEnv):
         plt.plot(x, baseline, 'r', label='reward')
         plt.xlabel("Action value")
         plt.legend()
-        self.logger.wandb_plot({f"Probe/actions values at state {state_value}": plt},1)
+        self.logger.wandb_plot({f"Probe/actions values at state {state_value}": plt})
 
 class PerfoProbeEnv(ProbeEnv):
     def __init__(self, name: str):

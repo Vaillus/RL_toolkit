@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Optional, List
 from collections import namedtuple
 
 from CustomNeuralNetwork import CustomNeuralNetwork
@@ -71,10 +71,22 @@ class VanillaReplayBuffer(BaseReplayBuffer):
         super(VanillaReplayBuffer, self).__init__(obs_dim, action_dim, size)
         self.batch_size = batch_size
 
-    def store_transition(self, obs, action, reward, next_obs, done):
+    def store_transition(
+        self, 
+        obs, 
+        action, 
+        reward: float, 
+        next_obs: List[float], 
+        done: bool
+    ) -> None:
+        # if action is of type float, convert it to a list
+        if type(action) == float or type(action) == int:
+            action = [action]
         # store a transition (SARS' + is_terminal) in the memory
         self.observations[self.pos] = torch.Tensor(obs)
-        self.actions[self.pos] = torch.Tensor(action) #.detach().cpu().numpy()
+        if type(action) != torch.Tensor:
+            action = torch.Tensor(action)
+        self.actions[self.pos] = action #.detach().cpu().numpy()
         self.rewards[self.pos] = torch.Tensor([reward])
         self.next_observations[self.pos] = torch.Tensor(next_obs)
         self.dones[self.pos] = done

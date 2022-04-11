@@ -7,6 +7,7 @@ from modules.replay_buffer import VanillaReplayBuffer
 from typing import Optional, Type, Dict, Any
 from modules.logger import Logger
 from utils import set_random_seed
+from scipy.stats import norm
 
 class ActorCriticAgent:
     def __init__(
@@ -166,27 +167,31 @@ class ActorCriticAgent:
         self.critic_eval.optimizer.step()
             
         if self.is_continuous:
-            mu, std = self.actor(self.previous_state)
-            action = mu + torch.randn(mu.shape) * std
-            action = action.clamp(-1, 1)
-            action = action.detach()
+            # TODO make that work for multidimensional actions when necessary.
+            comp_action = self.actor(self.previous_state)
+            mu = comp_action[0]
+            std = comp_action[1]
+            logprob = torch.distributions.normal.Normal(mu, std).log_prob(
+                self.previous_action)
+            #action = mu + torch.randn(mu.shape) * std
+            #action = action.clamp(-1, 1)
+            #action = action.detach()
             # TODO: compute the loss.
         else:
             # plot the policy entropy
             probs = self.actor(state).detach().numpy()
             entropy = -(np.sum(probs * np.log(probs)))
-            
-
             logprob = - torch.log(self.actor(self.previous_state)[self.previous_action])
-            loss = logprob * advantage 
-            self.actor.optimizer.zero_grad()
-            loss.backward()
-            self.actor.optimizer.step()
+        loss = logprob * advantage 
+        self.actor.optimizer.zero_grad()
+        loss.backward()
+        self.actor.optimizer.step()
         
         self.logger.log({
                 'Agent info/critic loss': value_loss,
-                'Agent info/actor loss': loss,
-                'Agent info/entropy': entropy},
+                'Agent info/actor loss': loss#,
+                #'Agent info/entropy': entropy
+                },
                 type= "agent")
 
 
@@ -197,9 +202,10 @@ class ActorCriticAgent:
 
     def choose_action(self, state): # TODO fix first if
         if self.is_continuous:  
-            mu = self.actor(state)
-            std = torch.tensor([0.1]).expand_as(mu)
-            action_chosen = torch.normal(mu, std)
+            comp_action = self.actor(state)
+            mu = comp_action[0]
+            std = comp_action[1]
+            action_chosen = torch.normal(mu, std).clamp(-1, 1)
             return action_chosen
         else:
             action_probs = Categorical(self.actor(state))
@@ -222,18 +228,20 @@ class ActorCriticAgent:
         return current_action
 
     def step(self, state, reward):
-
         # storing the transition in the function approximator memory for further use
-        self.replay_buffer.store_transition(self.previous_state, self.previous_action, reward, state, False)
-
+        self.replay_buffer.store_transition(
+            self.previous_state, 
+            self.previous_action, 
+            reward, 
+            state, 
+            False
+        )
         # getting the action values from the function approximator
         current_action = self.choose_action(state)
-
         if self.is_vanilla:
             self.vanilla_control(state, reward, False)
         else:
             self.control()
-
         self.previous_action = current_action
         self.previous_state = state
 
@@ -241,7 +249,13 @@ class ActorCriticAgent:
 
     def end(self, state, reward):
         # storing the transition in the function approximator memory for further use
-        self.replay_buffer.store_transition(self.previous_state, self.previous_action.tolist(), reward, state, True)
+        self.replay_buffer.store_transition( 
+            self.previous_state, 
+            self.previous_action, 
+            reward, 
+            state, 
+            True 
+        )
         if self.is_vanilla:
             self.vanilla_control(state, reward, True)
         else:
@@ -262,11 +276,12 @@ class ActorCriticAgent:
         """
         self.state_dim = state_dim
         self.num_actions = action_dim
-        self.actor.reinit_layers(state_dim, action_dim)
         if self.is_continuous:
-            self.critic_eval.reinit_layers(state_dim+action_dim, 1)
-            self.critic_target.reinit_layers(state_dim+action_dim, 1)
+            self.actor.reinit_layers(state_dim, action_dim * 2)
+            self.critic_eval.reinit_layers(state_dim, 1)
+            self.critic_target.reinit_layers(state_dim, 1)
         else:
+            self.actor.reinit_layers(state_dim, action_dim)
             self.critic_eval.reinit_layers(state_dim, 1)
             self.critic_target.reinit_layers(state_dim, 1)
         self.replay_buffer.correct(state_dim, action_dim)
@@ -276,10 +291,19 @@ class ActorCriticAgent:
         """ for plotting purposes only in continuous probe environment. 
         """
         #state = torch.cat((state, state)).unsqueeze(1)
-        state = (state.unsqueeze(1) * torch.ones(len(actions))).T
-        state_action = torch.cat((state, actions.unsqueeze(1)),1)
-        action_values = self.critic_eval(state_action).data
-        return action_values
+        #state = (state.unsqueeze(1) * torch.ones(len(actions))).T
+        #state_action = torch.cat((state, actions.unsqueeze(1)),1)
+        comp_action = self.actor(state)
+        mu = comp_action[0]
+        std = comp_action[1]
+        action_probs = actions.detach().apply_(lambda x: norm.pdf(x, mu.item(), std.item()))
+        #action_prob = scp.stats.norm.pdf(actions, mu, std)
+
+        #= self.critic_eval(state).data
+        return action_probs
+
+    def get_action_probs(self, state:torch.Tensor, actions:torch.Tensor):
+        pass
 
     def _concat_obs_action(self, obs:torch.Tensor, action:torch.Tensor) -> torch.Tensor:
         obs_action = torch.cat((obs, action), 1)#.unsqueeze(1)),1)
