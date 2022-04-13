@@ -1,4 +1,4 @@
-from CustomNeuralNetwork import CustomNeuralNetwork
+from custom_nn import CustomNeuralNetwork
 from utils import set_random_seed
 import numpy as np
 import torch

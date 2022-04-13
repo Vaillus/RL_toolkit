@@ -95,7 +95,7 @@ class CustomNeuralNetwork(nn.Module):
         
         return n_hid_layers, types, sizes, activations
 
-    def _get_layers_types(self, param_types, n_hid_layers):
+    def _get_layers_types(self, param_types, n_hid_layers=1):
         # types of the layers
         if isinstance(param_types, list):
             assert len(param_types) == n_hid_layers + 1
@@ -104,7 +104,7 @@ class CustomNeuralNetwork(nn.Module):
             types = [param_types] * (n_hid_layers + 1)
         return types
     
-    def _get_layers_sizes(self, param_sizes, n_hid_layers):
+    def _get_layers_sizes(self, param_sizes:int, n_hid_layers:int=1):
         # sizes of the layers
         if isinstance(param_sizes, list):
             assert len(param_sizes) == n_hid_layers

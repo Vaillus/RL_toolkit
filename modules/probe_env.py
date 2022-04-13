@@ -259,15 +259,26 @@ class ContinuousProbeEnv(ProbeEnv):
             pass
             #self.plot_final_result(agent, 0)
             state = torch.tensor([0])
-            x = agent.actor(state)
-            mu = x[0] #TODO: is wrong as soon as there are more than one action
+            mu, sig = agent.actor(state)
             """action = torch.tensor([0])
             action_value = agent.get_action_values_eval(state, action).item()
             self.logger.log({"Probe/Value of action 0 at state 0": action_value}, 1)"""
-            self.logger.log({"Probe/Mean action": mu}, 1)
+            self.logger.log({"Probe/Mean action": mu, "Probe/std action": sig}, 1)
         elif self.name == "five":
-            self.plot_final_result(agent, -1, -0.5, 0.5)
-            self.plot_final_result(agent, 1, 0.5, 0.5)
+            first_state = torch.tensor([-1])
+            second_state = torch.tensor([1])
+            mu1, sig1 = agent.actor(first_state)
+            mu2, sig2 = agent.actor(second_state)
+            self.logger.log({
+                "Probe/Mean action for state -1": mu1, 
+                "Probe/std action for state -1": sig1
+            }, 1)
+            self.logger.log({
+                "Probe/Mean action for state +1": mu2, 
+                "Probe/std action for state +1": sig2
+            }, 1)
+            #self.plot_final_result(agent, -1, -0.5, 0.5)
+            #self.plot_final_result(agent, 1, 0.5, 0.5)
             """state_pos = torch.tensor([1])
             state_neg = torch.tensor([-1])
             state_value_pos = agent.get_action_values_eval(state_pos, torch.tensor([0.5]))
@@ -307,7 +318,6 @@ class ContinuousProbeEnv(ProbeEnv):
             self.plot_final_result(agent, 1, 1, mode="constant")
         elif self.name == "four":
             state = torch.tensor([0])
-            action = torch.tensor([0])
             action_value = agent.get_state_value_eval(state).item()
             print(f'Value of action 0 at state 0: {action_value}')
             self.plot_final_result(agent, 0)

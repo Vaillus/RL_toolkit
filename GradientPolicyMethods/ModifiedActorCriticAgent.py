@@ -1,7 +1,7 @@
 from #GradientPolicyMethods.PolicyEstimator import *
 from DQN.DQN import *
 from #GradientPolicyMethods.BaselineNetwork import *
-from CustomNeuralNetwork import *
+from custom_nn import *
 
 
 # TODO : I think this one is to be thrown away

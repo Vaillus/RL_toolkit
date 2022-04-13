@@ -4,7 +4,7 @@ import torch
 from copy import deepcopy
 from typing import Any, Dict, Optional, Type
 
-from CustomNeuralNetwork import CustomNeuralNetwork
+from custom_nn import CustomNeuralNetwork
 from modules.replay_buffer import VanillaReplayBuffer
 from modules.logger import Logger
 

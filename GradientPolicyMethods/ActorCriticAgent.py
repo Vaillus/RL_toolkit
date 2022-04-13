@@ -1,4 +1,5 @@
-from CustomNeuralNetwork import CustomNeuralNetwork
+from custom_nn import CustomNeuralNetwork
+from policy_nn import PolicyNetwork
 import numpy as np
 import torch
 from torch.distributions import Categorical
@@ -60,7 +61,8 @@ class ActorCriticAgent:
 
 
     def initialize_policy_estimator(self, params):
-        return CustomNeuralNetwork(**params)
+        params["is_continuous"] = self.is_continuous
+        return PolicyNetwork(**params)
 
     def initialize_function_approximator(self, params):
 
@@ -275,7 +277,7 @@ class ActorCriticAgent:
         self.state_dim = state_dim
         self.num_actions = action_dim
         if self.is_continuous:
-            self.actor.reinit_layers(state_dim, action_dim * 2)
+            self.actor.reinit_layers(state_dim, action_dim)
             self.critic_eval.reinit_layers(state_dim, 1)
             self.critic_target.reinit_layers(state_dim, 1)
         else:
@@ -285,16 +287,20 @@ class ActorCriticAgent:
         self.replay_buffer.correct(state_dim, action_dim)
         self.logger.wandb_watch([self.actor, self.critic_eval])
 
+    def get_gaussian_value(self, x:float, mean:float, std:float):
+        """ Computes the value of the probability from mean and std at x.
+        """
+        return 1 / (math.sqrt(2 * math.pi) * std) * \
+            math.exp(-((x - mean) ** 2) / (2 * std ** 2))
+        
     def get_action_values_eval(self, state:torch.Tensor, actions:torch.Tensor):
         """ for plotting purposes only in continuous probe environment. 
         """
         #state = torch.cat((state, state)).unsqueeze(1)
         #state = (state.unsqueeze(1) * torch.ones(len(actions))).T
         #state_action = torch.cat((state, actions.unsqueeze(1)),1)
-        comp_action = self.actor(state)
-        mu = comp_action[0]
-        std = comp_action[1]
-        action_probs = actions.detach().apply_(lambda x: norm.pdf(x, mu.item(), std.item()))
+        mu, std = self.actor(state)
+        action_probs = actions.detach().apply_(lambda x: self.get_gaussian_value(x, mu.item(), std.item()))
         #action_prob = scp.stats.norm.pdf(actions, mu, std)
 
         #= self.critic_eval(state).data
@@ -308,8 +314,7 @@ class ActorCriticAgent:
         return obs_action
     
     def actor_cont(self, state):
-        comp_action = self.actor(state)
-        mu = comp_action[0]
-        std = comp_action[1]
+        mu, std = self.actor(state)
+        
         action_probs = torch.distributions.Normal(mu, std)
         return action_probs

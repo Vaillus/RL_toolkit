@@ -7,7 +7,7 @@
   },
   "env_info":{
     "type": "probe",
-    "name": "four",
+    "name": "five",
     "action_type": "continuous"
   },
   "agent_info":{
@@ -27,7 +27,8 @@
           "types": "linear",
           "sizes": 5,
           "hidden_activations": "relu",
-          "output_activation": "softmax"
+          "output_activation": "tanh"
+
         },
         "optimizer_info": {
             "type": "adam",

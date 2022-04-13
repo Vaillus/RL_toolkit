@@ -1,4 +1,4 @@
-from CustomNeuralNetwork import CustomNeuralNetwork
+from custom_nn import CustomNeuralNetwork
 import torch
 from torch.distributions import Categorical
 from typing import Optional, Type, Dict, Any

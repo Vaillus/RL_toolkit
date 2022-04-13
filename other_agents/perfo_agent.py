@@ -2,7 +2,7 @@ from utils import set_random_seed
 import torch
 from typing import Any, Dict, Optional, Type
 
-from CustomNeuralNetwork import CustomNeuralNetwork
+from custom_nn import CustomNeuralNetwork
 from modules.replay_buffer import PerfoReplayBuffer
 from modules.logger import Logger
 
