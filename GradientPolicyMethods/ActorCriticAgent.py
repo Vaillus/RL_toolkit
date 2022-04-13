@@ -167,12 +167,11 @@ class ActorCriticAgent:
             
         if self.is_continuous:
             # TODO make that work for multidimensional actions when necessary.
-            comp_action = self.actor(self.previous_state)
-            mu = comp_action[0]
-            std = comp_action[1]
-            prob = 1 / (math.sqrt(math.pi * 2) * std) * \
-                torch.exp(-((mu - self.previous_action) ** 2) / (2 * std ** 2))
-            logprob = - torch.log(prob)
+            logprob = - self.actor_cont(self.previous_state).log_prob(
+                torch.Tensor([self.previous_action]))
+            #prob = 1 / (math.sqrt(math.pi * 2) * std) * \
+            #    torch.exp(-((mu - self.previous_action) ** 2) / (2 * std ** 2))
+            #logprob = - torch.log(prob)
             #logprob = torch.normal(mu, std).log_prob(
             #    self.previous_action)
             #action = mu + torch.randn(mu.shape) * std
@@ -203,15 +202,13 @@ class ActorCriticAgent:
 
     def choose_action(self, state): # TODO fix first if
         if self.is_continuous:  
-            comp_action = self.actor(state)
-            mu = comp_action[0]
-            std = comp_action[1]
-            action_chosen = torch.normal(mu, std).clamp(-1, 1)
-            return action_chosen.item()
+            action = self.actor_cont(state).sample().clamp(-1, 1)
+            #action_chosen = torch.normal(mu, std).clamp(-1, 1)
+            return action.item()
         else:
             action_probs = Categorical(self.actor(state))
-            action_chosen = action_probs.sample()
-            return action_chosen.item()
+            action = action_probs.sample()
+            return action.item()
 
 
 
@@ -309,3 +306,10 @@ class ActorCriticAgent:
     def _concat_obs_action(self, obs:torch.Tensor, action:torch.Tensor) -> torch.Tensor:
         obs_action = torch.cat((obs, action), 1)#.unsqueeze(1)),1)
         return obs_action
+    
+    def actor_cont(self, state):
+        comp_action = self.actor(state)
+        mu = comp_action[0]
+        std = comp_action[1]
+        action_probs = torch.distributions.Normal(mu, std)
+        return action_probs
