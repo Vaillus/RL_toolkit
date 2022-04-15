@@ -1,4 +1,5 @@
 from custom_nn import CustomNeuralNetwork
+from policy_nn import PolicyNetwork
 import torch
 from torch.distributions import Categorical
 from typing import Optional, Type, Dict, Any
@@ -25,6 +26,7 @@ class PPOAgent:
         seed: Optional[int] = 0,
         discount_factor: Optional[float] = 0.9,
         num_actions: Optional[int] = 1,
+        is_continuous: bool = False,
         state_dim: Optional[int] = 1, 
         clip_range: Optional[float] = 0.2,
         value_coeff: Optional[float] = 1.0,
@@ -36,6 +38,7 @@ class PPOAgent:
         self.γ = discount_factor
         self.state_dim = state_dim
         self.num_actions = num_actions
+        self.is_continuous = is_continuous
 
         self.gae_lambda = gae_lambda
         self.normalize_advantages = normalize_advantages
@@ -69,10 +72,19 @@ class PPOAgent:
 
 
     def initialize_policy_estimator(self, params: Dict) -> CustomNeuralNetwork:
-        return CustomNeuralNetwork(**params, input_dim=self.state_dim, output_dim=self.num_actions)
+        params["is_continuous"] = self.is_continuous
+        return PolicyNetwork(
+            **params, 
+            input_dim=self.state_dim, 
+            output_dim=self.num_actions
+        )
 
     def initialize_function_approximator(self, params: Dict) -> CustomNeuralNetwork:
-        return CustomNeuralNetwork(**params, input_dim=self.state_dim, output_dim=1)#self.num_actions)
+        return CustomNeuralNetwork(
+            **params, 
+            input_dim=self.state_dim, 
+            output_dim=1
+        )
     
     def init_memory_buffer(self, params: Dict) -> PPOReplayBuffer:
         params["obs_dim"] = self.state_dim
@@ -88,7 +100,6 @@ class PPOAgent:
             return Curiosity(**params)
         else:
             return Curiosity()
-
     
     def init_seed(self, seed):
         if seed:
@@ -104,11 +115,10 @@ class PPOAgent:
     def set_logger(self, logger:Type[Logger]):
         self.logger = logger
         self.logger.wandb_watch([self.actor, self.critic], type="grad")
-    
 
     def control(self):
         if self.replay_buffer.full:
-            batch = self.replay_buffer.sample() # TODO :change sampling method here
+            batch = self.replay_buffer.sample()
             probs_old = self.actor(batch.observations).detach()
             # initializing the lists containing the metrics to be logged
             value_losses = []
@@ -118,40 +128,8 @@ class PPOAgent:
             intrinsic_rewards = []
 
             for _ in range(self.n_epochs):
-                # TODO: sample minibatches here and iterate over them.
-                probs_new = self.actor(batch.observations)
-                #ratio = probs_new / probs_old
-                # in stable baselines 3, they write it this way but I 
-                # don't know why.
-                ratio = torch.exp(torch.log(probs_new) - torch.log(probs_old)) # ok
-                ratio = torch.gather(ratio, 1, batch.actions.long()) #ok 
-                clipped_ratio = torch.clamp(
-                    ratio, 
-                    min = 1 - self.clip_range, 
-                    max = 1 + self.clip_range
-                ) # OK
-                policy_loss = torch.min(
-                    batch.advantages.detach() * ratio, 
-                    batch.advantages.detach() * clipped_ratio
-                ) # OK
-                policy_loss = - policy_loss.mean() # OK
-                policy_losses.append(policy_loss.item())
                 
-                entropy = -(
-                    torch.sum(
-                        probs_new * torch.log(probs_new), dim=1, keepdim=True
-                    ).mean()
-                )
-                entropies.append(entropy.item())
-                entropy_loss = - entropy * self.entropy_coeff
-                entropy_losses.append(entropy_loss.item())
-
-                # computing ICM loss
-                #intrinsic_reward = self.compute_icm_loss(batch, self.actor)
-                #intrinsic_rewards.append(intrinsic_reward.item())
-                
-                self.actor.backpropagate(policy_loss + entropy_loss) #+ intrinsic_reward)
-
+                # === critic stuff
                 # TODO: clip the state value variation. nb: only openai does that. nb2: It is not recommended anyway.
                 # delta_state_value = self.function_approximator_eval(batch_state) - prev_state_value
                 # new_prev_state_value = prev_state_value + delta_state_value
@@ -161,6 +139,50 @@ class PPOAgent:
                 value_losses.append(value_loss.item())
                 value_loss *= self.value_coeff
                 self.critic.backpropagate(value_loss)
+
+
+                # === actor stuff
+                # TODO: sample minibatches here and iterate over them.
+                # nb: needed only when the batch size is too high for the cpu/gpu. 
+                # Not the case here.
+                if self.is_continuous:
+                    probs_new = 10 ** self.actor_cont(batch.observations).log_prob(
+                        batch.actions)
+                else:
+                    probs_new = self.actor(batch.observations)
+                    #ratio = probs_new / probs_old
+                    # in stable baselines 3, they write it this way but I 
+                    # don't know why.
+                    ratio = torch.exp(torch.log(probs_new) - torch.log(probs_old)) # ok
+                    ratio = torch.gather(ratio, 1, batch.actions.long()) #ok 
+                    clipped_ratio = torch.clamp(
+                        ratio, 
+                        min = 1 - self.clip_range, 
+                        max = 1 + self.clip_range
+                    ) # OK
+                    policy_loss = torch.min(
+                        batch.advantages.detach() * ratio, 
+                        batch.advantages.detach() * clipped_ratio
+                    ) # OK
+                    policy_loss = - policy_loss.mean() # OK
+                    policy_losses.append(policy_loss.item())
+                    
+                    entropy = -(
+                        torch.sum(
+                            probs_new * torch.log(probs_new), dim=1, keepdim=True
+                        ).mean()
+                    )
+                    entropies.append(entropy.item())
+                    entropy_loss = - entropy * self.entropy_coeff
+                    entropy_losses.append(entropy_loss.item())
+
+                    # computing ICM loss
+                    #intrinsic_reward = self.compute_icm_loss(batch, self.actor)
+                    #intrinsic_rewards.append(intrinsic_reward.item())
+                    
+                    self.actor.backpropagate(policy_loss + entropy_loss) #+ intrinsic_reward)
+
+                
                 
             self.logger.log({
                 'Agent info/critic loss': np.mean(value_losses),
@@ -172,6 +194,13 @@ class PPOAgent:
             # the replay buffer is used only one (completely) and then 
             # emptied out
             self.replay_buffer.erase()
+
+    def get_proba(self, obs, actions):
+        if self.is_continuous:
+            return 10 ** self.actor_cont(obs).log_prob(actions)
+        else:
+            return self.actor(obs)
+
 
     def compute_icm_loss(self, batch, actor):
         return self.curiosity.compute_icm_loss(batch=batch, nn=actor)
