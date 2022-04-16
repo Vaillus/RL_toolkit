@@ -7,7 +7,7 @@
   },
   "env_info":{
     "type": "probe",
-    "name": "five",
+    "name": "one",
     "action_type": "discrete"
   },
   "agent_info":{
@@ -20,6 +20,7 @@
       "n_epochs": 7,
       "value_coeff": 1.0,
       "entropy_coeff": 0.01,
+      "is_continuous": false,
 
       "memory_info":{
         "size": 10,

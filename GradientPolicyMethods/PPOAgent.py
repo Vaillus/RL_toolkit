@@ -145,9 +145,24 @@ class PPOAgent:
                 # TODO: sample minibatches here and iterate over them.
                 # nb: needed only when the batch size is too high for the cpu/gpu. 
                 # Not the case here.
+                #probs_new = self.get_proba(batch.observations, batch.actions)
                 if self.is_continuous:
-                    probs_new = 10 ** self.actor_cont(batch.observations).log_prob(
-                        batch.actions)
+                    probs_new = torch.exp(
+                        self.actor_cont(batch.observations).log_prob(batch.actions))
+                    ratio = torch.exp(
+                        torch.log(probs_new) - torch.log(probs_old))
+                    clipped_ratio = torch.clamp(
+                        ratio, 
+                        min = 1 - self.clip_range, 
+                        max = 1 + self.clip_range
+                    ) # OK
+                    policy_loss = torch.min(
+                        batch.advantages.detach() * ratio, 
+                        batch.advantages.detach() * clipped_ratio
+                    ) # OK
+                    policy_losses.append(policy_loss.item())
+                    self.actor.backpropagate(policy_loss)
+
                 else:
                     probs_new = self.actor(batch.observations)
                     #ratio = probs_new / probs_old
@@ -187,8 +202,8 @@ class PPOAgent:
             self.logger.log({
                 'Agent info/critic loss': np.mean(value_losses),
                 'Agent info/actor loss': np.mean(policy_losses),
-                'Agent info/entropy': np.mean(entropies),
-                'Agent info/entropy loss': np.mean(entropy_losses),
+                #'Agent info/entropy': np.mean(entropies),
+                #'Agent info/entropy loss': np.mean(entropy_losses),
                 'Agent info/intrinsic reward': np.mean(intrinsic_rewards)},
                 type= "agent")
             # the replay buffer is used only one (completely) and then 
