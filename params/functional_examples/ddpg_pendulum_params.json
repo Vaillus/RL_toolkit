@@ -27,7 +27,8 @@
           "n_hidden_layers": 2,
           "types": "linear",
           "sizes": 100,
-          "activations": ["relu", "relu", "tanh"]
+          "hidden_activations": "relu",
+          "output_activation": "tanh"
         },
         "optimizer_info": {
           "type": "adam",
@@ -39,7 +40,8 @@
           "n_hidden_layers": 2,
           "types": "linear",
           "sizes": 100,
-          "activations": ["relu", "relu", "none"]
+          "hidden_activations": "relu",
+          "output_activation": "none"
         },
         "optimizer_info": {
           "type": "adam",
@@ -53,6 +55,8 @@
     "wandb_kwargs": {
       "job_type": "test2"
     },
+    "ep_freq":50,
+    "agent_freq": 300,
     "log_every": 300
   }
 }

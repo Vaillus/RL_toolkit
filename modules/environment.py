@@ -103,6 +103,7 @@ class EnvInterface:
     def step(self, action_data):
         action_data = self.modify_action(action_data)
         state, reward, terminated, other = self.env.step(action_data)
+        reward = self.shape_reward(state, reward)
         state = self.modify_state(state)
         return state, reward, terminated, other # type problem somewhere # .detach().numpy()
 
@@ -189,6 +190,10 @@ class EnvInterface:
             position = state_data[0]
             if position > 0.5: # why?
                 reward_data += 0.1
+        elif self.name.startswith("Pendulum"):
+            reward_data = reward_data / 1000
+            #print(reward_data)
+            #reward_data = reward_data[0]
         return reward_data
     
     def reward_func(self, x, x_dot, theta, theta_dot):
@@ -230,6 +235,9 @@ class EnvInterface:
     def modify_action(self, action):
         if self.name.startswith("Pendulum"):
             action *= 2.0
+            # if action is a scalar, put it in a list
+            if not isinstance(action, list):
+                action = [action]
         return action
     
     def modify_state(self, state):
@@ -237,7 +245,8 @@ class EnvInterface:
             if not isinstance(state,np.ndarray):
                 state = np.array(state) 
             state = state.astype(np.float).flatten() - 0.5
-
+        if self.name.startswith("Pendulum"):
+            state = state.astype(np.float).flatten()
         return state
 
 

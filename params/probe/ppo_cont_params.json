@@ -1,14 +1,14 @@
 {
   "session_info":{
-    "num_timestep": 3000,
+    "num_timestep": 16000,
     "plot": false,
     "show": false,
     "return_results": true
   },
   "env_info":{
     "type": "probe",
-    "name": "one",
-    "action_type": "discrete"
+    "name": "five",
+    "action_type": "continuous"
   },
   "agent_info":{
     "type": "PPO",
@@ -19,11 +19,11 @@
       "clip_range": 0.2,
       "n_epochs": 7,
       "value_coeff": 1.0,
-      "entropy_coeff": 0.01,
-      "is_continuous": false,
+      "entropy_coeff": 0.5,
+      "is_continuous": true,
 
       "memory_info":{
-        "size": 10,
+        "size": 100,
         "batch_size": 32},
 
       "policy_estimator_info": {
@@ -36,7 +36,7 @@
         },
         "optimizer_info": {
           "type": "adam",
-          "learning_rate": 0.1,
+          "learning_rate": 0.01,
           "eps": 1e-5 
         }
       },
@@ -57,12 +57,12 @@
   },
   "logger_kwargs": {
     "is_print": true,
-    "is_wandb": false,
+    "is_wandb": true,
       "wandb_kwargs": {
         "job_type": "test2"
       },
-    "log_every": 300,
-    "agent_freq": 300,
-    "grad_freq": 300
+    "log_every": 5,
+    "agent_freq": 10,
+    "grad_freq": 1
   }
 } 

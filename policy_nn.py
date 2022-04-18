@@ -14,12 +14,13 @@ class PolicyNetwork(CustomNeuralNetwork):
         super().__init__(layers_info, optimizer_info, seed, input_dim, output_dim)
         self.is_continuous = is_continuous
         self.mu = None
-        self.std = None
+        self.sigma = None
         if self.is_continuous:
             self.adapt_last_layer_to_continuous()
 
     def adapt_last_layer_to_continuous(self):
-        self.layers = self.layers[:-1]
+        self.layers = self.layers[:-1] 
+        
         self.mu = nn.Sequential(
             nn.Linear(
                 self._get_layers_sizes(self.layers_info["sizes"])[-1],
@@ -27,13 +28,12 @@ class PolicyNetwork(CustomNeuralNetwork):
             ),
             nn.Tanh()
         )
-        self.std = nn.Sequential(
-            nn.Linear(
+        self.sigma = nn.Linear(
                 self._get_layers_sizes(self.layers_info["sizes"])[-1], 
                 self.output_dim
-            ),
-            nn.Softplus()
-        )
+            )
+        self.mu[0].weight.data *= 0.01
+        self.sigma.weight.data *= 0.01
     
     def forward(self, x):
         # format the input data
@@ -43,7 +43,8 @@ class PolicyNetwork(CustomNeuralNetwork):
             num_layers = len(self.layers)
             for i in range(num_layers):
                 x = self.forward_layer(x,i)
-            return self.mu(x), self.std(x)
+            m = nn.Softplus()
+            return self.mu(x), m(self.sigma(x) -0.1879)
         else: 
             return super().forward(x)
         

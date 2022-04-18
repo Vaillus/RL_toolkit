@@ -189,7 +189,7 @@ class ContinuousProbeEnv(ProbeEnv):
         return state_data
     
     def step(self, action:float):
-        self.logger.log({"Probe/Action value": action}, 1)
+        self.logger.log({"Probe/Action value": action}, 100)
         if self.name == "one":
             new_state_data = [0]
             done = True

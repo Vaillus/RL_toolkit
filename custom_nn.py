@@ -58,7 +58,8 @@ class CustomNeuralNetwork(nn.Module):
             layers_info (Dict[str, Any])
         """
         # extract variables from the input dictionary
-        n_hid_layers, types, sizes, activations = self._extract_layer_var(layers_info)
+        n_hid_layers, types, sizes, activations = self._extract_layer_var(
+            layers_info)
         # initialize the layers with the variables
         for i in range(n_hid_layers + 1):
             if types[i] == "linear":

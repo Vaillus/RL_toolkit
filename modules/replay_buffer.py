@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from typing import NamedTuple, Optional, List
+from typing import NamedTuple, Optional, List, Union
 from collections import namedtuple
 
 from custom_nn import CustomNeuralNetwork
@@ -73,8 +73,8 @@ class VanillaReplayBuffer(BaseReplayBuffer):
 
     def store_transition(
         self, 
-        obs, 
-        action, 
+        obs:List[float], 
+        action: Union[float, np.ndarray], 
         reward: float, 
         next_obs: List[float], 
         done: bool
@@ -177,7 +177,14 @@ class PPOReplayBuffer(BaseReplayBuffer):
         self.gae_lambda = gae_lambda
         self.normalize_advantages = normalize_advantages
 
-    def store_transition(self, obs, action, reward, next_obs, done):
+    def store_transition(
+        self, 
+        obs: np.ndarray, 
+        action: Union[np.ndarray,float], 
+        reward:float, 
+        next_obs:np.ndarray, 
+        done:bool
+    ):
         self._store_in_episode_buffer(obs, action, reward, next_obs, done)
 
     def sample(self) -> PPOReplayBufferSamples:
@@ -208,22 +215,7 @@ class PPOReplayBuffer(BaseReplayBuffer):
 
         return sample
     
-    def correct(self, state_dim: int, action_dim: int) -> None:
-        """Makes the necessary changes for one wants to modify action 
-        and observations dimensions
-
-        Args:
-            state_dim (int)
-            action_dim (int)
-        """
-        self.action_dim = action_dim
-        self.obs_dim = state_dim
-        self.observations = torch.zeros(
-            (self.size, self.obs_dim), dtype=torch.float32)
-        self.actions = torch.zeros((self.size, self.action_dim)) # TODO: add type later
-        self.next_observations = torch.zeros(
-            (self.size, self.obs_dim), dtype=torch.float32)
-        self._init_episode_buffer()
+    
 
     def _init_episode_buffer(self) -> PPOReplayBufferSample:
         episode_buffer = PPOReplayBufferSample
@@ -240,6 +232,10 @@ class PPOReplayBuffer(BaseReplayBuffer):
         return episode_buffer
 
     def _store_in_episode_buffer(self, obs, action, reward, next_obs, done):
+        """stare thetransition in the episode buffer. If the episode is done, 
+        compute the returns and advantages. Then store everything in the main
+        buffer and reinit the episode buffer.
+        """
         # store the transition in the episode buffer
         self.ep_buffer.observations[self.ep_pos] = torch.Tensor(obs)
         self.ep_buffer.actions[self.ep_pos] = action#.detach().cpu().numpy()
@@ -264,14 +260,16 @@ class PPOReplayBuffer(BaseReplayBuffer):
         """Compute the advantages for each state in the episode with the 
         GAE method.
         """
+        # compute obs value and next obs value for every transition in 
+        # the episode buffer
         obs_values = self.critic(
             self.ep_buffer.observations[:self.ep_pos+1]).detach()
         next_obs_values = self.critic(
             self.ep_buffer.next_observations[:self.ep_pos+1]).detach()
+        
         last_gae_lam = 0
         for step in reversed(range(self.ep_pos+1)): # +1 or not?
-            delta = self.ep_buffer.rewards[step] + self.discount_factor\
-                * next_obs_values[step] * (1.0 - float(self.ep_buffer.dones[step])) - obs_values[step]
+            delta = self.ep_buffer.rewards[step] + self.discount_factor * next_obs_values[step] * (1.0 - float(self.ep_buffer.dones[step])) - obs_values[step]
             last_gae_lam = delta + self.discount_factor * self.gae_lambda * last_gae_lam * (1.0 - float(self.ep_buffer.dones[step]))
             self.ep_buffer.advantages[step] = last_gae_lam
         # compute the returns and store them in the eisode buffer.
@@ -289,7 +287,10 @@ class PPOReplayBuffer(BaseReplayBuffer):
         """
         mean = input.mean().detach()
         std = input.std().detach()
-        return (input - mean) / std
+        ret_val = (input - mean) / std
+        if torch.isnan(ret_val).any():
+            ret_val = input
+        return ret_val
 
     def _compute_ep_returns(self):
         """ Compute the returns at each step of the episode and store 
@@ -350,6 +351,23 @@ class PPOReplayBuffer(BaseReplayBuffer):
         self.advantages = torch.zeros((self.size,1), dtype=torch.float32)
         self.pos = 0
         self.full = False
+
+    def correct(self, state_dim: int, action_dim: int) -> None:
+        """Makes the necessary changes for one wants to modify action 
+        and observations dimensions
+
+        Args:
+            state_dim (int)
+            action_dim (int)
+        """
+        self.action_dim = action_dim
+        self.obs_dim = state_dim
+        self.observations = torch.zeros(
+            (self.size, self.obs_dim), dtype=torch.float32)
+        self.actions = torch.zeros((self.size, self.action_dim)) # TODO: add type later
+        self.next_observations = torch.zeros(
+            (self.size, self.obs_dim), dtype=torch.float32)
+        self._init_episode_buffer()
 
 
 

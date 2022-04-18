@@ -119,7 +119,13 @@ class PPOAgent:
     def control(self):
         if self.replay_buffer.full:
             batch = self.replay_buffer.sample()
-            probs_old = self.actor(batch.observations).detach()
+            if self.is_continuous:
+                probs_old = torch.exp(self.actor_cont(batch.observations
+                ).log_prob(batch.actions)).detach()
+            else:
+                probs_old = self.actor(batch.observations).detach()
+                
+            
             # initializing the lists containing the metrics to be logged
             value_losses = []
             policy_losses = []
@@ -147,8 +153,10 @@ class PPOAgent:
                 # Not the case here.
                 #probs_new = self.get_proba(batch.observations, batch.actions)
                 if self.is_continuous:
+                    # get the probabilities of the action taken with the updated policy
                     probs_new = torch.exp(
-                        self.actor_cont(batch.observations).log_prob(batch.actions))
+                        self.actor_cont(batch.observations, plot=True).log_prob(batch.actions))
+                    # compute the importance-sampling ratio for each action and clip them 
                     ratio = torch.exp(
                         torch.log(probs_new) - torch.log(probs_old))
                     clipped_ratio = torch.clamp(
@@ -156,18 +164,25 @@ class PPOAgent:
                         min = 1 - self.clip_range, 
                         max = 1 + self.clip_range
                     ) # OK
+                    
                     policy_loss = torch.min(
                         batch.advantages.detach() * ratio, 
                         batch.advantages.detach() * clipped_ratio
                     ) # OK
+                    policy_loss = - policy_loss.mean() # OK
                     policy_losses.append(policy_loss.item())
-                    self.actor.backpropagate(policy_loss)
+
+                    entropy = self.actor_cont(batch.observations).entropy().mean()
+                    entropies.append(entropy.item())
+                    entropy_loss = - entropy * self.entropy_coeff
+                    entropy_losses.append(entropy_loss.item())
+
+                    self.actor.backpropagate(policy_loss + entropy_loss)
 
                 else:
+                    # get the probabilities of the action taken with the updated policy
                     probs_new = self.actor(batch.observations)
-                    #ratio = probs_new / probs_old
-                    # in stable baselines 3, they write it this way but I 
-                    # don't know why.
+                    # compute the importance-sampling ratio for each action and clip them 
                     ratio = torch.exp(torch.log(probs_new) - torch.log(probs_old)) # ok
                     ratio = torch.gather(ratio, 1, batch.actions.long()) #ok 
                     clipped_ratio = torch.clamp(
@@ -202,8 +217,8 @@ class PPOAgent:
             self.logger.log({
                 'Agent info/critic loss': np.mean(value_losses),
                 'Agent info/actor loss': np.mean(policy_losses),
-                #'Agent info/entropy': np.mean(entropies),
-                #'Agent info/entropy loss': np.mean(entropy_losses),
+                'Agent info/entropy': np.mean(entropies),
+                'Agent info/entropy loss': np.mean(entropy_losses),
                 'Agent info/intrinsic reward': np.mean(intrinsic_rewards)},
                 type= "agent")
             # the replay buffer is used only one (completely) and then 
@@ -223,9 +238,15 @@ class PPOAgent:
     # ====== Action choice related functions ===========================
 
     def choose_action(self, state) -> int:
-        action_probs = Categorical(self.actor(state))
-        action_chosen = action_probs.sample()
-        return action_chosen.item()
+        if self.is_continuous:  
+            action = torch.tanh(self.actor_cont(state).sample())
+            #action = self.actor_cont(state).sample().clamp(-1, 1)
+            #action_chosen = torch.normal(mu, std).clamp(-1, 1)
+            return action.item()
+        else:
+            action_probs = Categorical(self.actor(state))
+            action_chosen = action_probs.sample()
+            return action_chosen.item()
 
     # ====== Agent core functions ======================================
 
@@ -283,11 +304,28 @@ class PPOAgent:
         """
         self.state_dim = state_dim
         self.num_actions = action_dim
+
         self.actor.reinit_layers(state_dim, action_dim)
         self.critic.reinit_layers(state_dim, 1)
         self.replay_buffer.correct(state_dim, action_dim)
-        self.logger.wandb_watch([self.actor, self.critic])
+        self.logger.wandb_watch([self.actor, self.critic], type="grad")
 
     def compute_ep_advantages(self):
         """compute the GAE advantages for the episode buffer"""
         self.replay_buffer._compute_advantages_gae()
+
+    def actor_cont(self, state, plot=False):
+        mu, sigma = self.actor(state)
+        if plot:
+            self.logger.log({
+                "Agent info/sigma": sigma.mean().item(),
+                "Agent info/mu": mu.mean().item()}, type="agent")
+        
+        action_probs = torch.distributions.Normal(mu, sigma)
+        return action_probs
+        
+    def get_action_values_eval(self, state:torch.Tensor, actions:torch.Tensor):
+        """ for plotting purposes only in continuous probe environment. 
+        """
+        action_probs = torch.exp(self.actor_cont(state).log_prob(actions))
+        return action_probs.detach().numpy()

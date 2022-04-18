@@ -9,7 +9,6 @@ from modules.environment import EnvInterface
 from modules.logger import Logger
 
 from utils import get_params, set_random_seed
-import wandb
 
 def get_video_file():
     files = os.listdir("./video/")
@@ -114,7 +113,7 @@ class Session:
             rewards = np.append(rewards, episode_reward)
             self.logger.n_ep = id_episode
             self.logger.log({
-                "rewards": episode_reward,
+                "General/rewards": episode_reward,
                 "General/episode length": ep_len
             }, type="ep")
             #wandb.log({"gameplays": wandb.Video("./video/"+get_video_file(), caption='episode: '+str(id_episode), fps=4, format="mp4"), "step": id_episode})
@@ -170,7 +169,7 @@ class Session:
             new_state_data, reward_data, done, _ = self.environment.step(action_data)
             # self.environment.step([float(action)]) | if continuous 
             # mountain car
-            reward_data = self.environment.shape_reward(state_data, reward_data)
+            
             # save the reward
             episode_reward = self._save_reward(episode_reward, reward_data)
             # render environment (gym environments only)
@@ -269,7 +268,8 @@ if __name__ == "__main__":
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
-    data = get_params("probe/actor_critic_params")
+    data = get_params("other/ppo_cont_params")
+    #data = get_params("functional_examples/ppo_cartpole")
     session_parameters = data["session_info"]
     session_parameters["agent_kwargs"] = data["agent_info"]
     session_parameters["env_kwargs"] = data["env_info"]

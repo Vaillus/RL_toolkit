@@ -276,14 +276,9 @@ class ActorCriticAgent:
         """
         self.state_dim = state_dim
         self.num_actions = action_dim
-        if self.is_continuous:
-            self.actor.reinit_layers(state_dim, action_dim)
-            self.critic_eval.reinit_layers(state_dim, 1)
-            self.critic_target.reinit_layers(state_dim, 1)
-        else:
-            self.actor.reinit_layers(state_dim, action_dim)
-            self.critic_eval.reinit_layers(state_dim, 1)
-            self.critic_target.reinit_layers(state_dim, 1)
+        self.actor.reinit_layers(state_dim, action_dim)
+        self.critic_eval.reinit_layers(state_dim, 1)
+        self.critic_target.reinit_layers(state_dim, 1)
         self.replay_buffer.correct(state_dim, action_dim)
         self.logger.wandb_watch([self.actor, self.critic_eval])
 
@@ -296,14 +291,7 @@ class ActorCriticAgent:
     def get_action_values_eval(self, state:torch.Tensor, actions:torch.Tensor):
         """ for plotting purposes only in continuous probe environment. 
         """
-        #state = torch.cat((state, state)).unsqueeze(1)
-        #state = (state.unsqueeze(1) * torch.ones(len(actions))).T
-        #state_action = torch.cat((state, actions.unsqueeze(1)),1)
-        mu, std = self.actor(state)
-        action_probs = actions.detach().apply_(lambda x: self.get_gaussian_value(x, mu.item(), std.item()))
-        #action_prob = scp.stats.norm.pdf(actions, mu, std)
-
-        #= self.critic_eval(state).data
+        action_probs = torch.exp(self.actor_cont(state).log_prob(actions))
         return action_probs
 
     def get_action_probs(self, state:torch.Tensor, actions:torch.Tensor):

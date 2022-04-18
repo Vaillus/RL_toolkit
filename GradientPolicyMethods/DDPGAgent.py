@@ -182,8 +182,8 @@ class DDPGAgent:
             self.actor.backpropagate(actor_loss)
 
             self.logger.log({
-                "critic loss": critic_loss,
-                "actor loss": actor_loss
+                "Agent info/critic loss": critic_loss,
+                "Agent info/actor loss": actor_loss
             }, type= "agent")
             
             
