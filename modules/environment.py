@@ -41,6 +41,7 @@ class EnvInterface:
         self.ret_rms = RunningMeanStd(shape=(1,)) if normalize_rew else None
         self.clip_obs = clip_obs
         self.clip_rew = clip_rew
+        self.epsilon = 1e-8
 
     def _init_env(self, godot_kwargs, action_type):
         #TODO chenge godot_kwargs to env_kwargs? Because it doesn't work with MinAtar
@@ -267,17 +268,17 @@ class EnvInterface:
     def _normalize_obs(self, obs: np.ndarray):
         if self.ob_rms:
             self.ob_rms.update(obs)
-            obs = np.clip((obs - self.ob_rms.mean) / np.sqrt(self.ob_rms.var + self.epsilon), -self.clipob, self.clipob)
-            return obs
+            obs = np.clip((obs - self.ob_rms.mean) / np.sqrt(self.ob_rms.var + self.epsilon), -self.clip_obs, self.clip_obs)
         elif self.norm_obs:
-            self.obs_rms = RunningMeanStd(shape=obs.shape)
-        else:
-            return obs
+            self.ob_rms = RunningMeanStd(shape=obs.shape)
+            self.ob_rms.update(obs)
+            obs = np.clip((obs - self.ob_rms.mean) / np.sqrt(self.ob_rms.var + self.epsilon), -self.clip_obs, self.clip_obs)
+        return obs
     
     def _normalize_rew(self, rews):
         if self.ret_rms:
             self.ret_rms.update(np.array([self.ret].copy()))
-            rews = np.clip(rews / np.sqrt(self.ret_rms.var + self.epsilon), -self.cliprew, self.cliprew)
+            rews = np.clip(rews / np.sqrt(self.ret_rms.var + self.epsilon), -self.clip_rew, self.clip_rew)
         return rews
 
 

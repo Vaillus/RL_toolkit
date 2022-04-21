@@ -252,7 +252,7 @@ class PPOAgent:
 
     def start(self, state):
         # choosing the action to take
-        current_action = self.choose_action(state)
+        current_action = self.choose_action(state) 
 
         self.previous_action = current_action
         self.previous_state = state
