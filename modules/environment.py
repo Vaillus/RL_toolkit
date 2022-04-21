@@ -17,7 +17,11 @@ class EnvInterface:
         show: Optional[bool] = True,
         show_every: Optional[int] = 10,
         action_type: Optional[str] = "discrete",
-        monitor: Optional[bool] = False
+        monitor: Optional[bool] = False,
+        normalize_obs = True,
+        normalize_rew = False,
+        clip_obs = 1.0,
+        clip_rew = 1.0
     ):
         self.type = type
         self.name = name
@@ -29,6 +33,14 @@ class EnvInterface:
         self.env = self._init_env(godot_kwargs, action_type)
         self.action_type = self.get_action_type(action_type)
         self.logger = None
+        
+        # normalization variables
+        #  TODO: add obs dims?
+        self.norm_obs = normalize_obs
+        self.ob_rms =  None
+        self.ret_rms = RunningMeanStd(shape=(1,)) if normalize_rew else None
+        self.clip_obs = clip_obs
+        self.clip_rew = clip_rew
 
     def _init_env(self, godot_kwargs, action_type):
         #TODO chenge godot_kwargs to env_kwargs? Because it doesn't work with MinAtar
@@ -194,7 +206,9 @@ class EnvInterface:
             reward_data = reward_data / 1000
             #print(reward_data)
             #reward_data = reward_data[0]
+        reward_data = self._normalize_rew(reward_data)
         return reward_data
+
     
     def reward_func(self, x, x_dot, theta, theta_dot):
         """ For cartpole only
@@ -247,6 +261,86 @@ class EnvInterface:
             state = state.astype(np.float).flatten() - 0.5
         if self.name.startswith("Pendulum"):
             state = state.astype(np.float).flatten()
+        state = self._normalize_obs(state)
         return state
+    
+    def _normalize_obs(self, obs: np.ndarray):
+        if self.ob_rms:
+            self.ob_rms.update(obs)
+            obs = np.clip((obs - self.ob_rms.mean) / np.sqrt(self.ob_rms.var + self.epsilon), -self.clipob, self.clipob)
+            return obs
+        elif self.norm_obs:
+            self.obs_rms = RunningMeanStd(shape=obs.shape)
+        else:
+            return obs
+    
+    def _normalize_rew(self, rews):
+        if self.ret_rms:
+            self.ret_rms.update(np.array([self.ret].copy()))
+            rews = np.clip(rews / np.sqrt(self.ret_rms.var + self.epsilon), -self.cliprew, self.cliprew)
+        return rews
 
+
+
+
+# ==== Normalizer ======================================================
+
+
+class RunningMeanStd(object):
+    def __init__(self, epsilon=1e-4, shape=()):
+        self.mean = np.zeros(shape, 'float64')
+        self.var = np.ones(shape, 'float64')
+        self.count = epsilon
+
+    def update(self, x):
+        batch_mean = np.mean([x], axis=0)
+        batch_var = np.var([x], axis=0)
+        batch_count = 1
+        self.update_from_moments(batch_mean, batch_var, batch_count)
+
+    def update_from_moments(self, batch_mean, batch_var, batch_count):
+        self.mean, self.var, self.count = update_mean_var_count_from_moments(
+            self.mean, self.var, self.count, batch_mean, batch_var, batch_count)
+
+def update_mean_var_count_from_moments(mean, var, count, batch_mean, batch_var, batch_count):
+    delta = batch_mean - mean
+    tot_count = count + batch_count
+    # update mean
+    new_mean = mean + delta * batch_count / tot_count
+    # update var
+    m_a = var * count
+    m_b = batch_var * batch_count
+    M2 = m_a + m_b + np.square(delta) * count * batch_count / tot_count
+    new_var = M2 / tot_count
+    new_count = tot_count
+
+    return new_mean, new_var, new_count
+    
+"""class NormalizedEnv(gym.core.Wrapper):
+    def __init__(self, env, ob=True, ret=True, clipob=10., cliprew=10., gamma=0.99, epsilon=1e-8):
+        super(NormalizedEnv, self).__init__(env)
+        self.norm_obs = ob
+        self.ob_rms =  None
+        self.ret_rms = RunningMeanStd(shape=(1,)) if ret else None
+        self.clipob = clipob
+        self.cliprew = cliprew
+        self.ret = np.zeros(())
+        self.gamma = gamma
+        self.epsilon = epsilon
+
+    def step(self, action):
+        obs, rews, dones, infos = self.env.step(action)
+        infos['real_reward'] = rews
+        self.ret = self.ret * self.gamma + rews
+        obs = self._obfilt(obs)
+        rews = self._rewfilt(rews)
+        self.ret = self.ret * (1-float(dones)) # not sure about that.
+        return obs, rews, dones, infos
+
+    
+
+    def reset(self):
+        self.ret = np.zeros(())
+        obs = self.env.reset()
+        return self._obfilt(obs)"""
 

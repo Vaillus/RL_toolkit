@@ -9,7 +9,8 @@
   "env_info": {
     "type": "gym",
     "name": "Pendulum-v0",
-    "action_type": "continuous"
+    "action_type": "continuous",
+    "normalize_obs": true
   },
   "agent_info":{
     "type": "PPO",
@@ -38,7 +39,7 @@
         },
         "optimizer_info": {
           "type": "adam",
-          "learning_rate": 0.0003,
+          "learning_rate": 3e-4,
           "eps": 1e-7
         }
       },
@@ -52,7 +53,7 @@
         },
         "optimizer_info": {
           "type": "adam",
-          "learning_rate": 0.0003,
+          "learning_rate": 3e-4,
           "eps": 1e-7
         }
       }
