@@ -2,7 +2,7 @@
   "session_info":{
     "num_timestep": 10000000,
     "plot": false,
-    "show": true,
+    "show": false,
     "show_every": 100,
     "return_results": true
   },
