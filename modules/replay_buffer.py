@@ -172,7 +172,6 @@ class PPOReplayBuffer(BaseReplayBuffer):
         self.advantages = torch.zeros((self.size,1), dtype=torch.float32) # GAE stuff
         self.ep_buffer = self._init_episode_buffer()
         self.discount_factor = discount_factor
-        self.batch_size = batch_size
         self.critic = critic # addition to compute the GAE stuff
         self.gae_lambda = gae_lambda
         self.normalize_advantages = normalize_advantages

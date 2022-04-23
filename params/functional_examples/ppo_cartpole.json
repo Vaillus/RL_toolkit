@@ -61,7 +61,7 @@
       "job_type": "test2"
     },
     "ep_freq": 100,
-    "agent_freq": 50,
+    "agent_freq": 200,
     "grad_freq": 1000,
     "log_every": 300
   }
