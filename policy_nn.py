@@ -1,6 +1,16 @@
 from custom_nn import CustomNeuralNetwork
+import torch
 import torch.nn as nn
+import numpy as np
 from typing import Optional, Any, Dict
+
+
+def layer_init(layer: nn.Linear, std: float = np.sqrt(2), bias_const=0.0) -> nn.Linear:
+    nn.init.orthogonal_(layer.weight.data, std)
+    nn.init.constant_(layer.bias, bias_const)
+    return layer
+
+
 
 class PolicyNetwork(CustomNeuralNetwork):
     def __init__(self,
@@ -19,21 +29,24 @@ class PolicyNetwork(CustomNeuralNetwork):
             self.adapt_last_layer_to_continuous()
 
     def adapt_last_layer_to_continuous(self):
+        # removing last layer because we are going to replace it with mu and sigma.
         self.layers = self.layers[:-1] 
         
         self.mu = nn.Sequential(
-            nn.Linear(
+            layer_init(nn.Linear(
                 self._get_layers_sizes(self.layers_info["sizes"])[-1],
                 self.output_dim
-            ),
+            ), std = 0.01),
             nn.Tanh()
         )
-        self.sigma = nn.Linear(
+        # case where std is state-dependant
+        """self.sigma = nn.Linear(
                 self._get_layers_sizes(self.layers_info["sizes"])[-1], 
                 self.output_dim
-            )
-        self.mu[0].weight.data *= 0.01
-        self.sigma.weight.data *= 0.01
+            )"""
+        self.sigma = nn.Parameter(torch.zeros(1, self.output_dim))
+        #self.mu[0].weight.data *= 0.01
+        #self.sigma.weight.data *= 0.01
     
     def forward(self, x):
         # format the input data
@@ -43,8 +56,11 @@ class PolicyNetwork(CustomNeuralNetwork):
             num_layers = len(self.layers)
             for i in range(num_layers):
                 x = self.forward_layer(x,i)
-            m = nn.Softplus()
-            return self.mu(x), m(self.sigma(x) -0.1879)
+            m = nn.Softplus() # only for state-dependant sigma
+            #mu = self.mu(x)
+            #logstd = 
+            std = m(self.sigma) -0.1879
+            return self.mu(x), std#m(self.sigma(x) -0.1879)
         else: 
             return super().forward(x)
         

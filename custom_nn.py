@@ -6,6 +6,10 @@ import numpy as np
 from utils import set_random_seed
 from typing import Optional, Any, Dict
 
+def layer_init(layer: nn.Linear, std: float = np.sqrt(2), bias_const=0.0) -> nn.Linear:
+    nn.init.orthogonal_(layer.weight.data, std)
+    nn.init.constant_(layer.bias, bias_const)
+    return layer
 
 class CustomNeuralNetwork(nn.Module):
     """ Attempt to make an easy-to-use neural net class
@@ -48,7 +52,8 @@ class CustomNeuralNetwork(nn.Module):
         set_random_seed(seed)
         # reinit the layers initial values
         for i in range(len(self.layers)):
-            self.layers[i].weight.data.normal_(0, 0.1)
+            self.layers[i] = layer_init(self.layers[i])
+            #self.layers[i].weight.data.normal_(0, 0.1) # old way
 
     def _init_layers(self, layers_info:Dict[str, Any]) -> None:
         """get and format the parameters from the layers info.
@@ -67,7 +72,7 @@ class CustomNeuralNetwork(nn.Module):
                 # to the list
                 input_size = self._get_input_size(i, sizes)
                 output_size = self._get_output_size(i, sizes, n_hid_layers)
-                layer = nn.Linear(input_size, output_size)
+                layer = layer_init(nn.Linear(input_size, output_size))
                 self.layers.append(layer)
         self.activations = activations
 

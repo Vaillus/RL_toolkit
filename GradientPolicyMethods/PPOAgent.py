@@ -1,6 +1,7 @@
 from custom_nn import CustomNeuralNetwork
 from policy_nn import PolicyNetwork
 import torch
+import torch.nn as nn
 from torch.distributions import Categorical
 from typing import Optional, Type, Dict, Any
 from modules.replay_buffer import PPOReplayBuffer
@@ -48,6 +49,7 @@ class PPOAgent:
             self.initialize_policy_estimator(policy_estimator_info)
         self.critic: CustomNeuralNetwork =\
             self.initialize_function_approximator(function_approximator_info)
+        nn.init.orthogonal_(self.critic.layers[-1].weight.data, 1.0)
         self.replay_buffer = self.init_memory_buffer(memory_info)
 
         self.curiosity = self.init_curiosity(curiosity_info)
