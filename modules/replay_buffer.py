@@ -244,7 +244,7 @@ class PPOReplayBuffer(BaseReplayBuffer):
         
         if done == True:
             # compute advantages for each transition
-            self._compute_advantages_gae()
+            self._compute_advantages_gae_ep()
             # send the episode to the main buffer
             self._copy_ep_to_buffer()
             # update the buffer position
@@ -255,7 +255,7 @@ class PPOReplayBuffer(BaseReplayBuffer):
             # else, just update the episode buffer position
             self.ep_pos += 1
     
-    def _compute_advantages_gae(self):
+    def _compute_advantages_gae_ep(self):
         """Compute the advantages for each state in the episode with the 
         GAE method.
         """
@@ -271,9 +271,12 @@ class PPOReplayBuffer(BaseReplayBuffer):
             delta = self.ep_buffer.rewards[step] + self.discount_factor * next_obs_values[step] * (1.0 - float(self.ep_buffer.dones[step])) - obs_values[step]
             last_gae_lam = delta + self.discount_factor * self.gae_lambda * last_gae_lam * (1.0 - float(self.ep_buffer.dones[step]))
             self.ep_buffer.advantages[step] = last_gae_lam
-        # compute the returns and store them in the eisode buffer.
+        # compute the returns and store them in the episode buffer.
         self.ep_buffer.returns[:self.ep_pos+1] = self.ep_buffer.advantages[
             :self.ep_pos+1] + obs_values
+    
+    def compute_advantages(self):
+        if self.gae_lambda:
         
     """def _compute_advantages(self):
         self._compute_ep_returns()

@@ -143,6 +143,8 @@ class PPOAgent:
                 # new_prev_state_value = prev_state_value + delta_state_value
                 # state_value_error = 
                 prev_state_value = self.critic(batch.observations)
+                # if I want to recompute the advantages at each iteration, I 
+                # must also recompute the return that depends on it.
                 value_loss = MSELoss(prev_state_value, batch.returns)
                 value_losses.append(value_loss.item())
                 value_loss *= self.value_coeff
@@ -166,7 +168,7 @@ class PPOAgent:
                         min = 1 - self.clip_range, 
                         max = 1 + self.clip_range
                     ) # OK
-                    
+                    # recompute advantage here. GAE(lambda), then.
                     policy_loss = torch.min(
                         batch.advantages.detach() * ratio, 
                         batch.advantages.detach() * clipped_ratio
