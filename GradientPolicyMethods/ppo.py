@@ -124,114 +124,114 @@ class PPOAgent:
 
     def control(self):
         if self.replay_buffer.full:
-            batch = self.replay_buffer.sample()
-            if self.is_continuous:
-                old_log_probs = self.actor_cont(batch.observations
-                ).log_prob(batch.actions).detach()
-            else:
-                probs_old = self.actor(batch.observations).detach()
-                
-            
-            # initializing the lists containing the metrics to be logged
-            value_losses = []
-            policy_losses = []
-            entropy_losses = []
-            entropies = []
-            intrinsic_rewards = []
-            approx_kls = []
-            explained_vars = []
-
-            for _ in range(self.n_epochs):
-                
-                # === critic stuff
-                # TODO: clip the state value variation. nb: only openai does that. nb2: It is not recommended anyway.
-                # delta_state_value = self.function_approximator_eval(batch_state) - prev_state_value
-                # new_prev_state_value = prev_state_value + delta_state_value
-                # state_value_error = 
-                obs_values = self.critic(batch.observations)
-                # if I want to recompute the advantages at each iteration, I 
-                # must also recompute the return that depends on it.
-                value_loss = MSELoss(obs_values, batch.returns)
-                self.critic.backpropagate(value_loss * self.value_coeff)
-                value_losses.append(value_loss.item())
-                # explained variance as a new metric. 
-                # measures how much the value of the state is correctly predicted.
-                y_pred, y_true = obs_values.detach().numpy(), batch.returns.detach().numpy() 
-                var_y = np.var(y_true)
-                explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
-                explained_vars.append(explained_var)
-
-                # === actor stuff
-                # TODO: sample minibatches here and iterate over them.
-                # nb: needed only when the batch size is too high for the cpu/gpu. 
-                # Not the case here.
-                #probs_new = self.get_proba(batch.observations, batch.actions)
+            for batch in self.replay_buffer.sample():
                 if self.is_continuous:
-                    # get the probabilities of the action taken with the updated policy
-                    log_probs = \
-                        self.actor_cont(batch.observations, plot=True).log_prob(batch.actions)
-                    # compute the importance-sampling ratio for each action and clip them 
-                    log_ratio = (log_probs - old_log_probs)
-                    ratio = torch.exp(log_ratio)
-                    # compute metric to measure aggressivity of policy change
-                    with torch.no_grad():
-                        approx_kl = ((ratio - 1) - log_ratio).mean()
-                    approx_kls.append(approx_kl.item())
-                    clipped_ratio = torch.clamp(
-                        ratio, 
-                        min = 1 - self.clip_range, 
-                        max = 1 + self.clip_range
-                    ) # OK
-                    # recompute advantage here. GAE(lambda), then.
-                    policy_loss = torch.min(
-                        batch.advantages.detach() * ratio, 
-                        batch.advantages.detach() * clipped_ratio
-                    ) # OK
-                    policy_loss = - policy_loss.mean() # OK
-                    
-                    entropy = self.actor_cont(batch.observations).entropy().mean()
-                    entropies.append(entropy.item())
-                    entropy_loss = - entropy * self.entropy_coeff
-                    
-                    self.actor.backpropagate(policy_loss + entropy_loss)
-
-                    entropy_losses.append(entropy_loss.item())
-                    policy_losses.append(policy_loss.item())
-                    
-                    
-
+                    old_log_probs = self.actor_cont(batch.observations
+                    ).log_prob(batch.actions).detach()
                 else:
-                    # get the probabilities of the action taken with the updated policy
-                    probs_new = self.actor(batch.observations)
-                    # compute the importance-sampling ratio for each action and clip them 
-                    ratio = torch.exp(torch.log(probs_new) - torch.log(probs_old)) # ok
-                    ratio = torch.gather(ratio, 1, batch.actions.long()) #ok 
-                    clipped_ratio = torch.clamp(
-                        ratio, 
-                        min = 1 - self.clip_range, 
-                        max = 1 + self.clip_range
-                    ) # OK
-                    policy_loss = torch.min(
-                        batch.advantages.detach() * ratio, 
-                        batch.advantages.detach() * clipped_ratio
-                    ) # OK
-                    policy_loss = - policy_loss.mean() # OK
-                    policy_losses.append(policy_loss.item())
+                    probs_old = self.actor(batch.observations).detach()
                     
-                    entropy = -(
-                        torch.sum(
-                            probs_new * torch.log(probs_new), dim=1, keepdim=True
-                        ).mean()
-                    )
-                    entropies.append(entropy.item())
-                    entropy_loss = - entropy * self.entropy_coeff
-                    entropy_losses.append(entropy_loss.item())
+                
+                # initializing the lists containing the metrics to be logged
+                value_losses = []
+                policy_losses = []
+                entropy_losses = []
+                entropies = []
+                intrinsic_rewards = []
+                approx_kls = []
+                explained_vars = []
 
-                    # computing ICM loss
-                    #intrinsic_reward = self.compute_icm_loss(batch, self.actor)
-                    #intrinsic_rewards.append(intrinsic_reward.item())
+                for _ in range(self.n_epochs):
                     
-                    self.actor.backpropagate(policy_loss + entropy_loss) #+ intrinsic_reward)
+                    # === critic stuff
+                    # TODO: clip the state value variation. nb: only openai does that. nb2: It is not recommended anyway.
+                    # delta_state_value = self.function_approximator_eval(batch_state) - prev_state_value
+                    # new_prev_state_value = prev_state_value + delta_state_value
+                    # state_value_error = 
+                    obs_values = self.critic(batch.observations)
+                    # if I want to recompute the advantages at each iteration, I 
+                    # must also recompute the return that depends on it.
+                    value_loss = MSELoss(obs_values, batch.returns)
+                    self.critic.backpropagate(value_loss * self.value_coeff)
+                    value_losses.append(value_loss.item())
+                    # explained variance as a new metric. 
+                    # measures how much the value of the state is correctly predicted.
+                    y_pred, y_true = obs_values.detach().numpy(), batch.returns.detach().numpy() 
+                    var_y = np.var(y_true)
+                    explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
+                    explained_vars.append(explained_var)
+
+                    # === actor stuff
+                    # TODO: sample minibatches here and iterate over them.
+                    # nb: needed only when the batch size is too high for the cpu/gpu. 
+                    # Not the case here.
+                    #probs_new = self.get_proba(batch.observations, batch.actions)
+                    if self.is_continuous:
+                        # get the probabilities of the action taken with the updated policy
+                        log_probs = \
+                            self.actor_cont(batch.observations, plot=True).log_prob(batch.actions)
+                        # compute the importance-sampling ratio for each action and clip them 
+                        log_ratio = (log_probs - old_log_probs)
+                        ratio = torch.exp(log_ratio)
+                        # compute metric to measure aggressivity of policy change
+                        with torch.no_grad():
+                            approx_kl = ((ratio - 1) - log_ratio).mean()
+                        approx_kls.append(approx_kl.item())
+                        clipped_ratio = torch.clamp(
+                            ratio, 
+                            min = 1 - self.clip_range, 
+                            max = 1 + self.clip_range
+                        ) # OK
+                        # recompute advantage here. GAE(lambda), then.
+                        policy_loss = torch.min(
+                            batch.advantages.detach() * ratio, 
+                            batch.advantages.detach() * clipped_ratio
+                        ) # OK
+                        policy_loss = - policy_loss.mean() # OK
+                        
+                        entropy = self.actor_cont(batch.observations).entropy().mean()
+                        entropies.append(entropy.item())
+                        entropy_loss = - entropy * self.entropy_coeff
+                        
+                        self.actor.backpropagate(policy_loss + entropy_loss)
+
+                        entropy_losses.append(entropy_loss.item())
+                        policy_losses.append(policy_loss.item())
+                        
+                        
+
+                    else:
+                        # get the probabilities of the action taken with the updated policy
+                        probs_new = self.actor(batch.observations)
+                        # compute the importance-sampling ratio for each action and clip them 
+                        ratio = torch.exp(torch.log(probs_new) - torch.log(probs_old)) # ok
+                        ratio = torch.gather(ratio, 1, batch.actions.long()) #ok 
+                        clipped_ratio = torch.clamp(
+                            ratio, 
+                            min = 1 - self.clip_range, 
+                            max = 1 + self.clip_range
+                        ) # OK
+                        policy_loss = torch.min(
+                            batch.advantages.detach() * ratio, 
+                            batch.advantages.detach() * clipped_ratio
+                        ) # OK
+                        policy_loss = - policy_loss.mean() # OK
+                        policy_losses.append(policy_loss.item())
+                        
+                        entropy = -(
+                            torch.sum(
+                                probs_new * torch.log(probs_new), dim=1, keepdim=True
+                            ).mean()
+                        )
+                        entropies.append(entropy.item())
+                        entropy_loss = - entropy * self.entropy_coeff
+                        entropy_losses.append(entropy_loss.item())
+
+                        # computing ICM loss
+                        #intrinsic_reward = self.compute_icm_loss(batch, self.actor)
+                        #intrinsic_rewards.append(intrinsic_reward.item())
+                        
+                        self.actor.backpropagate(policy_loss + entropy_loss) #+ intrinsic_reward)
 
                 
             if self.is_continuous:

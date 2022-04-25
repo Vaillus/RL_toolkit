@@ -175,6 +175,7 @@ class PPOReplayBuffer(BaseReplayBuffer):
         self.critic = critic # addition to compute the GAE stuff
         self.gae_lambda = gae_lambda
         self.normalize_advantages = normalize_advantages
+        self.batch_size = batch_size
 
     def store_transition(
         self, 
@@ -193,27 +194,29 @@ class PPOReplayBuffer(BaseReplayBuffer):
             ReplayBufferSamples: observations, actions, rewards, 
             next_observations, dones
         """
-
+        print("yo")
         # TODO: make mini batches
         # TODO: return an iterator
-
-        sample = PPOReplayBufferSample
-        sample.observations = self.observations.detach()
-        sample.actions = self.actions.detach()
-        sample.rewards = self.rewards.detach()
-        sample.next_observations = self.next_observations.detach()
-        sample.dones = self.dones.detach()
-        sample.returns = self.returns.detach()
-        sample.advantages = self.advantages
         # normalize advantages
         if self.normalize_advantages:
             sample.advantages = self._normalize(sample.advantages)
+        # shuffle sample
+        #sample = self._shuffle(sample)
+        # make an iterator returning minibatches of size batch_size from sample
+        shuf_ids = torch.randperm(self.observations.size(0))
+        it = iter(range(0, self.size, self.batch_size))
+        for i in it:
+            print("yo")
+            sample = PPOReplayBufferSample
+            sample.observations = self.observations[shuf_ids[i:i+self.batch_size]].detach().clone()
+            sample.actions = self.actions[shuf_ids[i:i+self.batch_size]].detach().clone()
+            sample.rewards = self.rewards[shuf_ids[i:i+self.batch_size]].detach().clone()
+            sample.next_observations = self.next_observations[shuf_ids[i:i+self.batch_size]].detach().clone()
+            sample.dones = self.dones[shuf_ids[i:i+self.batch_size]].detach().clone()
+            sample.returns = self.returns[shuf_ids[i:i+self.batch_size]].detach().clone()
+            sample.advantages = self.advantages[shuf_ids[i:i+self.batch_size]].detach().clone()
+            yield sample
 
-        #self.episode_buffer = self._init_episode_buffer() 
-        # # this deletes what is inside the sample, and nothing is learned.
-
-        return sample
-    
     
 
     def _init_episode_buffer(self) -> PPOReplayBufferSample:
@@ -231,7 +234,7 @@ class PPOReplayBuffer(BaseReplayBuffer):
         return episode_buffer
 
     def _store_in_episode_buffer(self, obs, action, reward, next_obs, done):
-        """stare thetransition in the episode buffer. If the episode is done, 
+        """stare thetransition in the episode buffer. If the episode is done,
         compute the returns and advantages. Then store everything in the main
         buffer and reinit the episode buffer.
         """

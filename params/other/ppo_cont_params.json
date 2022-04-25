@@ -20,11 +20,12 @@
       "state_dim": 4,
       "clip_range": 0.2,
       "n_epochs": 3,
-      "entropy_coeff": 3e-5,
+      "entropy_coeff": 3e-4,
       "is_continuous": true,
       "normalize_advantages": false,
       "memory_info":{
-        "size": 1024
+        "size": 1024,
+        "batch_size": 64
       },
       "curiosity_info": {
         "embedding_size": 64
@@ -60,7 +61,7 @@
     }
   },
   "logger_kwargs": {
-    "is_wandb": true,
+    "is_wandb": false,
     "wandb_kwargs": {
       "job_type": "test2"
     },
