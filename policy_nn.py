@@ -45,6 +45,7 @@ class PolicyNetwork(CustomNeuralNetwork):
                 self.output_dim
             )"""
         self.sigma = nn.Parameter(torch.zeros(1, self.output_dim))
+        torch.nn.init.orthogonal_(self.sigma, 0.01)
         #self.mu[0].weight.data *= 0.01
         #self.sigma.weight.data *= 0.01
     

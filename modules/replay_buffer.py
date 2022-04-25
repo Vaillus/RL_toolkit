@@ -275,21 +275,21 @@ class PPOReplayBuffer(BaseReplayBuffer):
         self.ep_buffer.returns[:self.ep_pos+1] = self.ep_buffer.advantages[
             :self.ep_pos+1] + obs_values
     
-    def compute_advantages(self):
-        if self.gae_lambda:
+    #def compute_advantages(self):
+    #    if self.gae_lambda:
         
-    """def _compute_advantages(self):
+    def _compute_advantages(self):
         self._compute_ep_returns()
         prev_state_value = self.critic(self.ep_buffer.observations[:self.ep_pos+1])
         self.ep_buffer.advantages[:self.ep_pos+1] = self.ep_buffer.returns[:self.ep_pos+1] - prev_state_value.detach()
-        #self.normalize(advantage) # is it really a good idea?"""
+        #self.normalize(advantage) # is it really a good idea?
     
     def _normalize(self, input: torch.Tensor):
         """Normalize the input with the mean and std of the buffer
         """
         mean = input.mean().detach()
         std = input.std().detach()
-        ret_val = (input - mean) / std
+        ret_val = (input - mean) / (std + 1e-8)
         if torch.isnan(ret_val).any():
             ret_val = input
         return ret_val

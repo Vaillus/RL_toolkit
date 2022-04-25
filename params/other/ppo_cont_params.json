@@ -20,9 +20,9 @@
       "state_dim": 4,
       "clip_range": 0.2,
       "n_epochs": 3,
-      "entropy_coeff": 0,
+      "entropy_coeff": 3e-5,
       "is_continuous": true,
-      "normalize_advantages": true,
+      "normalize_advantages": false,
       "memory_info":{
         "size": 1024
       },
@@ -39,7 +39,8 @@
         },
         "optimizer_info": {
           "type": "adam",
-          "learning_rate": 3e-4
+          "learning_rate": 3e-4,
+          "eps": 1e-5
         }
       },
       "function_approximator_info": {
@@ -53,7 +54,7 @@
         "optimizer_info": {
           "type": "adam",
           "learning_rate": 3e-4,
-          "eps": 1e-7
+          "eps": 1e-5
         }
       }
     }
@@ -67,6 +68,6 @@
     "agent_freq": 10,
     "grad_freq": 20,
     "log_every": 10,
-    "video_record":true
+    "video_record":false
   }
 } 

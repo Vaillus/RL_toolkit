@@ -34,7 +34,8 @@ class PPOAgent:
         entropy_coeff: Optional[float] = 0.01,
         n_epochs: Optional[int] = 8,
         gae_lambda: Optional[float] = 0.95,
-        normalize_advantages: Optional[bool] = True
+        normalize_advantages: Optional[bool] = True,
+        grad_clip_range: Optional[float] = 0.5
     ):
         self.γ = discount_factor
         self.state_dim = state_dim
@@ -44,12 +45,15 @@ class PPOAgent:
         self.gae_lambda = gae_lambda
         self.normalize_advantages = normalize_advantages
 
-
+        self.grad_clip_range = grad_clip_range
         self.actor: CustomNeuralNetwork =\
             self.initialize_policy_estimator(policy_estimator_info)
         self.critic: CustomNeuralNetwork =\
             self.initialize_function_approximator(function_approximator_info)
         nn.init.orthogonal_(self.critic.layers[-1].weight.data, 1.0)
+        # make it optional ?
+        nn.utils.clip_grad_norm_(self.critic.parameters(), self.grad_clip_range)
+        nn.utils.clip_grad_norm_(self.actor.parameters(), self.grad_clip_range)
         self.replay_buffer = self.init_memory_buffer(memory_info)
 
         self.curiosity = self.init_curiosity(curiosity_info)
@@ -122,8 +126,8 @@ class PPOAgent:
         if self.replay_buffer.full:
             batch = self.replay_buffer.sample()
             if self.is_continuous:
-                probs_old = torch.exp(self.actor_cont(batch.observations
-                ).log_prob(batch.actions)).detach()
+                old_log_probs = self.actor_cont(batch.observations
+                ).log_prob(batch.actions).detach()
             else:
                 probs_old = self.actor(batch.observations).detach()
                 
@@ -134,6 +138,8 @@ class PPOAgent:
             entropy_losses = []
             entropies = []
             intrinsic_rewards = []
+            approx_kls = []
+            explained_vars = []
 
             for _ in range(self.n_epochs):
                 
@@ -142,14 +148,18 @@ class PPOAgent:
                 # delta_state_value = self.function_approximator_eval(batch_state) - prev_state_value
                 # new_prev_state_value = prev_state_value + delta_state_value
                 # state_value_error = 
-                prev_state_value = self.critic(batch.observations)
+                obs_values = self.critic(batch.observations)
                 # if I want to recompute the advantages at each iteration, I 
                 # must also recompute the return that depends on it.
-                value_loss = MSELoss(prev_state_value, batch.returns)
+                value_loss = MSELoss(obs_values, batch.returns)
+                self.critic.backpropagate(value_loss * self.value_coeff)
                 value_losses.append(value_loss.item())
-                value_loss *= self.value_coeff
-                self.critic.backpropagate(value_loss)
-
+                # explained variance as a new metric. 
+                # measures how much the value of the state is correctly predicted.
+                y_pred, y_true = obs_values.detach().numpy(), batch.returns.detach().numpy() 
+                var_y = np.var(y_true)
+                explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
+                explained_vars.append(explained_var)
 
                 # === actor stuff
                 # TODO: sample minibatches here and iterate over them.
@@ -158,11 +168,15 @@ class PPOAgent:
                 #probs_new = self.get_proba(batch.observations, batch.actions)
                 if self.is_continuous:
                     # get the probabilities of the action taken with the updated policy
-                    probs_new = torch.exp(
-                        self.actor_cont(batch.observations, plot=True).log_prob(batch.actions))
+                    log_probs = \
+                        self.actor_cont(batch.observations, plot=True).log_prob(batch.actions)
                     # compute the importance-sampling ratio for each action and clip them 
-                    ratio = torch.exp(
-                        torch.log(probs_new) - torch.log(probs_old))
+                    log_ratio = (log_probs - old_log_probs)
+                    ratio = torch.exp(log_ratio)
+                    # compute metric to measure aggressivity of policy change
+                    with torch.no_grad():
+                        approx_kl = ((ratio - 1) - log_ratio).mean()
+                    approx_kls.append(approx_kl.item())
                     clipped_ratio = torch.clamp(
                         ratio, 
                         min = 1 - self.clip_range, 
@@ -174,14 +188,17 @@ class PPOAgent:
                         batch.advantages.detach() * clipped_ratio
                     ) # OK
                     policy_loss = - policy_loss.mean() # OK
-                    policy_losses.append(policy_loss.item())
-
+                    
                     entropy = self.actor_cont(batch.observations).entropy().mean()
                     entropies.append(entropy.item())
                     entropy_loss = - entropy * self.entropy_coeff
-                    entropy_losses.append(entropy_loss.item())
-
+                    
                     self.actor.backpropagate(policy_loss + entropy_loss)
+
+                    entropy_losses.append(entropy_loss.item())
+                    policy_losses.append(policy_loss.item())
+                    
+                    
 
                 else:
                     # get the probabilities of the action taken with the updated policy
@@ -217,13 +234,17 @@ class PPOAgent:
                     self.actor.backpropagate(policy_loss + entropy_loss) #+ intrinsic_reward)
 
                 
-                
+            if self.is_continuous:
+                self.logger.log({
+                    "Agent info/ approx KL": np.mean(approx_kls)},
+                    type="agent")
             self.logger.log({
                 'Agent info/critic loss': np.mean(value_losses),
                 'Agent info/actor loss': np.mean(policy_losses),
                 'Agent info/entropy': np.mean(entropies),
                 'Agent info/entropy loss': np.mean(entropy_losses),
-                'Agent info/intrinsic reward': np.mean(intrinsic_rewards)},
+                'Agent info/intrinsic reward': np.mean(intrinsic_rewards),
+                "Agent info/explained variance": np.mean(explained_vars)},
                 type= "agent")
             # the replay buffer is used only one (completely) and then 
             # emptied out
