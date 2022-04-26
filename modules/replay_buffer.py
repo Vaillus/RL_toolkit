@@ -221,15 +221,15 @@ class PPOReplayBuffer(BaseReplayBuffer):
 
     def _init_episode_buffer(self) -> PPOReplayBufferSample:
         episode_buffer = PPOReplayBufferSample
-        episode_buffer.observations = torch.zeros(
-            (self.size, self.obs_dim), dtype=torch.float32)
-        episode_buffer.actions = torch.zeros((self.size, self.action_dim))
-        episode_buffer.rewards = torch.zeros((self.size,1), dtype=torch.float32)
-        episode_buffer.next_observations = torch.zeros(
-            (self.size, self.obs_dim), dtype=torch.float32)
-        episode_buffer.dones = torch.zeros((self.size,1), dtype=torch.bool)
-        episode_buffer.returns = torch.zeros((self.size,1), dtype=torch.float32)
-        episode_buffer.advantages = torch.zeros((self.size,1), dtype=torch.float32)
+        episode_buffer.observations = np.zeros(
+            (self.size, self.obs_dim), dtype=np.float32)
+        episode_buffer.actions = np.zeros((self.size, self.action_dim))
+        episode_buffer.rewards = np.zeros((self.size,1), dtype=np.float32)
+        episode_buffer.next_observations = np.zeros(
+            (self.size, self.obs_dim), dtype=np.float32)
+        episode_buffer.dones = np.zeros((self.size,1), dtype=np.bool)
+        episode_buffer.returns = np.zeros((self.size,1), dtype=np.float32)
+        episode_buffer.advantages = np.zeros((self.size,1), dtype=np.float32)
         self.ep_pos = 0
         return episode_buffer
 
@@ -239,10 +239,10 @@ class PPOReplayBuffer(BaseReplayBuffer):
         buffer and reinit the episode buffer.
         """
         # store the transition in the episode buffer
-        self.ep_buffer.observations[self.ep_pos] = torch.Tensor(obs)
+        self.ep_buffer.observations[self.ep_pos] = obs
         self.ep_buffer.actions[self.ep_pos] = action#.detach().cpu().numpy()
-        self.ep_buffer.rewards[self.ep_pos] = torch.Tensor([reward])
-        self.ep_buffer.next_observations[self.ep_pos] = torch.Tensor(next_obs)
+        self.ep_buffer.rewards[self.ep_pos] = reward
+        self.ep_buffer.next_observations[self.ep_pos] = next_obs
         self.ep_buffer.dones[self.ep_pos] = done
         
         if done == True:
@@ -271,12 +271,12 @@ class PPOReplayBuffer(BaseReplayBuffer):
         
         last_gae_lam = 0
         for step in reversed(range(self.ep_pos+1)): # +1 or not?
-            delta = self.ep_buffer.rewards[step] + self.discount_factor * next_obs_values[step] * (1.0 - float(self.ep_buffer.dones[step])) - obs_values[step]
+            delta = self.ep_buffer.rewards[step] + self.discount_factor * next_obs_values[step].detach().numpy() * (1.0 - self.ep_buffer.dones[step].astype(np.float)) - obs_values[step].detach().numpy()
             last_gae_lam = delta + self.discount_factor * self.gae_lambda * last_gae_lam * (1.0 - float(self.ep_buffer.dones[step]))
             self.ep_buffer.advantages[step] = last_gae_lam
         # compute the returns and store them in the episode buffer.
         self.ep_buffer.returns[:self.ep_pos+1] = self.ep_buffer.advantages[
-            :self.ep_pos+1] + obs_values
+            :self.ep_pos+1] + obs_values.detach().numpy()
     
     #def compute_advantages(self):
     #    if self.gae_lambda:
