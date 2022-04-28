@@ -3,7 +3,7 @@ from policy_nn import PolicyNetwork
 import torch
 import torch.nn as nn
 from torch.distributions import Categorical
-from typing import Optional, Type, Dict, Any
+from typing import Optional, Type, Dict, Any, List, Union
 from modules.replay_buffer import PPOReplayBuffer
 from modules.logger import Logger
 from utils import set_random_seed
@@ -64,10 +64,18 @@ class PPOAgent:
         self.entropy_coeff = entropy_coeff
         self.n_epochs = n_epochs
 
-        self.previous_state = None
+        self.previous_state: List[float] = None
         self.previous_action = None
 
         self.logger = None
+        # metrics to be logged
+        self.value_losses = []
+        self.policy_losses = []
+        self.entropy_losses = []
+        self.entropies = []
+        self.intrinsic_rewards = []
+        self.approx_kls = []
+        self.explained_vars = []
 
         # self.memory_size = memory_info.get("size", 200) #why?
 
@@ -124,42 +132,25 @@ class PPOAgent:
 
     def control(self):
         if self.replay_buffer.full:
-            for batch in self.replay_buffer.sample():
-                if self.is_continuous:
-                    old_log_probs = self.actor_cont(batch.observations
-                    ).log_prob(batch.actions).detach()
-                else:
-                    probs_old = self.actor(batch.observations).detach()
-                    
-                
-                # initializing the lists containing the metrics to be logged
-                value_losses = []
-                policy_losses = []
-                entropy_losses = []
-                entropies = []
-                intrinsic_rewards = []
-                approx_kls = []
-                explained_vars = []
-
-                for _ in range(self.n_epochs):
-                    
+            """if self.is_continuous:
+                old_log_probs = self.actor_cont(batch.observations
+                ).log_prob(batch.actions).detach()
+            else:
+                probs_old = self.actor(batch.observations).detach()
+            """
+            for _ in range(self.n_epochs):
+                for batch in self.replay_buffer.sample():
                     # === critic stuff
-                    # TODO: clip the state value variation. nb: only openai does that. nb2: It is not recommended anyway.
-                    # delta_state_value = self.function_approximator_eval(batch_state) - prev_state_value
-                    # new_prev_state_value = prev_state_value + delta_state_value
-                    # state_value_error = 
                     obs_values = self.critic(batch.observations)
-                    # if I want to recompute the advantages at each iteration, I 
-                    # must also recompute the return that depends on it.
                     value_loss = MSELoss(obs_values, batch.returns)
                     self.critic.backpropagate(value_loss * self.value_coeff)
-                    value_losses.append(value_loss.item())
+                    self.value_losses.append(value_loss.item())
                     # explained variance as a new metric. 
                     # measures how much the value of the state is correctly predicted.
                     y_pred, y_true = obs_values.detach().numpy(), batch.returns.detach().numpy() 
                     var_y = np.var(y_true)
                     explained_var = np.nan if var_y == 0 else 1 - np.var(y_true - y_pred) / var_y
-                    explained_vars.append(explained_var)
+                    self.explained_vars.append(explained_var)
 
                     # === actor stuff
                     # TODO: sample minibatches here and iterate over them.
@@ -168,15 +159,16 @@ class PPOAgent:
                     #probs_new = self.get_proba(batch.observations, batch.actions)
                     if self.is_continuous:
                         # get the probabilities of the action taken with the updated policy
+                        
                         log_probs = \
                             self.actor_cont(batch.observations, plot=True).log_prob(batch.actions)
                         # compute the importance-sampling ratio for each action and clip them 
-                        log_ratio = (log_probs - old_log_probs)
+                        log_ratio = (log_probs - batch.logprob_old)
                         ratio = torch.exp(log_ratio)
                         # compute metric to measure aggressivity of policy change
                         with torch.no_grad():
                             approx_kl = ((ratio - 1) - log_ratio).mean()
-                        approx_kls.append(approx_kl.item())
+                        self.approx_kls.append(approx_kl.item())
                         clipped_ratio = torch.clamp(
                             ratio, 
                             min = 1 - self.clip_range, 
@@ -190,16 +182,13 @@ class PPOAgent:
                         policy_loss = - policy_loss.mean() # OK
                         
                         entropy = self.actor_cont(batch.observations).entropy().mean()
-                        entropies.append(entropy.item())
+                        self.entropies.append(entropy.item())
                         entropy_loss = - entropy * self.entropy_coeff
                         
                         self.actor.backpropagate(policy_loss + entropy_loss)
 
-                        entropy_losses.append(entropy_loss.item())
-                        policy_losses.append(policy_loss.item())
-                        
-                        
-
+                        self.entropy_losses.append(entropy_loss.item())
+                        self.policy_losses.append(policy_loss.item())
                     else:
                         # get the probabilities of the action taken with the updated policy
                         probs_new = self.actor(batch.observations)
@@ -216,39 +205,49 @@ class PPOAgent:
                             batch.advantages.detach() * clipped_ratio
                         ) # OK
                         policy_loss = - policy_loss.mean() # OK
-                        policy_losses.append(policy_loss.item())
+                        self.policy_losses.append(policy_loss.item())
                         
                         entropy = -(
                             torch.sum(
                                 probs_new * torch.log(probs_new), dim=1, keepdim=True
                             ).mean()
                         )
-                        entropies.append(entropy.item())
+                        self.entropies.append(entropy.item())
                         entropy_loss = - entropy * self.entropy_coeff
-                        entropy_losses.append(entropy_loss.item())
+                        self.entropy_losses.append(entropy_loss.item())
 
                         # computing ICM loss
                         #intrinsic_reward = self.compute_icm_loss(batch, self.actor)
                         #intrinsic_rewards.append(intrinsic_reward.item())
                         
                         self.actor.backpropagate(policy_loss + entropy_loss) #+ intrinsic_reward)
-
-                
-            if self.is_continuous:
-                self.logger.log({
-                    "Agent info/ approx KL": np.mean(approx_kls)},
-                    type="agent")
-            self.logger.log({
-                'Agent info/critic loss': np.mean(value_losses),
-                'Agent info/actor loss': np.mean(policy_losses),
-                'Agent info/entropy': np.mean(entropies),
-                'Agent info/entropy loss': np.mean(entropy_losses),
-                'Agent info/intrinsic reward': np.mean(intrinsic_rewards),
-                "Agent info/explained variance": np.mean(explained_vars)},
-                type= "agent")
+            self._log_control_metrics()
             # the replay buffer is used only one (completely) and then 
             # emptied out
             self.replay_buffer.erase()
+    
+    def _log_control_metrics(self):
+        if self.is_continuous:
+            self.logger.log({
+                "Agent info/ approx KL": np.mean(self.approx_kls)},
+                type="agent"
+            )
+        self.logger.log({
+            'Agent info/critic loss': np.mean(self.value_losses),
+            'Agent info/actor loss': np.mean(self.policy_losses),
+            'Agent info/entropy': np.mean(self.entropies),
+            'Agent info/entropy loss': np.mean(self.entropy_losses),
+            'Agent info/intrinsic reward': np.mean(self.intrinsic_rewards),
+            "Agent info/explained variance": np.mean(self.explained_vars)},
+            type= "agent")
+        self.value_losses = []
+        self.policy_losses = []
+        self.entropy_losses = []
+        self.entropies = []
+        self.intrinsic_rewards = []
+        self.approx_kls = []
+        self.explained_vars = []
+        
 
     def get_proba(self, obs, actions):
         if self.is_continuous:
@@ -256,13 +255,16 @@ class PPOAgent:
         else:
             return self.actor(obs)
 
-
     def compute_icm_loss(self, batch, actor):
         return self.curiosity.compute_icm_loss(batch=batch, nn=actor)
-    
+
+
+
     # ====== Action choice related functions ===========================
 
-    def choose_action(self, state) -> int:
+
+
+    def choose_action(self, state: np.ndarray) -> Union[int, float]:
         if self.is_continuous:  
             action = torch.tanh(self.actor_cont(state).sample())
             #action = self.actor_cont(state).sample().clamp(-1, 1)
@@ -273,34 +275,48 @@ class PPOAgent:
             action_chosen = action_probs.sample()
             return action_chosen.item()
 
+
+
     # ====== Agent core functions ======================================
 
-    def start(self, state):
+
+
+    def start(self, state: np.ndarray):
         # choosing the action to take
         current_action = self.choose_action(state) 
 
         self.previous_action = current_action
-        self.previous_state = state
+        self.previous_state = state.tolist()
 
         return current_action
 
-    def step(self, state, reward):
+    def step(self, state: np.ndarray, reward: float):
 
         #intrinsic_reward = self.curiosity.get_intrinsic_reward(self.actor, self.previous_state, state, self.previous_action)
         #reward += intrinsic_reward
         # storing the transition in the memory for further use
-        self.replay_buffer.store_transition(self.previous_state, self.previous_action, reward, state, False)
+        # TODO : compute that elsewhere
+        logprob = torch.distributions.Normal(
+            *self.actor(self.previous_state)).log_prob(
+                torch.tensor(self.previous_action)).detach().tolist()
+        self.replay_buffer.store_transition(
+            self.previous_state, 
+            self.previous_action, 
+            reward, 
+            state.tolist(), 
+            False, 
+            logprob
+        )
         # getting the action values from the function approximator
         current_action = self.choose_action(state)
         self.control()
-        #self.vanilla_control(state, reward, False)
 
         self.previous_action = current_action
-        self.previous_state = state
+        self.previous_state = state.tolist()
 
         return current_action
 
-    def end(self, state, reward):
+    def end(self, state: List, reward:float):
         """ receive the terminal state and reward to stor the final transition. 
         Apparently I also compute the advantage at the end of the episode... """
         #intrinsic_reward = self.curiosity.get_intrinsic_reward(self.actor, self.previous_state, state, self.previous_action)
@@ -309,7 +325,17 @@ class PPOAgent:
         
         # measure time spent executing the next line with cstats and print it
         #with cProfile.Profile() as pr:
-        self.replay_buffer.store_transition(self.previous_state, self.previous_action, reward, state, True) #+ intrinsic_reward, state, True)
+        logprob = torch.distributions.Normal(
+            *self.actor(self.previous_state)).log_prob(
+                torch.tensor(self.previous_action)).detach().tolist()
+        self.replay_buffer.store_transition(
+            self.previous_state, 
+            self.previous_action, 
+            reward, #+ intrinsic_reward
+            state.tolist(), 
+            True, 
+            logprob
+        )
         #stats = pstats.Stats(pr)
         #self.compute_ep_advantages()
         self.control()
@@ -339,18 +365,20 @@ class PPOAgent:
         """compute the GAE advantages for the episode buffer"""
         self.replay_buffer._compute_advantages_gae()
 
-    def actor_cont(self, state, plot=False):
+    def actor_cont(self, state: np.ndarray, plot: bool = False):
+        """ Return the action distribution for the given state in the 
+        continuous case."""
         mu, sigma = self.actor(state)
         if plot:
             self.logger.log({
                 "Agent info/sigma": sigma.mean().item(),
-                "Agent info/mu": mu.mean().item()}, type="agent")
+                "Agent info/mu": mu.mean().item()}, log_freq=500)
         
         action_probs = torch.distributions.Normal(mu, sigma)
         return action_probs
         
     def get_action_values_eval(self, state:torch.Tensor, actions:torch.Tensor):
-        """ for plotting purposes only in continuous probe environment. 
+        """ for plotting purposes only. Called from continuous probe environment. 
         """
         action_probs = torch.exp(self.actor_cont(state).log_prob(actions))
         return action_probs.detach().numpy()

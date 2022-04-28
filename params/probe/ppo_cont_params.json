@@ -7,8 +7,9 @@
   },
   "env_info":{
     "type": "probe",
-    "name": "five",
-    "action_type": "continuous"
+    "name": "one",
+    "action_type": "continuous",
+    "normalize_obs": true
   },
   "agent_info":{
     "type": "PPO",
@@ -18,14 +19,13 @@
       "state_dim": 1,
       "clip_range": 0.2,
       "n_epochs": 7,
-      "value_coeff": 1.0,
-      "entropy_coeff": 0.5,
+      "entropy_coeff": 3e-4,
       "is_continuous": true,
 
       "memory_info":{
         "size": 100,
-        "batch_size": 32},
-
+        "batch_size": 32
+      },
       "policy_estimator_info": {
         "layers_info": {
           "n_hidden_layers": 1,
@@ -50,14 +50,14 @@
         },
         "optimizer_info": {
           "type": "adam",
-          "learning_rate": 0.01
+          "learning_rate": 0.001
         }
       }
     }
   },
   "logger_kwargs": {
     "is_print": true,
-    "is_wandb": true,
+    "is_wandb": false,
       "wandb_kwargs": {
         "job_type": "test2"
       },

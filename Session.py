@@ -60,9 +60,11 @@ class Session:
 
         self.adjust_agent_with_env()
         
+        
 
     # ====== Initialization functions ==================================
     
+
    
     def _init_seed(self, seed):
         self.seed = seed
@@ -87,8 +89,10 @@ class Session:
             return SingleAgentInterface(**agent_kwargs, logger=self.logger)
 
     
+
     # ==== Main loop functions =========================================
     
+
 
     def run(self):
         """Run all the episodes then plot the rewards
@@ -193,7 +197,10 @@ class Session:
                 return episode_reward, success, ep_len
 
 
+
     # === other functions ==============================================
+
+
 
     def get_agent_action(self, state_data, reward_data= {}, start=False):
         # TODO : my intuition is that the two environment functions work
@@ -268,7 +275,7 @@ if __name__ == "__main__":
     # set the working dir to the script's directory
     os.chdir(os.path.dirname(os.path.realpath(__file__)))
 
-    data = get_params("other/ppo_cont_params")
+    data = get_params("probe/ppo_cont_params")
     #data = get_params("functional_examples/ppo_cartpole")
     session_parameters = data["session_info"]
     session_parameters["agent_kwargs"] = data["agent_info"]

@@ -256,9 +256,9 @@ class EnvInterface:
         return action
     
     def modify_state(self, state):
+        if not isinstance(state,np.ndarray):
+                state = np.array(state)
         if self.name.startswith("MinAtar/Breakout"):
-            if not isinstance(state,np.ndarray):
-                state = np.array(state) 
             state = state.astype(np.float).flatten() - 0.5
         if self.name.startswith("Pendulum"):
             state = state.astype(np.float).flatten()
@@ -266,6 +266,7 @@ class EnvInterface:
         return state
     
     def _normalize_obs(self, obs: np.ndarray):
+
         if self.ob_rms:
             self.ob_rms.update(obs)
             obs = np.clip((obs - self.ob_rms.mean) / np.sqrt(self.ob_rms.var + self.epsilon), -self.clip_obs, self.clip_obs)
