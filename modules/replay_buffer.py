@@ -169,7 +169,8 @@ class PPOReplayBuffer(BaseReplayBuffer):
         batch_size:Optional[int] = 64,
         critic:Optional[CustomNeuralNetwork] = None,
         gae_lambda:Optional[float] = 0.95,
-        normalize_advantages:Optional[bool] = True
+        normalize_advantages:Optional[bool] = True,
+        normalize_returns:Optional[bool] = False
     ):
         super(PPOReplayBuffer, self).__init__(obs_dim, action_dim, size)
         self.ep_pos = 0
@@ -182,6 +183,7 @@ class PPOReplayBuffer(BaseReplayBuffer):
         self.critic = critic # addition to compute the GAE stuff
         self.gae_lambda = gae_lambda
         self.normalize_advantages = normalize_advantages
+        self.normalize_returns = normalize_returns
         self.batch_size = batch_size
 
 
@@ -304,7 +306,7 @@ class PPOReplayBuffer(BaseReplayBuffer):
         next_obs_values = self.critic(self.ep_buffer.next_observations[:self.ep_pos+1]
             ).detach().squeeze().tolist()
         
-        if type(obs_values) != List:
+        if type(obs_values) != list:
             obs_values = [obs_values]
             next_obs_values = [next_obs_values]
         
@@ -319,8 +321,8 @@ class PPOReplayBuffer(BaseReplayBuffer):
                  * last_gae_lam * (1.0 - float(self.ep_buffer.dones[step]))
             self.ep_buffer.advantages[step] = last_gae_lam
         # compute the returns and store them in the episode buffer.
-        self.ep_buffer.returns[:self.ep_pos+1] = self.ep_buffer.advantages[
-            :self.ep_pos+1] + obs_values
+        self.ep_buffer.returns[:self.ep_pos+1] = [ x + y for x, y in zip(self.ep_buffer.advantages[
+            :self.ep_pos+1], obs_values)]
     
     #def compute_advantages(self):
     #    if self.gae_lambda:
@@ -336,16 +338,23 @@ class PPOReplayBuffer(BaseReplayBuffer):
         if self.pos + self.ep_pos >= self.size - 1:
             last_val = self.size - self.pos
             self.full = True
+            self.observations += self.ep_buffer.observations[:last_val]
+            self.actions += self.ep_buffer.actions[:last_val]
+            self.rewards += self.ep_buffer.rewards[:last_val]
+            self.next_observations += self.ep_buffer.next_observations[:last_val]
+            self.dones += self.ep_buffer.dones[:last_val]
+            self.returns += self.ep_buffer.returns[:last_val]
+            self.advantages += self.ep_buffer.advantages[:last_val]
+            self.logprob_old += self.ep_buffer.logprob_old[:last_val]
         else:
-            last_val = -1
-        self.observations += self.ep_buffer.observations[:last_val]
-        self.actions += self.ep_buffer.actions[:last_val]
-        self.rewards += self.ep_buffer.rewards[:last_val]
-        self.next_observations += self.ep_buffer.next_observations[:last_val]
-        self.dones += self.ep_buffer.dones[:last_val]
-        self.returns += self.ep_buffer.returns[:last_val]
-        self.advantages += self.ep_buffer.advantages[:last_val]
-        self.logprob_old += self.ep_buffer.logprob_old[:last_val]
+            self.observations += self.ep_buffer.observations
+            self.actions += self.ep_buffer.actions
+            self.rewards += self.ep_buffer.rewards
+            self.next_observations += self.ep_buffer.next_observations
+            self.dones += self.ep_buffer.dones
+            self.returns += self.ep_buffer.returns
+            self.advantages += self.ep_buffer.advantages
+            self.logprob_old += self.ep_buffer.logprob_old
 
 
     def sample(self) -> PPOReplayBufferSamples:
@@ -359,9 +368,6 @@ class PPOReplayBuffer(BaseReplayBuffer):
         shuf_ids = np.random.permutation(len(self.observations))
         it = iter(range(0, self.size, self.batch_size))
         for i in it:
-            #advantages = self.advantages
-            #if self.normalize_advantages:
-            #    advantages = self._normalize(advantages)
             sample = PPOReplayBufferSample
             sample.observations = torch.tensor(self.observations, dtype=torch.float32)[shuf_ids[i:i+self.batch_size]]
             sample.actions = torch.tensor(self.actions, dtype=torch.float32)[shuf_ids[i:i+self.batch_size]]
@@ -369,11 +375,12 @@ class PPOReplayBuffer(BaseReplayBuffer):
             sample.next_observations = torch.tensor(self.next_observations, dtype=torch.float32)[shuf_ids[i:i+self.batch_size]]
             sample.dones = torch.tensor(self.dones, dtype=torch.float32)[shuf_ids[i:i+self.batch_size]]
             sample.returns = torch.tensor(self.returns, dtype=torch.float32)[shuf_ids[i:i+self.batch_size]]
+            if self.normalize_returns:
+                sample.returns = self._normalize(sample.returns)
             sample.advantages = torch.tensor(self.advantages, dtype=torch.float32)[shuf_ids[i:i+self.batch_size]]
-            sample.advantages = self._normalize(sample.advantages)
+            if self.normalize_advantages:
+                sample.advantages = self._normalize(sample.advantages)
             sample.logprob_old = torch.tensor(self.logprob_old, dtype=torch.float32)[shuf_ids[i:i+self.batch_size]]
-            
-            #sample = self._to_tensor(sample)
             yield sample
 
     def _to_tensor(self, sample):

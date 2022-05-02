@@ -60,7 +60,7 @@ class PolicyNetwork(CustomNeuralNetwork):
             m = nn.Softplus() # only for state-dependant sigma
             #mu = self.mu(x)
             #logstd = 
-            std = m(self.sigma) -0.1879
+            std = m(self.sigma -0.1879)
             return self.mu(x), std#m(self.sigma(x) -0.1879)
         else: 
             return super().forward(x)

@@ -142,6 +142,9 @@ class PPOAgent:
                 for batch in self.replay_buffer.sample():
                     # === critic stuff
                     obs_values = self.critic(batch.observations)
+                    obs_values = torch.squeeze(obs_values)
+                    assert obs_values.shape == batch.rewards.shape, "something \
+                        wrong with the shapes of the tensors for the computation of value loss"
                     value_loss = MSELoss(obs_values, batch.returns)
                     self.critic.backpropagate(value_loss * self.value_coeff)
                     self.value_losses.append(value_loss.item())
@@ -159,11 +162,12 @@ class PPOAgent:
                     #probs_new = self.get_proba(batch.observations, batch.actions)
                     if self.is_continuous:
                         # get the probabilities of the action taken with the updated policy
-                        
                         log_probs = \
-                            self.actor_cont(batch.observations, plot=True).log_prob(batch.actions)
+                            self.actor_cont(batch.observations, plot=True).log_prob(batch.actions.unsqueeze(-1))
                         # compute the importance-sampling ratio for each action and clip them 
-                        log_ratio = (log_probs - batch.logprob_old)
+                        log_ratio = (log_probs.squeeze() - batch.logprob_old.squeeze())
+                        assert log_probs.squeeze().shape == batch.logprob_old.squeeze().shape, "something \
+                            wrong with the shapes of the tensors for the computation of policy loss"
                         ratio = torch.exp(log_ratio)
                         # compute metric to measure aggressivity of policy change
                         with torch.no_grad():

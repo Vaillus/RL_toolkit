@@ -1,13 +1,13 @@
 {
   "session_info":{
-    "num_timestep": 16000,
+    "num_timestep": 30000,
     "plot": false,
     "show": false,
     "return_results": true
   },
   "env_info":{
     "type": "probe",
-    "name": "one",
+    "name": "five",
     "action_type": "continuous",
     "normalize_obs": true
   },
@@ -19,12 +19,12 @@
       "state_dim": 1,
       "clip_range": 0.2,
       "n_epochs": 7,
-      "entropy_coeff": 3e-4,
+      "entropy_coeff": 0,
       "is_continuous": true,
-
+      "normalize_advantages": true,
       "memory_info":{
-        "size": 100,
-        "batch_size": 32
+        "size": 1024,
+        "batch_size": 64
       },
       "policy_estimator_info": {
         "layers_info": {
@@ -36,7 +36,7 @@
         },
         "optimizer_info": {
           "type": "adam",
-          "learning_rate": 0.01,
+          "learning_rate": 0.001,
           "eps": 1e-5 
         }
       },
@@ -57,12 +57,12 @@
   },
   "logger_kwargs": {
     "is_print": true,
-    "is_wandb": false,
+    "is_wandb": true,
       "wandb_kwargs": {
         "job_type": "test2"
       },
     "log_every": 5,
-    "agent_freq": 10,
+    "agent_freq": 1,
     "grad_freq": 1
   }
 } 

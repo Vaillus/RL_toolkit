@@ -223,6 +223,7 @@ class ContinuousProbeEnv(ProbeEnv):
             reward_data = ContinuousProbeEnv.gaussian(action, self.init_obs * 0.5, 0.5)
         
         other_data = None
+        
         return new_state_data, reward_data, done, other_data
     
 
@@ -345,7 +346,7 @@ class ContinuousProbeEnv(ProbeEnv):
         """
         x = np.arange(-1,1, 0.1)
         y = agent.get_action_values_eval(
-            torch.tensor([state_value]), torch.tensor(x))
+            torch.tensor([state_value]), torch.tensor(x)).squeeze()
         if mode == "gaussian":
             baseline = ContinuousProbeEnv.gaussian(x, mu, sigma)
         elif mode == "constant":
