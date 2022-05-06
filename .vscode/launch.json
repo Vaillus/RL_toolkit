@@ -6,7 +6,7 @@
     "configurations": [
         
         {
-            "name": "défaut python",
+            "name": "debug externe",
             "type": "python",
             "request": "launch",
             "program": "${file}",

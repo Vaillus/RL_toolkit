@@ -2,7 +2,7 @@ import gym
 import minatar
 from GodotEnvironment import GodotEnvironment
 from modules.probe_env import DiscreteProbeEnv, ContinuousProbeEnv
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, Tuple
 import re
 from modules.logger import Logger
 from utils import get_params
@@ -55,9 +55,9 @@ class EnvInterface:
             env.set_seed(self.seed)
         elif self.type == "probe":
             if action_type == "discrete":
-                env = DiscreteProbeEnv(self.name)
+                env = DiscreteProbeEnv(self.name, self)
             elif action_type == "continuous":
-                env = ContinuousProbeEnv(self.name)
+                env = ContinuousProbeEnv(self.name, self)
         return env
     
     def set_seed(self, seed:int):
@@ -113,7 +113,7 @@ class EnvInterface:
             raise ValueError(f'{self.name} is not supported for action \
                 type checking')
 
-    def step(self, action_data):
+    def step(self, action_data) -> Tuple[np.ndarray, float, bool, dict]:
         action_data = self.modify_action(action_data)
         state, reward, terminated, other = self.env.step(action_data)
         reward = self.shape_reward(state, reward)
@@ -123,7 +123,7 @@ class EnvInterface:
     def close(self):
         self.env.close()
     
-    def reset(self, episode_id):
+    def reset(self, episode_id) -> np.ndarray:
         """ Reset the environment, in both godot and gym case
         """
         if self.type == "godot":
@@ -256,7 +256,7 @@ class EnvInterface:
                 action = [action]
         return action
     
-    def modify_state(self, state):
+    def modify_state(self, state) -> np.ndarray:
         if not isinstance(state,np.ndarray):
                 state = np.array(state)
         if self.name.startswith("MinAtar/Breakout"):
@@ -266,7 +266,7 @@ class EnvInterface:
         state = self._normalize_obs(state)
         return state
     
-    def _normalize_obs(self, obs: np.ndarray):
+    def _normalize_obs(self, obs: np.ndarray) -> np.ndarray:
 
         if self.ob_rms:
             self.ob_rms.update(obs)
@@ -282,8 +282,6 @@ class EnvInterface:
             self.ret_rms.update(np.array([self.ret].copy()))
             rews = np.clip(rews / np.sqrt(self.ret_rms.var + self.epsilon), -self.clip_rew, self.clip_rew)
         return rews
-
-
 
 
 

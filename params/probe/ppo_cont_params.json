@@ -7,7 +7,7 @@
   },
   "env_info":{
     "type": "probe",
-    "name": "five",
+    "name": "three",
     "action_type": "continuous",
     "normalize_obs": true
   },
@@ -20,8 +20,10 @@
       "clip_range": 0.2,
       "n_epochs": 7,
       "entropy_coeff": 0,
+      "value_coeff": 0.5,
       "is_continuous": true,
       "normalize_advantages": true,
+      "grad_clip_range": 0.5,
       "memory_info":{
         "size": 1024,
         "batch_size": 64

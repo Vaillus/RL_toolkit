@@ -30,7 +30,7 @@ class PPOAgent:
         is_continuous: bool = False,
         state_dim: Optional[int] = 1, 
         clip_range: Optional[float] = 0.2,
-        value_coeff: Optional[float] = 1.0,
+        value_coeff: Optional[float] = 0.5, # not sure about the usefulness of this since I have a separate value network.
         entropy_coeff: Optional[float] = 0.01,
         n_epochs: Optional[int] = 8,
         gae_lambda: Optional[float] = 0.95,
@@ -146,7 +146,7 @@ class PPOAgent:
                     assert obs_values.shape == batch.rewards.shape, "something \
                         wrong with the shapes of the tensors for the computation of value loss"
                     value_loss = MSELoss(obs_values, batch.returns)
-                    self.critic.backpropagate(value_loss * self.value_coeff)
+                    self.critic.backpropagate(value_loss * self.value_coeff, grad_clip_range=self.grad_clip_range)
                     self.value_losses.append(value_loss.item())
                     # explained variance as a new metric. 
                     # measures how much the value of the state is correctly predicted.
@@ -156,9 +156,6 @@ class PPOAgent:
                     self.explained_vars.append(explained_var)
 
                     # === actor stuff
-                    # TODO: sample minibatches here and iterate over them.
-                    # nb: needed only when the batch size is too high for the cpu/gpu. 
-                    # Not the case here.
                     #probs_new = self.get_proba(batch.observations, batch.actions)
                     if self.is_continuous:
                         # get the probabilities of the action taken with the updated policy
@@ -189,7 +186,7 @@ class PPOAgent:
                         self.entropies.append(entropy.item())
                         entropy_loss = - entropy * self.entropy_coeff
                         
-                        self.actor.backpropagate(policy_loss + entropy_loss)
+                        self.actor.backpropagate(policy_loss + entropy_loss, grad_clip_range=self.grad_clip_range)
 
                         self.entropy_losses.append(entropy_loss.item())
                         self.policy_losses.append(policy_loss.item())
@@ -224,7 +221,7 @@ class PPOAgent:
                         #intrinsic_reward = self.compute_icm_loss(batch, self.actor)
                         #intrinsic_rewards.append(intrinsic_reward.item())
                         
-                        self.actor.backpropagate(policy_loss + entropy_loss) #+ intrinsic_reward)
+                        self.actor.backpropagate(policy_loss + entropy_loss, grad_clip_range=self.grad_clip_range) #+ intrinsic_reward)
             self._log_control_metrics()
             # the replay buffer is used only one (completely) and then 
             # emptied out

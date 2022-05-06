@@ -7,11 +7,15 @@ import matplotlib.pyplot as plt
 #class ProbeEnv(ABC):
 
 class ProbeEnv:
-    def __init__(self, name: str):
+    def __init__(self, name: str, normalize_obs: bool = True):
         self.name = name
         self.init_obs = None
         self.is_first_step = True
         self.logger = None
+        self.norm_obs = normalize_obs
+        self.ob_rms =  None
+        self.clip_obs = 1.0 
+        self.epsilon = 1e-8
 
     def set_seed(self, seed):
         self.seed = seed
@@ -22,6 +26,16 @@ class ProbeEnv:
     
     def close(self):
         pass
+
+    def _normalize_obs(self, obs: np.ndarray) -> np.ndarray:
+        if self.ob_rms:
+            self.ob_rms.update(obs)
+            obs = np.clip((obs - self.ob_rms.mean) / np.sqrt(self.ob_rms.var + self.epsilon), -self.clip_obs, self.clip_obs)
+        elif self.norm_obs:
+            self.ob_rms = RunningMeanStd(shape=obs.shape)
+            self.ob_rms.update(obs)
+            obs = np.clip((obs - self.ob_rms.mean) / np.sqrt(self.ob_rms.var + self.epsilon), -self.clip_obs, self.clip_obs)
+        return obs
 
 class DiscreteProbeEnv(ProbeEnv):
     def __init__(self, name: str):
@@ -93,12 +107,12 @@ class DiscreteProbeEnv(ProbeEnv):
 
     def plot(self, episode_id, agent):
         if self.name == "one":
-            state = torch.tensor([0])
+            state = self._normalize_obs(torch.tensor([0]))
             state_value = agent.get_state_value_eval(state)
             self.logger.log({"Probe/Value of action at state 0": state_value}, 1)
         elif self.name == "two":
-            state_pos = torch.tensor([1])
-            state_neg = torch.tensor([-1])
+            state_pos = self._normalize_obs(torch.tensor([1]))
+            state_neg = self._normalize_obs(torch.tensor([-1]))
             state_value_pos = agent.get_state_value_eval(state_pos)
             state_value_neg = agent.get_state_value_eval(state_neg)
             self.logger.log({
@@ -106,8 +120,8 @@ class DiscreteProbeEnv(ProbeEnv):
                 "Probe/Value of state 1": state_value_pos
             },1)
         elif self.name == "three":
-            first_state = torch.tensor([0])
-            second_state = torch.tensor([1])
+            first_state = self._normalize_obs(torch.tensor([0]))
+            second_state = self._normalize_obs(torch.tensor([1]))
             first_state_value = agent.get_state_value_eval(first_state)
             second_state_value = agent.get_state_value_eval(second_state)
             self.logger.log({
@@ -115,15 +129,15 @@ class DiscreteProbeEnv(ProbeEnv):
                 "Probe/Value of state 1": second_state_value
             },1)
         elif self.name == "four":
-            state = torch.tensor([0])
+            state = self._normalize_obs(torch.tensor([0]))
             actions_values = agent.get_state_value_eval(state)
             self.logger.log({
                 "Probe/state 0 action 0": actions_values[0],
                 "Probe/state 0 action 1": actions_values[1]
             },1)
         elif self.name == "five":
-            first_state = torch.tensor([-1])
-            second_state = torch.tensor([1])
+            first_state = self._normalize_obs(torch.tensor([-1]))
+            second_state = self._normalize_obs(torch.tensor([1]))
             first_state_value = agent.get_state_value_eval(first_state)
             second_state_value = agent.get_state_value_eval(second_state)
             self.logger.log({
@@ -135,19 +149,19 @@ class DiscreteProbeEnv(ProbeEnv):
     
     def show_results(self, agent):
         if self.name == "one":
-            state = torch.tensor([0])
+            state = self._normalize_obs(torch.tensor([0]))
             state_value = agent.get_state_value_eval(state)
             print(f'value of state {state.data}: {state_value}')
         elif self.name == "two":
-            state_pos = torch.tensor([1])
-            state_neg = torch.tensor([-1])
+            state_pos = self._normalize_obs(torch.tensor([1]))
+            state_neg = self._normalize_obs(torch.tensor([-1]))
             state_value_pos = agent.get_state_value_eval(state_pos)
             state_value_neg = agent.get_state_value_eval(state_neg)
             print(f'value of state {state_pos.data}: {state_value_pos}')
             print(f'value of state {state_neg.data}: {state_value_neg}')
         elif self.name == "three":
-            first_state = torch.tensor([0])
-            second_state = torch.tensor([1])
+            first_state = self._normalize_obs(torch.tensor([0]))
+            second_state = self._normalize_obs(torch.tensor([1]))
             first_state_value = agent.get_state_value_eval(first_state)
             second_state_value = agent.get_state_value_eval(second_state)
             print(f'value of state {first_state.data}: {first_state_value}')
@@ -157,8 +171,8 @@ class DiscreteProbeEnv(ProbeEnv):
             actions_values = agent.get_state_value_eval(state)
             print(f'value of actions in state {state.data}: {actions_values}')
         elif self.name == "five":
-            first_state = torch.tensor([-1])
-            second_state = torch.tensor([1])
+            first_state = self._normalize_obs(torch.tensor([-1]))
+            second_state = self._normalize_obs(torch.tensor([1]))
             first_state_actions_values = agent.get_state_value_eval(first_state)
             second_state_actions_values = agent.get_state_value_eval(second_state)
             print(f'value of state {first_state.data}: {first_state_actions_values}')
@@ -170,25 +184,25 @@ class ContinuousProbeEnv(ProbeEnv):
     def __init__(self, name: str):
         super(ContinuousProbeEnv, self).__init__(name)
     
-    def reset(self):
+    def reset(self) -> np.ndarray:
         if self.name == "one":
-            state_data = [0]
+            state_data = np.array([0])
         elif self.name == "two":
             obs = np.random.choice([-1, 1])
             self.init_obs = obs
-            state_data = [obs]
+            state_data = np.array([obs])
         elif self.name == "three":
-            state_data = [0]
+            state_data = np.array([0])
             self.is_first_step = True
         elif self.name == "four":
-            state_data = [0]
+            state_data = np.array([0])
         elif self.name == "five":
             obs = np.random.choice([-1, 1])
             self.init_obs = obs
-            state_data = [obs]
+            state_data = np.array([obs])
         return state_data
     
-    def step(self, action:float):
+    def step(self, action:float) -> np.ndarray:
         self.logger.log({"Probe/Action value": action}, 100)
         if self.name == "one":
             new_state_data = [0]
@@ -223,20 +237,19 @@ class ContinuousProbeEnv(ProbeEnv):
             reward_data = ContinuousProbeEnv.gaussian(action, self.init_obs * 0.5, 0.5)
         
         other_data = None
-        
         return new_state_data, reward_data, done, other_data
     
 
     def plot(self, episode_id, agent):
         if self.name == "one":
-            state = torch.tensor([0])
+            state = self._normalize_obs(torch.tensor([0]))
             action = torch.tensor([0])
             #action_value = agent.get_action_values_eval(state, action).item()
             state_value = agent.get_state_value_eval(state)
             self.logger.log({"Probe/Value of state 0": state_value},1)
         elif self.name == "two":
-            state_pos = torch.tensor([1])
-            state_neg = torch.tensor([-1])
+            state_pos = self._normalize_obs(torch.tensor([1]))
+            state_neg = self._normalize_obs(torch.tensor([-1]))
             state_value_pos = agent.get_state_value_eval(state_pos)
             state_value_neg = agent.get_state_value_eval(state_neg)
             #state_value_pos = agent.get_action_values_eval(state_pos, torch.tensor([0.0]))
@@ -246,8 +259,8 @@ class ContinuousProbeEnv(ProbeEnv):
                 "Probe/Value of state 1": state_value_pos
             },1)
         elif self.name == "three":
-            first_state = torch.tensor([0])
-            second_state = torch.tensor([1])
+            first_state = self._normalize_obs(torch.tensor([0]))
+            second_state = self._normalize_obs(torch.tensor([1]))
             first_state_value = agent.get_state_value_eval(first_state)
             second_state_value = agent.get_state_value_eval(second_state)
             #state_value_pos = agent.get_action_values_eval(first_state, torch.tensor([0.0]))
@@ -259,15 +272,15 @@ class ContinuousProbeEnv(ProbeEnv):
         elif self.name == "four":
             pass
             #self.plot_final_result(agent, 0)
-            state = torch.tensor([0])
+            state = self._normalize_obs(torch.tensor([0]))
             mu, sig = agent.actor(state)
             """action = torch.tensor([0])
             action_value = agent.get_action_values_eval(state, action).item()
             self.logger.log({"Probe/Value of action 0 at state 0": action_value}, 1)"""
             self.logger.log({"Probe/Mean action": mu, "Probe/std action": sig}, 1)
         elif self.name == "five":
-            first_state = torch.tensor([-1])
-            second_state = torch.tensor([1])
+            first_state = self._normalize_obs(torch.tensor([-1]))
+            second_state = self._normalize_obs(torch.tensor([1]))
             mu1, sig1 = agent.actor(first_state)
             mu2, sig2 = agent.actor(second_state)
             self.logger.log({
@@ -291,7 +304,7 @@ class ContinuousProbeEnv(ProbeEnv):
 
     def show_results(self, agent):
         if self.name == "one":
-            state = torch.tensor([0])
+            state = self._normalize_obs(torch.tensor([0]))
             action = torch.tensor([0])
             #action_value = agent.get_action_values_eval(state, action).item()
             state_value = agent.get_state_value_eval(state)
@@ -300,8 +313,8 @@ class ContinuousProbeEnv(ProbeEnv):
 
             self.plot_final_result(agent, 0, mu= 1, mode="constant")
         elif self.name == "two":
-            state_pos = torch.tensor([1])
-            state_neg = torch.tensor([-1])
+            state_pos = self._normalize_obs(torch.tensor([1]))
+            state_neg = self._normalize_obs(torch.tensor([-1]))
             state_value_pos = agent.get_state_value_eval(state_pos)
             state_value_neg = agent.get_state_value_eval(state_neg)
             print(f'value of state {state_pos.data}: {state_value_pos}')
@@ -309,8 +322,8 @@ class ContinuousProbeEnv(ProbeEnv):
             self.plot_final_result(agent, -1,  mu= -1, mode="constant")
             self.plot_final_result(agent, 1,  mu= 1, mode="constant")
         elif self.name == "three":
-            first_state = torch.tensor([0])
-            second_state = torch.tensor([1])
+            first_state = self._normalize_obs(torch.tensor([0]))
+            second_state = self._normalize_obs(torch.tensor([1]))
             first_state_value = agent.get_state_value_eval(first_state)
             second_state_value = agent.get_state_value_eval(second_state)
             print(f'value of state {first_state.data}: {first_state_value}')
@@ -318,13 +331,13 @@ class ContinuousProbeEnv(ProbeEnv):
             self.plot_final_result(agent, 0, agent.get_discount() , mode="constant")
             self.plot_final_result(agent, 1, 1, mode="constant")
         elif self.name == "four":
-            state = torch.tensor([0])
+            state = self._normalize_obs(torch.tensor([0]))
             action_value = agent.get_state_value_eval(state).item()
             print(f'Value of action 0 at state 0: {action_value}')
             self.plot_final_result(agent, 0)
         elif self.name == "five":
-            state_pos = torch.tensor([1])
-            state_neg = torch.tensor([-1])
+            state_pos = self._normalize_obs(torch.tensor([1]))
+            state_neg = self._normalize_obs(torch.tensor([-1]))
             state_value_pos = agent.get_state_value_eval(state_pos)
             state_value_neg = agent.get_state_value_eval(state_neg)
             print(f'value of state {state_pos.data}: {state_value_pos}')
@@ -369,3 +382,33 @@ class PerfoProbeEnv(ProbeEnv):
             self.init_obs = obs
             state_data = [obs]
         return state_data
+
+class RunningMeanStd(object):
+    def __init__(self, epsilon=1e-4, shape=()):
+        self.mean = np.zeros(shape, 'float64')
+        self.var = np.ones(shape, 'float64')
+        self.count = epsilon
+
+    def update(self, x):
+        batch_mean = np.mean([x], axis=0)
+        batch_var = np.var([x], axis=0)
+        batch_count = 1
+        self.update_from_moments(batch_mean, batch_var, batch_count)
+
+    def update_from_moments(self, batch_mean, batch_var, batch_count):
+        self.mean, self.var, self.count = update_mean_var_count_from_moments(
+            self.mean, self.var, self.count, batch_mean, batch_var, batch_count)
+
+def update_mean_var_count_from_moments(mean, var, count, batch_mean, batch_var, batch_count):
+    delta = batch_mean - mean
+    tot_count = count + batch_count
+    # update mean
+    new_mean = mean + delta * batch_count / tot_count
+    # update var
+    m_a = var * count
+    m_b = batch_var * batch_count
+    M2 = m_a + m_b + np.square(delta) * count * batch_count / tot_count
+    new_var = M2 / tot_count
+    new_count = tot_count
+
+    return new_mean, new_var, new_count

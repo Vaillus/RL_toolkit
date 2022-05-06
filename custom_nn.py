@@ -180,10 +180,12 @@ class CustomNeuralNetwork(nn.Module):
             x = self.layers[i](x)
         return x
 
-    def backpropagate(self, loss):
+    def backpropagate(self, loss, grad_clip_range=None):
         """update the weight with the gradients and step the optimizer"""
         self.optimizer.zero_grad()
         loss.backward()
+        if grad_clip_range is not None:
+            torch.nn.utils.clip_grad_norm_(self.parameters(), grad_clip_range)
         self.optimizer.step()
         #print("coucou")
     
