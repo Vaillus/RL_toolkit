@@ -14,7 +14,7 @@ from wandb.integration.sb3 import WandbCallback
 
 config = {
     "policy_type": "MlpPolicy",
-    "total_timesteps": 2500000,
+    "total_timesteps": 250000000,
     "env_name": "Pendulum-v0",
 }
 run = wandb.init(
@@ -31,5 +31,5 @@ from stable_baselines3 import PPO
 #env = make_vec_env('Pendulum-v0', n_envs=4)
 env = gym.make("Pendulum-v0")
 
-model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=f"runs/{run.id}")
-model.learn(total_timesteps=2500000, callback=WandbCallback())
+model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=f"runs/{run.id}", gae_lambda=1.0)
+model.learn(total_timesteps=250000000, callback=WandbCallback())

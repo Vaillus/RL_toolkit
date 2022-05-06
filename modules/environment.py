@@ -204,7 +204,8 @@ class EnvInterface:
             if position > 0.5: # why?
                 reward_data += 0.1
         elif self.name.startswith("Pendulum"):
-            reward_data = reward_data / 100
+            pass
+            #reward_data = reward_data / 100
             #print(reward_data)
             #reward_data = reward_data[0]
         reward_data = self._normalize_rew(reward_data)

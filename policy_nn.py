@@ -7,7 +7,7 @@ from typing import Optional, Any, Dict
 
 def layer_init(layer: nn.Linear, std: float = np.sqrt(2), bias_const=0.0) -> nn.Linear:
     nn.init.orthogonal_(layer.weight.data, std)
-    nn.init.constant_(layer.bias, bias_const)
+    #nn.init.constant_(layer.bias, bias_const) # in sb3, bias is still there
     return layer
 
 
@@ -29,9 +29,11 @@ class PolicyNetwork(CustomNeuralNetwork):
             self.adapt_last_layer_to_continuous()
 
     def adapt_last_layer_to_continuous(self):
-        # removing last layer because we are going to replace it with mu and sigma.
+        """ removing last layer because we are going to replace it with 
+        mu and sigma.
+        """
         self.layers = self.layers[:-1] 
-        
+        # init mu
         self.mu = nn.Sequential(
             layer_init(nn.Linear(
                 self._get_layers_sizes(self.layers_info["sizes"])[-1],
@@ -39,6 +41,7 @@ class PolicyNetwork(CustomNeuralNetwork):
             ), std = 0.01),
             nn.Tanh()
         )
+        # init sigma
         # case where std is state-dependant
         """self.sigma = nn.Linear(
                 self._get_layers_sizes(self.layers_info["sizes"])[-1], 
@@ -63,6 +66,7 @@ class PolicyNetwork(CustomNeuralNetwork):
             std = m(self.sigma -0.1879)
             return self.mu(x), std#m(self.sigma(x) -0.1879)
         else: 
+            # discrete case
             return super().forward(x)
         
     def reinit_layers(self, input_dim, output_dim):

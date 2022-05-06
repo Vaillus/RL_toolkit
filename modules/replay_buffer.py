@@ -281,7 +281,8 @@ class PPOReplayBuffer(BaseReplayBuffer):
         
         if done == True:
             # compute advantages for each transition
-            self._compute_advantages_gae_ep()
+            #self._compute_advantages_gae_ep()
+            self._compute_advantages()
             # send the episode to the main buffer
             self._copy_ep_to_buffer()
             # update the buffer position
@@ -330,8 +331,22 @@ class PPOReplayBuffer(BaseReplayBuffer):
     def _compute_advantages(self):
         self._compute_ep_returns()
         prev_state_value = self.critic(self.ep_buffer.observations[:self.ep_pos+1])
-        self.ep_buffer.advantages[:self.ep_pos+1] = self.ep_buffer.returns[:self.ep_pos+1] - prev_state_value.detach()
+        self.ep_buffer.advantages[:self.ep_pos+1] = torch.Tensor(self.ep_buffer.returns[:self.ep_pos+1]).unsqueeze(-1) - prev_state_value.detach()
         #self.normalize(advantage) # is it really a good idea?
+
+    def _compute_ep_returns(self):
+        """ Compute the returns at each step of the episode and store 
+        them in the episode buffer
+        """
+        #reverse_rewards = torch.flip(self.ep_buffer.rewards[:self.ep_pos+1], (0,1))
+        disc_reward:float = 0.0
+        self.ep_buffer.returns = [0] * (self.ep_pos +1) # this is bidouillage
+        for step in reversed(range(self.ep_pos+1)):
+            disc_reward = self.ep_buffer.rewards[step] + self.discount_factor * disc_reward
+            self.ep_buffer.returns[step] = disc_reward
+        #for i, reward in enumerate(reverse_rewards):
+        #    disc_reward = reward + self.discount_factor * disc_reward
+        #    self.ep_buffer.returns[self.ep_pos - i] = disc_reward
     
     def _copy_ep_to_buffer(self):
         
@@ -397,15 +412,7 @@ class PPOReplayBuffer(BaseReplayBuffer):
             ret_val = input
         return ret_val
 
-    def _compute_ep_returns(self):
-        """ Compute the returns at each step of the episode and store 
-        them in the episode buffer
-        """
-        reverse_rewards = torch.flip(self.ep_buffer.rewards[:self.ep_pos+1], (0,1))
-        disc_reward:float = 0.0
-        for i, reward in enumerate(reverse_rewards):
-            disc_reward = reward + self.discount_factor * disc_reward
-            self.ep_buffer.returns[self.ep_pos - i] = disc_reward
+    
         
     
 
