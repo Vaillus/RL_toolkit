@@ -90,7 +90,7 @@ metatron==1.0
 mistune==0.8.4
 more-itertools==8.6.0
 nbclient==0.5.1
-nbconvert==6.0.7
+nbconvert==6.3.0
 nbformat==5.1.2
 nest-asyncio==1.5.1
 netifaces==0.10.9
