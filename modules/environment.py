@@ -31,7 +31,7 @@ class EnvInterface:
         self.seed = 0
         self.monitor = monitor
         self.env = self._init_env(godot_kwargs, action_type)
-        self.action_type = self.get_action_type(action_type)
+        self.action_type : str  = self.get_action_type(action_type)
         self.logger = None
         
         # normalization variables

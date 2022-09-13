@@ -179,6 +179,7 @@ class SingleAgentInterface(AgentInterface):
         agent_action_type = get_params("misc/agent_action_type")
         #assert action_type == agent_action_type[self.type], "env and agent\
         # action types don't match"
+        # I don't know why I'm not checking the action type.
         is_ok = (
             (self.agent.num_actions == action_dim) and 
             (self.agent.state_dim == state_dim)
@@ -188,6 +189,17 @@ class SingleAgentInterface(AgentInterface):
     def fix(self, action_dim:int, state_dim:int):
         self.agent.adjust_dims(state_dim, action_dim)
     
+    def get_tot_timestep(self):
+        if self.type == "DQN":
+            return self.agent.tot_timestep
+        else:
+            return 0
+
+    def set_tot_timestep(self, tot_timestep):
+        if self.type == "DQN":
+            self.agent.tot_timestep = tot_timestep
+        else:
+            pass    
 
 
 class MultiAgentInterface(AgentInterface):
@@ -270,5 +282,18 @@ class MultiAgentInterface(AgentInterface):
                 agent_reward = reward_data[n_agent]["reward"]
 
                 self.agent[agent_name].end(agent_state, agent_reward)
+    
+    def get_tot_timestep(self):
+        if self.type == "DQN":
+            return self.agent[self.agents_names[0]].tot_timestep
+        else:
+            return 0
+
+    def set_tot_timestep(self, tot_timestep):
+        if self.type == "DQN":
+            for agent_name in self.agents_names:
+                self.agent[agent_name].tot_timestep = tot_timestep
+        else:
+            pass    
     
    

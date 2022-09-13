@@ -123,18 +123,6 @@ class Session:
             #wandb.log({"gameplays": wandb.Video("./video/"+get_video_file(), caption='episode: '+str(id_episode), fps=4, format="mp4"), "step": id_episode})
             id_episode += 1
         
-        # plot the rewards
-        if self.plot:
-            # TODO: change that, it is temporary. We plot the evolution
-            # region lighting rate
-            if self.environment.type == "Abaddon":
-                plt.plot(self.environment.metrics["regions"])
-            else:
-                avg_reward = Session._average_rewards(rewards)
-                avg_reward = np.array(avg_reward)
-                plt.plot(avg_reward)
-            plt.show()
-
         if self.environment.type == "probe":
             self.environment.show_result(self.agent)
             #print(episode_reward)
@@ -167,7 +155,7 @@ class Session:
         # Main loop
         while not done:
             ep_len += 1
-            self.increment_timestep()
+            self._increment_timestep()
             # run a step in the environment and get the new state, reward 
             # and info about whether the episode is over.
             new_state_data, reward_data, done, _ = self.environment.step(action_data)
@@ -256,7 +244,7 @@ class Session:
 
         return avg_rewards
 
-    def increment_timestep(self):
+    def _increment_timestep(self):
         self.tot_timestep += 1
         self.agent.tot_timestep = self.tot_timestep
 

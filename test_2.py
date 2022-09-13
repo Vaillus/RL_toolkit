@@ -12,6 +12,10 @@ import gym
 import wandb
 from wandb.integration.sb3 import WandbCallback
 
+#from stable_baselines3.common import make_vec_env
+#from stable_baselines3.ppo import PPO
+import stable_baselines3 as sb3
+
 config = {
     "policy_type": "MlpPolicy",
     "total_timesteps": 250000000,
@@ -24,14 +28,12 @@ run = wandb.init(
     monitor_gym=True,  # auto-upload the videos of agents playing the game
     save_code=True,  # optional
 )
-#from stable_baselines3.common import make_vec_env
-from stable_baselines3.ppo import PPO
 
 # multiprocess environment
 #env = make_vec_env('Pendulum-v0', n_envs=4)
 env = gym.make("Pendulum-v1")
 
-model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=f"runs/{run.id}", gae_lambda=1.0)
+model = sb3.ppo.PPO("MlpPolicy", env, verbose=1, tensorboard_log=f"runs/{run.id}", gae_lambda=1.0)
 model.learn(
     total_timesteps=250000000, 
     callback=WandbCallback()
