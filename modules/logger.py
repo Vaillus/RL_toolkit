@@ -41,11 +41,26 @@ class Logger:
         job_type: str, 
         notes: Optional[str] = None,
         tags: Optional[List[str]] = None,
-        config: Optional[Dict[str, Any]] = None
+        config: Optional[Dict[str, Any]] = None,
+        group: Optional[str] = None
     ):
-        wandb.init(job_type, notes=notes, tags=tags, config=config, monitor_gym=True)
+        wandb.init(
+            job_type, 
+            notes=notes, 
+            tags=tags, 
+            config=config, 
+            monitor_gym=True, 
+            group=group
+        )
 
     def wandb_watch(self, models, log_freq:Optional[int] = None, type = None):
+        """Used to watch the weights of a model
+
+        Args:
+            models (_type_): _description_
+            log_freq (Optional[int], optional): _description_. Defaults to None.
+            type (_type_, optional): _description_. Defaults to None.
+        """
         if type is not None:
             attr_str = type + "_freq"
             log_freq = getattr(self, attr_str)
