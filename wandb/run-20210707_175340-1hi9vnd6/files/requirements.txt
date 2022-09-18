@@ -124,7 +124,7 @@ pyglet==1.5.0
 pygments==2.7.4
 pygobject==3.36.0
 pyhamcrest==2.0.2
-pyjwt==2.0.1
+pyjwt==2.4.0
 pylint==2.6.0
 pymacaroons==0.13.0
 pynacl==1.4.0
