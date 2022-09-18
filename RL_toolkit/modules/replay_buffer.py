@@ -3,7 +3,7 @@ import torch
 from typing import NamedTuple, Optional, List, Union
 from collections import namedtuple
 
-from custom_nn import CustomNeuralNetwork
+from RL_toolkit.custom_nn import CustomNeuralNetwork
 
 import cProfile
 import pstats

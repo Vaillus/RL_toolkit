@@ -1,12 +1,12 @@
-from utils import set_random_seed
+from RL_toolkit.utils import set_random_seed
 import numpy as np
 import torch
 from copy import deepcopy
 from typing import Any, Dict, Optional, Type
 
-from custom_nn import CustomNeuralNetwork
-from modules.replay_buffer import VanillaReplayBuffer
-from modules.logger import Logger
+from RL_toolkit.custom_nn import CustomNeuralNetwork
+from RL_toolkit.modules.replay_buffer import VanillaReplayBuffer
+from RL_toolkit.modules.logger import Logger
 
 #device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 

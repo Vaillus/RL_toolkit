@@ -4,11 +4,11 @@ from typing import Dict, Any, List, Optional
 import numpy as np
 import torch
 
-from modules.agent import MultiAgentInterface, SingleAgentInterface
-from modules.environment import EnvInterface
-from modules.logger import Logger
+from RL_toolkit.modules.agent import MultiAgentInterface, SingleAgentInterface
+from RL_toolkit.modules.environment import EnvInterface
+from RL_toolkit.modules.logger import Logger
 
-from utils import get_params, set_random_seed
+from RL_toolkit.utils import get_params, set_random_seed
 
 def get_video_file():
     files = os.listdir("./video/")

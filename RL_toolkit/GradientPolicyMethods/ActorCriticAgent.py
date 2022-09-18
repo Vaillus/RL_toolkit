@@ -1,13 +1,13 @@
-from custom_nn import CustomNeuralNetwork
-from policy_nn import PolicyNetwork
+from RL_toolkit.custom_nn import CustomNeuralNetwork
+from RL_toolkit.policy_nn import PolicyNetwork
 import numpy as np
 import torch
 from torch.distributions import Categorical
 
-from modules.replay_buffer import VanillaReplayBuffer
+from RL_toolkit.modules.replay_buffer import VanillaReplayBuffer
 from typing import Optional, Type, Dict, Any
-from modules.logger import Logger
-from utils import set_random_seed
+from RL_toolkit.modules.logger import Logger
+from RL_toolkit.utils import set_random_seed
 from scipy.stats import norm
 import math
 

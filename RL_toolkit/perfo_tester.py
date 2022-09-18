@@ -1,4 +1,4 @@
-from other_agents.perfo_agent import PerfoAgent
+from RL_toolkit.other_agents.perfo_agent import PerfoAgent
 import torch
 import cProfile
 import pstats

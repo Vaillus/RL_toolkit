@@ -1,11 +1,11 @@
 import gym
-import minatar
-from GodotEnvironment import GodotEnvironment
-from modules.probe_env import DiscreteProbeEnv, ContinuousProbeEnv
+#import minatar
+#from GodotEnvironment import GodotEnvironment
+from RL_toolkit.modules.probe_env import DiscreteProbeEnv, ContinuousProbeEnv
 from typing import Dict, Optional, Any, Tuple
 import re
-from modules.logger import Logger
-from utils import get_params
+from RL_toolkit.modules.logger import Logger
+from RL_toolkit.utils import get_params
 import numpy as np
 
 class EnvInterface:

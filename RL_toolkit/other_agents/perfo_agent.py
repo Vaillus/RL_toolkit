@@ -1,10 +1,10 @@
-from utils import set_random_seed
+from RL_toolkit.utils import set_random_seed
 import torch
 from typing import Any, Dict, Optional, Type
 
-from custom_nn import CustomNeuralNetwork
-from modules.replay_buffer import PerfoReplayBuffer
-from modules.logger import Logger
+from RL_toolkit.custom_nn import CustomNeuralNetwork
+from RL_toolkit.modules.replay_buffer import PerfoReplayBuffer
+from RL_toolkit.modules.logger import Logger
 
 class PerfoAgent:
     def __init__(

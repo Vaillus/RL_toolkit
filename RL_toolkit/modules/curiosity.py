@@ -1,7 +1,7 @@
 import torch
 import torch.nn.functional as F
 
-from custom_nn import CustomNeuralNetwork
+from RL_toolkit.custom_nn import CustomNeuralNetwork
 
 MSELoss = torch.nn.MSELoss()
 

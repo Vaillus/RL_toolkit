@@ -1,8 +1,8 @@
-from custom_nn import CustomNeuralNetwork
+from RL_toolkit.custom_nn import CustomNeuralNetwork
 import numpy as np
 import torch
 import torch.nn
-from utils import set_random_seed
+from RL_toolkit.utils import set_random_seed
 
 # obsolete
 
