@@ -1,4 +1,4 @@
-from TileCoder.TileCoderSutton import *
+from RL_toolkit.TileCoder.TileCoderSutton import *
 import numpy as np
 
 

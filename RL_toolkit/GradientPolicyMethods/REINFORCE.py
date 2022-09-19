@@ -1,8 +1,8 @@
-from custom_nn import CustomNeuralNetwork
+from RL_toolkit.custom_nn import CustomNeuralNetwork
 import torch
 import numpy as np
 from torch.distributions import Categorical
-from utils import set_random_seed
+from RL_toolkit.utils import set_random_seed
 
 
 class REINFORCEAgent:

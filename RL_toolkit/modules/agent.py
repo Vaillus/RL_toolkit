@@ -1,17 +1,17 @@
-from other_agents.TDAgent import TDAgent
-from DQN.DQNAgent import DQNAgent
-from GradientPolicyMethods.REINFORCE import REINFORCEAgent
-from GradientPolicyMethods.REINFORCE_baseline import REINFORCEAgentWithBaseline
-from GradientPolicyMethods.ActorCriticAgent import ActorCriticAgent
-from GradientPolicyMethods.ppo import PPOAgent
-from GradientPolicyMethods.ddpg import DDPGAgent
-from other_agents.AbaddonAgent import AbaddonAgent
-from modules.logger import Logger
+from RL_toolkit.other_agents.TDAgent import TDAgent
+from RL_toolkit.DQN.DQNAgent import DQNAgent
+from RL_toolkit.GradientPolicyMethods.REINFORCE import REINFORCEAgent
+from RL_toolkit.GradientPolicyMethods.REINFORCE_baseline import REINFORCEAgentWithBaseline
+from RL_toolkit.GradientPolicyMethods.ActorCriticAgent import ActorCriticAgent
+from RL_toolkit.GradientPolicyMethods.ppo import PPOAgent
+from RL_toolkit.GradientPolicyMethods.ddpg import DDPGAgent
+from RL_toolkit.other_agents.AbaddonAgent import AbaddonAgent
+from RL_toolkit.modules.logger import Logger
 
 from typing import List, Optional, Any, Dict
 from abc import ABC, abstractmethod
 import torch
-from utils import get_params
+from RL_toolkit.utils import get_params
 import wandb
 
 

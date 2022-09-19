@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import numpy as np
-from utils import set_random_seed
+from RL_toolkit.utils import set_random_seed
 from typing import Optional, Any, Dict
 
 def layer_init(layer: nn.Linear, std: float = np.sqrt(2), bias_const=0.0) -> nn.Linear:

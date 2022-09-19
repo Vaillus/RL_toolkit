@@ -1,5 +1,5 @@
 import numpy as np
-from TileCoder.IHT import *
+from RL_toolkit.TileCoder.IHT import *
 
 class TileCoderSutton:
     def __init__(self, params):

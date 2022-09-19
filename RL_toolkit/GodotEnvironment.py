@@ -4,11 +4,11 @@ import numpy as np
 import os
 import subprocess
 import ast
-from utils import get_path
+from RL_toolkit.utils import get_path
 
 import struct
 from typing import Optional
-from modules.logger import Logger
+from RL_toolkit.modules.logger import Logger
 
 def recv_msg(sock):
     # Read message length and unpack it into an integer

@@ -1,6 +1,6 @@
-from Session import *
+from RL_toolkit.Session import *
 import matplotlib.pyplot as plt
-from utils import get_params, set_random_seed, get_from_dict, set_in_dict, get_attr
+from RL_toolkit.utils import get_params, set_random_seed, get_from_dict, set_in_dict, get_attr
 import random
 from copy import deepcopy
 import math

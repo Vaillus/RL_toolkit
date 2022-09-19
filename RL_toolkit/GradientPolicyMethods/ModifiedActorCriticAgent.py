@@ -1,7 +1,7 @@
-from #GradientPolicyMethods.PolicyEstimator import *
-from DQN.DQN import *
-from #GradientPolicyMethods.BaselineNetwork import *
-from custom_nn import *
+#from #GradientPolicyMethods.PolicyEstimator import *
+from RL_toolkit.DQN.DQN import *
+#from #GradientPolicyMethods.BaselineNetwork import *
+from RL_toolkit.custom_nn import *
 
 
 # TODO : I think this one is to be thrown away

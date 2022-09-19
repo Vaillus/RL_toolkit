@@ -1,14 +1,14 @@
-from custom_nn import CustomNeuralNetwork
-from policy_nn import PolicyNetwork
+from RL_toolkit.custom_nn import CustomNeuralNetwork
+from RL_toolkit.policy_nn import PolicyNetwork
 import torch
 import torch.nn as nn
 from torch.distributions import Categorical
 from typing import Optional, Type, Dict, Any, List, Union
-from modules.replay_buffer import PPOReplayBuffer
-from modules.logger import Logger
-from utils import set_random_seed
+from RL_toolkit.modules.replay_buffer import PPOReplayBuffer
+from RL_toolkit.modules.logger import Logger
+from RL_toolkit.utils import set_random_seed
 
-from modules.curiosity import Curiosity
+from RL_toolkit.modules.curiosity import Curiosity
 import numpy as np
 
 import cProfile

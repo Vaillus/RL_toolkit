@@ -1,4 +1,4 @@
-from custom_nn import CustomNeuralNetwork
+from RL_toolkit.custom_nn import CustomNeuralNetwork
 import torch
 import torch.nn as nn
 import numpy as np

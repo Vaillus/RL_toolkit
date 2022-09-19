@@ -1,4 +1,4 @@
-from custom_nn import CustomNeuralNetwork as CustomNN
+from RL_toolkit.custom_nn import CustomNeuralNetwork as CustomNN
 import numpy as np
 import torch
 import wandb

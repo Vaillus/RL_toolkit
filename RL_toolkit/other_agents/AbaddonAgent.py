@@ -1,5 +1,5 @@
 import numpy as np
-from utils import set_random_seed
+from RL_toolkit.utils import set_random_seed
 import math
 
 class AbaddonAgent:
