@@ -368,7 +368,7 @@ class PPOAgent:
 
     def actor_cont(self, state: np.ndarray, plot: bool = False):
         """ Return the action distribution for the given state in the 
-        continuous case."""
+        continuous action case."""
         mu, sigma = self.actor(state)
         if plot:
             self.logger.log({
