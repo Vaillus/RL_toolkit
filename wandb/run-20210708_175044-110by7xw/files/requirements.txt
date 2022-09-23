@@ -133,7 +133,7 @@ prometheus-client==0.7.1
 promise==2.3
 prompt-toolkit==3.0.8
 protego==0.1.16
-protobuf==3.14.0
+protobuf==3.18.3
 psutil==5.8.0
 pyasn1-modules==0.2.1
 pyasn1==0.4.2
