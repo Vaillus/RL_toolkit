@@ -95,7 +95,7 @@ launchpadlib==1.10.13
 lazr.restfulclient==0.14.2
 lazr.uri==1.0.3
 lazy-object-proxy==1.4.3
-lxml==4.6.2
+lxml==4.9.1
 markdown==3.3.3
 markupsafe==1.1.0
 matplotlib==3.2.2
