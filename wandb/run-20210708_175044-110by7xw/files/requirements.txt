@@ -24,7 +24,7 @@ command-not-found==0.3
 configobj==5.0.6
 configparser==5.0.2
 constantly==15.1.0
-cryptography==2.8
+cryptography==39.0.1
 cssselect==1.1.0
 cvxopt==1.2.5
 cycler==0.10.0
