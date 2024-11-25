@@ -196,7 +196,7 @@ wandb==0.10.33
 wcwidth==0.2.5
 webencodings==0.5.1
 werkzeug==1.0.1
-wheel==0.36.2
+wheel==0.38.1
 widgetsnbextension==3.5.1
 wrapt==1.12.1
 xkit==0.0.0
